@@ -1,8 +1,29 @@
 import { Hono } from 'hono';
 import type { AppBindings } from '../types';
+import { getMapsRuntimeConfig } from '../lib/platform-config';
 
 export const mapSafeRoutes = new Hono<AppBindings>();
+export const publicMapSafeRoutes = new Hono<AppBindings>();
 type Row = Record<string, any>;
+
+// A chave usada pelo Maps JavaScript é pública no navegador. Ela deve permanecer
+// restrita no Google Cloud ao domínio do ChegaJá e somente às APIs necessárias.
+// Esta rota permite que o rastreio do cliente carregue o mesmo provedor selecionado
+// pelo Administrador Master sem exigir login.
+publicMapSafeRoutes.get('/maps-config', async c => {
+  const config=await getMapsRuntimeConfig(c.env);
+  const enabled=config.provider==='google'&&Boolean(config.browserKey);
+  return c.json({
+    ok:true,
+    item:{
+      provider:enabled?'google':'openstreetmap',
+      requested_provider:config.provider,
+      enabled,
+      api_key:enabled?config.browserKey:null,
+      map_id:config.mapId||'DEMO_MAP_ID'
+    }
+  });
+});
 
 mapSafeRoutes.get('/map/self', async c => {
   const auth=c.get('auth');
@@ -29,6 +50,7 @@ mapSafeRoutes.get('/map/drivers', async c => {
     FROM drivers d
     JOIN cooperatives c ON c.id=d.cooperative_id
     WHERE d.deleted_at IS NULL AND d.status='active'
+      AND d.current_lat IS NOT NULL AND d.current_lng IS NOT NULL
   `;
   const params:unknown[]=[];
 
@@ -48,7 +70,7 @@ mapSafeRoutes.get('/map/drivers', async c => {
     params.push(auth.establishmentId,auth.establishmentId);
   }
 
-  sql+=' ORDER BY d.online DESC,d.name';
+  sql+=' ORDER BY d.online DESC,d.location_updated_at DESC,d.name LIMIT 1500';
   const rows=await c.env.DB.prepare(sql).bind(...params).all<Row>();
   return c.json({ok:true,items:rows.results||[]});
 });
