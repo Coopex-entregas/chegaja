@@ -25,6 +25,7 @@ import { platformV19Routes } from './routes/platform-v19';
 import { platformV21Routes } from './routes/platform-v21';
 import { platformV22Routes } from './routes/platform-v22';
 import { platformV23Routes } from './routes/platform-v23';
+import { mapSafeRoutes } from './routes/map-safe';
 import { settleDueGuarantees } from './lib/guarantees';
 import { enforceUserPermissions } from './lib/permissions';
 import { requireAuth } from './lib/auth';
@@ -64,11 +65,12 @@ app.use('/api/app/*', async (c, next) => {
     return c.json({ ok:false, error:'O estabelecimento possui acesso somente para visualizar a escala. Alterações são feitas pela cooperativa; trocas são solicitadas pelos próprios cooperados.' },403);
   }
   if (auth.role === 'platform_admin') {
-    const allowed = ['/api/app/dashboard','/api/app/cooperatives','/api/app/platform/','/api/app/audit'];
+    const allowed = ['/api/app/dashboard','/api/app/cooperatives','/api/app/platform/','/api/app/audit','/api/app/map/'];
     if (!allowed.some((prefix) => c.req.path === prefix || c.req.path.startsWith(prefix))) return c.json({ ok:false, error:'O Administrador Principal acessa somente cooperativas, indicadores e auditoria da plataforma.' },403);
   }
   await next();
 });
+app.route('/api/app', mapSafeRoutes);
 app.route('/api/app', adminRoutes);
 app.route('/api/app', operationRoutes);
 app.route('/api/app', tenantRoutes);
