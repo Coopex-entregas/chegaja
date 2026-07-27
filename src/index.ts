@@ -27,6 +27,7 @@ import { platformV21Routes } from './routes/platform-v21';
 import { platformV22Routes } from './routes/platform-v22';
 import { platformV23Routes } from './routes/platform-v23';
 import { mapSafeRoutes, publicMapSafeRoutes } from './routes/map-safe';
+import { driverLiveRoutes } from './routes/driver-live';
 import { settleDueGuarantees } from './lib/guarantees';
 import { enforceUserPermissions } from './lib/permissions';
 import { requireAuth } from './lib/auth';
@@ -73,6 +74,7 @@ app.use('/api/app/*', async (c, next) => {
   }
   await next();
 });
+app.route('/api/app', driverLiveRoutes);
 app.route('/api/app', mapSafeRoutes);
 app.route('/api/app', adminRoutes);
 app.route('/api/app', operationRoutes);
