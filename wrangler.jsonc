@@ -27,9 +27,6 @@
     "ROUTER_URL": "https://router.project-osrm.org/route/v1/driving",
     "GOOGLE_MAPS_MAP_ID": "DEMO_MAP_ID"
   },
-  "secrets": {
-    "required": ["JWT_SECRET"]
-  },
   "triggers": {
     "crons": ["*/5 * * * *"]
   }
