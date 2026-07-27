@@ -39,8 +39,11 @@ import { processScheduledDeliveries } from './lib/scheduled-deliveries';
 const app = new Hono<AppBindings>();
 app.use('*', secureHeaders());
 app.use('/api/*', cors({ origin: '*', allowHeaders: ['Authorization','Content-Type','X-API-Key'], allowMethods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }));
+app.get('/api/health', (c) => c.json({ ok:true, app:c.env.APP_NAME, time:new Date().toISOString() }));
 
-app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME, time: new Date().toISOString() }));
+// A configuração do mapa precisa existir também em /api/auth porque os módulos
+// internos consultam essa rota antes e depois do login.
+app.route('/api/auth', publicMapSafeRoutes);
 app.route('/api/auth', authRoutes);
 app.route('/api/public', publicMapSafeRoutes);
 app.route('/api/public', publicRoutes);
@@ -53,24 +56,16 @@ app.route('/api/v1', integrationRoutes);
 app.use('/api/app/*', requireAuth);
 app.use('/api/app/*', enforceUserPermissions);
 app.use('/api/app/*', async (c, next) => {
-  const legacy = [
-    /^\/api\/app\/contract-prices(?:\/|$)/,
-    /^\/api\/app\/price-tables(?:\/|$)/,
-    /^\/api\/app\/price-rules(?:\/|$)/
-  ];
-  if (legacy.some((pattern) => pattern.test(c.req.path))) {
-    return c.json({ ok:false, error:'Módulo removido. Os valores são configurados por quilômetro e taxa mínima no estabelecimento.' },410);
-  }
+  const legacy=[/^\/api\/app\/contract-prices(?:\/|$)/,/^\/api\/app\/price-tables(?:\/|$)/,/^\/api\/app\/price-rules(?:\/|$)/];
+  if(legacy.some(pattern=>pattern.test(c.req.path)))return c.json({ok:false,error:'Módulo removido. Os valores são configurados por quilômetro e taxa mínima no estabelecimento.'},410);
   await next();
 });
 app.use('/api/app/*', async (c, next) => {
-  const auth = c.get('auth');
-  if (auth.role === 'establishment' && c.req.method !== 'GET' && /\/(?:schedules?|schedule-grid|schedule-planner|schedule-swaps)(?:\/|$)/.test(c.req.path)) {
-    return c.json({ ok:false, error:'O estabelecimento possui acesso somente para visualizar a escala. Alterações são feitas pela cooperativa; trocas são solicitadas pelos próprios cooperados.' },403);
-  }
-  if (auth.role === 'platform_admin') {
-    const allowed = ['/api/app/dashboard','/api/app/cooperatives','/api/app/platform/','/api/app/audit','/api/app/map/'];
-    if (!allowed.some((prefix) => c.req.path === prefix || c.req.path.startsWith(prefix))) return c.json({ ok:false, error:'O Administrador Principal acessa somente cooperativas, indicadores e auditoria da plataforma.' },403);
+  const auth=c.get('auth');
+  if(auth.role==='establishment'&&c.req.method!=='GET'&&/\/(?:schedules?|schedule-grid|schedule-planner|schedule-swaps)(?:\/|$)/.test(c.req.path))return c.json({ok:false,error:'O estabelecimento possui acesso somente para visualizar a escala. Alterações são feitas pela cooperativa; trocas são solicitadas pelos próprios cooperados.'},403);
+  if(auth.role==='platform_admin'){
+    const allowed=['/api/app/dashboard','/api/app/cooperatives','/api/app/platform/','/api/app/audit','/api/app/map/'];
+    if(!allowed.some(prefix=>c.req.path===prefix||c.req.path.startsWith(prefix)))return c.json({ok:false,error:'O Administrador Principal acessa somente cooperativas, indicadores e auditoria da plataforma.'},403);
   }
   await next();
 });
@@ -95,22 +90,13 @@ app.route('/api/app', platformV21Routes);
 app.route('/api/app', platformV22Routes);
 app.route('/api/app', platformV23Routes);
 
-app.onError((error, c) => {
-  console.error(error);
-  const message = error instanceof Error ? error.message : 'Erro interno.';
-  const status = message.includes('não autorizado') ? 403 : 400;
-  return c.json({ ok: false, error: c.env.APP_ENV === 'production' && status === 400 && message.includes('D1') ? 'Não foi possível concluir a operação.' : message }, status);
-});
-
-app.notFound(async (c) => {
-  if (c.req.path.startsWith('/api/')) return jsonError('Rota não encontrada.', 404);
-  return c.env.ASSETS.fetch(c.req.raw);
-});
+app.onError((error,c)=>{console.error(error);const message=error instanceof Error?error.message:'Erro interno.';const status=message.includes('não autorizado')?403:400;return c.json({ok:false,error:c.env.APP_ENV==='production'&&status===400&&message.includes('D1')?'Não foi possível concluir a operação.':message},status)});
+app.notFound(async c=>c.req.path.startsWith('/api/')?jsonError('Rota não encontrada.',404):c.env.ASSETS.fetch(c.req.raw));
 
 export default {
-  fetch: app.fetch,
-  async scheduled(_event: ScheduledEvent, env: AppBindings['Bindings'], ctx: ExecutionContext) {
-    ctx.waitUntil(processWebhookQueue(env, 50));
+  fetch:app.fetch,
+  async scheduled(_event:ScheduledEvent,env:AppBindings['Bindings'],ctx:ExecutionContext){
+    ctx.waitUntil(processWebhookQueue(env,50));
     ctx.waitUntil(env.DB.prepare(`DELETE FROM driver_locations WHERE recorded_at < datetime('now','-30 days')`).run());
     ctx.waitUntil(env.DB.prepare(`DELETE FROM password_reset_tokens WHERE expires_at < datetime('now','-1 day')`).run());
     ctx.waitUntil(env.DB.prepare(`DELETE FROM customer_password_reset_tokens WHERE expires_at < datetime('now','-1 day')`).run());
