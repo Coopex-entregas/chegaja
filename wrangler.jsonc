@@ -1,6 +1,6 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ligerim",
+  "name": "chegaja",
   "main": "src/index.ts",
   "compatibility_date": "2026-07-14",
   "observability": { "enabled": true },
@@ -13,8 +13,8 @@
   "d1_databases": [
     {
       "binding": "DB",
-      "database_name": "ligerim-db",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_name": "chegaja-db",
+      "database_id": "ee192ac0-d6e8-44d0-b45f-fde069f4703e",
       "migrations_dir": "migrations"
     }
   ],
