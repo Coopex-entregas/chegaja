@@ -41,7 +41,7 @@ SELECT
   NULL,
   NULL,
   'Administrador Master',
-  'chegaja@gmail.com',
+  'chegajja@gmail.com',
   NULL,
   'TwWCtVmQiM9OXg5E_0J2D8cff-zXcpEi9ya5H7yYe-c',
   'gg4Zz6-RDkXUlFthb85A5g',
