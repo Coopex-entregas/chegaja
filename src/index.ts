@@ -25,7 +25,7 @@ import { platformV19Routes } from './routes/platform-v19';
 import { platformV21Routes } from './routes/platform-v21';
 import { platformV22Routes } from './routes/platform-v22';
 import { platformV23Routes } from './routes/platform-v23';
-import { mapSafeRoutes } from './routes/map-safe';
+import { mapSafeRoutes, publicMapSafeRoutes } from './routes/map-safe';
 import { settleDueGuarantees } from './lib/guarantees';
 import { enforceUserPermissions } from './lib/permissions';
 import { requireAuth } from './lib/auth';
@@ -40,6 +40,7 @@ app.use('/api/*', cors({ origin: '*', allowHeaders: ['Authorization','Content-Ty
 
 app.get('/api/health', (c) => c.json({ ok: true, app: c.env.APP_NAME, time: new Date().toISOString() }));
 app.route('/api/auth', authRoutes);
+app.route('/api/public', publicMapSafeRoutes);
 app.route('/api/public', publicRoutes);
 app.route('/api/public/customer', customerRoutes);
 app.route('/api/public', publicV16Routes);
