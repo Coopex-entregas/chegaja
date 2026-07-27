@@ -1,0 +1,554 @@
+/* ChegaJá 14.16.0 — experiência móvel em tela cheia para celular e PWA */
+
+/* Nunca permita que a tela de acesso e o painel apareçam juntos. */
+#auth-screen.hidden,
+#tracking-screen.hidden,
+#customer-screen.hidden,
+#app-shell.hidden {
+  display: none !important;
+}
+
+@media (max-width: 768px) {
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    min-height: 100%;
+    overflow: hidden !important;
+    overscroll-behavior: none;
+  }
+
+  body {
+    min-width: 0 !important;
+    font-size: 13px;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Login com aparência de aplicativo e sem continuação do painel abaixo. */
+  .auth-screen:not(.hidden) {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 9000 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    overflow: hidden !important;
+    background: #f4f7fc !important;
+  }
+
+  .auth-brand {
+    display: none !important;
+  }
+
+  .auth-panel {
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: max(16px, env(safe-area-inset-top)) 16px max(16px, env(safe-area-inset-bottom)) !important;
+    overflow: hidden !important;
+  }
+
+  .auth-card {
+    width: 100% !important;
+    max-width: 420px !important;
+    max-height: calc(100dvh - max(32px, env(safe-area-inset-top)) - max(32px, env(safe-area-inset-bottom))) !important;
+    overflow-y: auto !important;
+    padding: 22px 18px !important;
+    border-radius: 22px !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .auth-login-logo img {
+    max-height: 78px !important;
+  }
+
+  .auth-card h2 {
+    font-size: 23px !important;
+    margin-bottom: 17px !important;
+  }
+
+  .auth-card label {
+    margin-bottom: 12px !important;
+  }
+
+  .customer-entry-actions {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 8px !important;
+  }
+
+  /* Estrutura fixa: cabe no aparelho e rola apenas o conteúdo interno. */
+  .app-shell:not(.hidden),
+  .customer-screen:not(.hidden),
+  .tracking-screen:not(.hidden) {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    height: 100dvh !important;
+    min-height: 100dvh !important;
+    overflow: hidden !important;
+    background: var(--cj-bg, #f3f7fd) !important;
+  }
+
+  .app-body {
+    margin-left: 0 !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: 100dvh !important;
+    min-height: 0 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
+  }
+
+  .sidebar {
+    width: min(86vw, 320px) !important;
+    transform: translateX(-105%) !important;
+    transition: transform .2s ease !important;
+    padding-top: max(18px, env(safe-area-inset-top)) !important;
+  }
+
+  .sidebar.open {
+    transform: translateX(0) !important;
+  }
+
+  .topbar {
+    flex: 0 0 auto !important;
+    width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: calc(58px + env(safe-area-inset-top)) !important;
+    padding: max(9px, env(safe-area-inset-top)) 10px 9px 12px !important;
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    overflow: visible !important;
+    position: relative !important;
+    top: auto !important;
+    z-index: 80 !important;
+  }
+
+  .topbar > div:first-of-type {
+    min-width: 0 !important;
+    flex: 1 1 auto !important;
+    order: 1 !important;
+  }
+
+  .topbar h1 {
+    max-width: 100% !important;
+    margin: 0 !important;
+    font-size: clamp(17px, 4.6vw, 21px) !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  .topbar .eyebrow {
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    max-width: 100% !important;
+  }
+
+  .topbar-actions {
+    order: 2 !important;
+    margin-left: auto !important;
+    flex: 0 0 auto !important;
+    gap: 5px !important;
+  }
+
+  #menu-button {
+    display: grid !important;
+    order: 3 !important;
+    margin-left: 2px !important;
+    flex: 0 0 42px !important;
+  }
+
+  .topbar .icon-button,
+  .topbar .btn.small {
+    width: 42px !important;
+    min-width: 42px !important;
+    height: 42px !important;
+    padding: 0 !important;
+  }
+
+  .master-coop-filter {
+    max-width: 118px !important;
+    height: 40px !important;
+  }
+
+  .online-control {
+    max-width: 158px !important;
+    min-width: 0 !important;
+    padding: 4px 5px 4px 7px !important;
+    gap: 5px !important;
+  }
+
+  .online-control #online-label {
+    display: none !important;
+  }
+
+  .online-control .btn {
+    width: auto !important;
+    min-width: 0 !important;
+    padding: 0 8px !important;
+    font-size: 10px !important;
+  }
+
+  #refresh-button {
+    display: none !important;
+  }
+
+  .page-content,
+  #customer-content {
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 10px 10px calc(84px + env(safe-area-inset-bottom)) !important;
+    overflow-x: hidden !important;
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+  }
+
+  .customer-shell,
+  .tracking-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .customer-header {
+    min-height: calc(58px + env(safe-area-inset-top)) !important;
+    padding: max(9px, env(safe-area-inset-top)) 10px 9px !important;
+  }
+
+  /* Nenhuma aba pode aumentar a largura da página. */
+  .page-content *,
+  #customer-content * {
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  img,
+  video,
+  canvas,
+  svg,
+  iframe {
+    max-width: 100% !important;
+  }
+
+  .cards,
+  .quick-actions,
+  .stats-grid,
+  .v31-driver-metrics,
+  .v31-day-summary,
+  .v31-summary,
+  .cj149-map-status {
+    width: 100% !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 8px !important;
+  }
+
+  .stat-card,
+  .cards > *,
+  .v31-driver-metrics > *,
+  .v31-day-summary > *,
+  .v31-summary > * {
+    min-height: 104px !important;
+    padding: 12px !important;
+    border-radius: 14px !important;
+    overflow: hidden !important;
+  }
+
+  .stat-card strong,
+  .cards > * strong,
+  .v31-driver-metrics strong,
+  .v31-day-summary strong,
+  .v31-summary strong {
+    font-size: clamp(18px, 5vw, 24px) !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .panel,
+  .panel-body,
+  .panel-header,
+  .delivery-card,
+  .driver-wallet-card,
+  .cj143-blue-card,
+  .v31-collect-amount {
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .panel {
+    border-radius: 14px !important;
+    margin-bottom: 10px !important;
+  }
+
+  .panel-header {
+    padding: 12px !important;
+    align-items: flex-start !important;
+    flex-wrap: wrap !important;
+  }
+
+  .panel-body {
+    padding: 12px !important;
+  }
+
+  .toolbar,
+  .form-actions,
+  .actions,
+  .section-tabs,
+  .cj143-profile-actions {
+    max-width: 100% !important;
+  }
+
+  .toolbar {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    width: 100% !important;
+    gap: 8px !important;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .toolbar button,
+  .toolbar .search,
+  .form-actions .btn {
+    width: 100% !important;
+    min-width: 0 !important;
+  }
+
+  .form-grid,
+  .split,
+  .tracking-address,
+  .cj143-help,
+  .cj143-profile-grid,
+  .cj1413-guarantees > div,
+  .cj1414-shift-row,
+  .calendar-list {
+    grid-template-columns: 1fr !important;
+  }
+
+  .form-grid > *,
+  .form-grid .full,
+  .form-actions {
+    grid-column: 1 !important;
+  }
+
+  .form-actions {
+    display: grid !important;
+    grid-template-columns: 1fr !important;
+    gap: 8px !important;
+  }
+
+  .table-wrap,
+  .section-tabs,
+  .kanban,
+  .calendar-list {
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .data-table {
+    width: max-content !important;
+    min-width: 100% !important;
+  }
+
+  .map,
+  .map.small,
+  #v31-driver-map,
+  #v31-base-map,
+  #cj14-est-map {
+    width: 100% !important;
+    height: min(48dvh, 410px) !important;
+    min-height: 290px !important;
+  }
+
+  .modal {
+    padding: 0 !important;
+    align-items: stretch !important;
+  }
+
+  .modal-card {
+    width: 100% !important;
+    max-width: 100% !important;
+    height: 100dvh !important;
+    max-height: 100dvh !important;
+    border-radius: 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important;
+  }
+
+  .toast-container {
+    left: 10px !important;
+    right: 10px !important;
+    bottom: calc(78px + env(safe-area-inset-bottom)) !important;
+  }
+
+  .toast {
+    width: 100% !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+
+  /* Cooperado: tela exclusiva, navegação fixa e menu no lado direito. */
+  body.cj143-driver,
+  body.cj144-driver,
+  body.cj14-driver,
+  body.v31-driver-mode,
+  body.v32-driver-single-menu {
+    width: 100% !important;
+    height: 100dvh !important;
+    padding: 0 !important;
+    overflow: hidden !important;
+  }
+
+  body.cj143-driver #auth-screen,
+  body.cj144-driver #auth-screen,
+  body.cj14-driver #auth-screen,
+  body.v31-driver-mode #auth-screen,
+  body.v32-driver-single-menu #auth-screen {
+    display: none !important;
+  }
+
+  body.cj143-driver .sidebar,
+  body.cj144-driver .sidebar,
+  body.cj14-driver .sidebar,
+  body.v31-driver-mode .sidebar,
+  body.v32-driver-single-menu .sidebar {
+    display: none !important;
+  }
+
+  body.cj143-driver .app-body,
+  body.cj144-driver .app-body,
+  body.cj14-driver .app-body,
+  body.v31-driver-mode .app-body,
+  body.v32-driver-single-menu .app-body {
+    margin: 0 !important;
+  }
+
+  body.cj143-driver #menu-button,
+  body.cj144-driver #menu-button,
+  body.cj14-driver #menu-button,
+  body.v31-driver-mode #menu-button,
+  body.v32-driver-single-menu #menu-button {
+    display: none !important;
+  }
+
+  body.cj143-driver .topbar,
+  body.cj144-driver .topbar,
+  body.cj14-driver .topbar,
+  body.v31-driver-mode .topbar,
+  body.v32-driver-single-menu .topbar {
+    padding-right: 62px !important;
+  }
+
+  #cj143-driver-menu {
+    display: grid !important;
+    place-items: center !important;
+    position: fixed !important;
+    left: auto !important;
+    right: 10px !important;
+    top: max(9px, env(safe-area-inset-top)) !important;
+    width: 43px !important;
+    height: 43px !important;
+    margin: 0 !important;
+    z-index: 5100 !important;
+  }
+
+  #cj143-driver-nav {
+    width: 100% !important;
+    min-height: calc(68px + env(safe-area-inset-bottom)) !important;
+    grid-template-columns: repeat(5, minmax(0, 1fr)) !important;
+    padding: 5px 4px max(5px, env(safe-area-inset-bottom)) !important;
+  }
+
+  #cj143-driver-nav button {
+    width: 100% !important;
+    min-width: 0 !important;
+    min-height: 54px !important;
+    padding: 4px 2px !important;
+  }
+
+  #cj143-driver-nav button span {
+    max-width: 100% !important;
+    font-size: 9px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+
+  #cj143-driver-nav button.sos {
+    width: 58px !important;
+    height: 58px !important;
+    min-height: 58px !important;
+    margin-top: -15px !important;
+  }
+
+  #cj143-driver-drawer aside {
+    width: min(86vw, 330px) !important;
+    padding-top: max(14px, env(safe-area-inset-top)) !important;
+    padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
+    overflow-y: auto !important;
+  }
+
+  body.cj143-driver .page-content,
+  body.cj144-driver .page-content,
+  body.cj14-driver .page-content,
+  body.v31-driver-mode .page-content,
+  body.v32-driver-single-menu .page-content {
+    padding: 10px 10px calc(84px + env(safe-area-inset-bottom)) !important;
+  }
+
+  body.cj143-driver .v31-driver-map-card,
+  body.cj144-driver .v31-driver-map-card,
+  body.cj14-driver .v31-driver-map-card,
+  body.v31-driver-mode .v31-driver-map-card,
+  body.v32-driver-single-menu .v31-driver-map-card {
+    width: 100% !important;
+    height: min(48dvh, 410px) !important;
+    min-height: 290px !important;
+  }
+}
+
+@media (max-width: 390px) {
+  .page-content,
+  #customer-content {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+  }
+
+  .cards,
+  .quick-actions,
+  .stats-grid,
+  .v31-driver-metrics,
+  .v31-day-summary,
+  .v31-summary {
+    gap: 7px !important;
+  }
+
+  .stat-card,
+  .cards > *,
+  .v31-driver-metrics > *,
+  .v31-day-summary > *,
+  .v31-summary > * {
+    padding: 10px !important;
+    min-height: 98px !important;
+  }
+
+  .topbar-actions .v21-top-action,
+  .topbar-actions .master-coop-filter {
+    display: none !important;
+  }
+}
