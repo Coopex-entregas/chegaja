@@ -3,7 +3,7 @@
 
 UPDATE users
 SET name = 'Administrador Master',
-    email = 'chegaja@gmail.com',
+    email = 'chegajja@gmail.com',
     username = NULL,
     password_hash = 'TwWCtVmQiM9OXg5E_0J2D8cff-zXcpEi9ya5H7yYe-c',
     password_salt = 'gg4Zz6-RDkXUlFthb85A5g',
