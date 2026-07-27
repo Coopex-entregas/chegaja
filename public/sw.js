@@ -1,4 +1,4 @@
-const CACHE='chegaja-clean-14-16-2';
+const CACHE='chegaja-clean-14-16-4';
 self.addEventListener('install',event=>{self.skipWaiting()});
 self.addEventListener('activate',event=>{event.waitUntil(Promise.all([
   self.clients.claim(),
