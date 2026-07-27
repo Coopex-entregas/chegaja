@@ -20,12 +20,15 @@
   ],
   "vars": {
     "APP_NAME": "ChegaJá",
-    "APP_URL": "http://127.0.0.1:8787",
+    "APP_URL": "https://chegaja.coopexentregas-rn.workers.dev",
     "MAIL_FROM": "ChegaJá <nao-responda@seudominio.com>",
     "APP_ENV": "production",
     "GEOCODER_URL": "https://nominatim.openstreetmap.org/search",
     "ROUTER_URL": "https://router.project-osrm.org/route/v1/driving",
     "GOOGLE_MAPS_MAP_ID": "DEMO_MAP_ID"
+  },
+  "secrets": {
+    "required": ["JWT_SECRET"]
   },
   "triggers": {
     "crons": ["*/5 * * * *"]
