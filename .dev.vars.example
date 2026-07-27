@@ -1,0 +1,9 @@
+JWT_SECRET=troque-por-uma-chave-grande-e-aleatoria
+RESEND_API_KEY=
+APP_ENV=development
+APP_URL=http://127.0.0.1:8787
+MAIL_FROM=ChegaJá <nao-responda@seudominio.com>
+
+GOOGLE_MAPS_API_KEY=
+GOOGLE_MAPS_BROWSER_KEY=
+GOOGLE_MAPS_MAP_ID=DEMO_MAP_ID

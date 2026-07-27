@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ligerim",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-07-14",
+  "observability": { "enabled": true },
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "ligerim-db",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "APP_NAME": "ChegaJá",
+    "APP_URL": "http://127.0.0.1:8787",
+    "MAIL_FROM": "ChegaJá <nao-responda@seudominio.com>",
+    "APP_ENV": "production",
+    "GEOCODER_URL": "https://nominatim.openstreetmap.org/search",
+    "ROUTER_URL": "https://router.project-osrm.org/route/v1/driving",
+    "GOOGLE_MAPS_MAP_ID": "DEMO_MAP_ID"
+  },
+  "triggers": {
+    "crons": ["*/5 * * * *"]
+  }
+}

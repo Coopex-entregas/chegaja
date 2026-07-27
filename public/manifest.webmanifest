@@ -1,0 +1,17 @@
+{
+  "name": "ChegaJá",
+  "short_name": "ChegaJá",
+  "description": "ChegaJá — plataforma cooperativa de entregas, rastreamento, escalas e financeiro.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f6f8fd",
+  "theme_color": "#08266f",
+  "icons": [
+    {
+      "src": "/icons/icon-official.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

@@ -1,0 +1,8 @@
+import type { Env } from '../types';
+import { signJwt, verifyJwt } from './crypto';
+import type { AddressCandidate, GeoPoint } from './maps';
+type Payload={kind:'address_confirmation';candidate:AddressCandidate;cooperative_id?:string|null;exp:number};
+export async function makeAddressConfirmationToken(env:Env,candidate:AddressCandidate,cooperativeId?:string|null){return signJwt({kind:'address_confirmation',candidate,cooperative_id:cooperativeId||null},env.JWT_SECRET,1800)}
+export async function readAddressConfirmationToken(env:Env,token:unknown):Promise<AddressCandidate>{const raw=String(token||'').trim();if(!raw)throw new Error('Confirme o endereço selecionando uma opção da busca.');const p=await verifyJwt<Payload>(raw,env.JWT_SECRET);if(p.kind!=='address_confirmation'||!p.candidate)throw new Error('Confirmação de endereço inválida.');const c=p.candidate;if(!c.street||!c.number||!c.city||!c.state||!Number.isFinite(c.lat)||!Number.isFinite(c.lng))throw new Error('O endereço confirmado está incompleto. Informe rua, número, cidade e estado.');return c}
+export const addressPoint=(c:AddressCandidate):GeoPoint=>({lat:c.lat,lng:c.lng,display_name:c.formatted_address});
+export const addressJson=(c:AddressCandidate)=>JSON.stringify({provider:c.provider,provider_id:c.provider_id,formatted_address:c.formatted_address,street:c.street,number:c.number,neighborhood:c.neighborhood,city:c.city,state:c.state,state_code:c.state_code,postal_code:c.postal_code,country:c.country,latitude:c.lat,longitude:c.lng,precision:c.precision,exact_number:c.exact_number,exact_city:c.exact_city,exact_state:c.exact_state,place_name:c.place_name||null});

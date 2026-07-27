@@ -1,0 +1,39 @@
+{
+  "name": "chegaja-14-15-9-completo-corrigido",
+  "version": "14.15.9",
+  "private": true,
+  "description": "ChegaJá 14.15.9 — mapas no Administrador Master, atendente automático da Base e matrícula permanente",
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "typecheck": "tsc --noEmit",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrate:remote": "wrangler d1 migrations apply DB --remote",
+    "db:create": "node scripts/configure-cloudflare.mjs",
+    "admin:create": "node scripts/bootstrap-admin.mjs",
+    "check": "npm run typecheck && node --check public/app.js && node --check public/chegaja-final.js && node --check public/chegaja-v144.js && node --check public/chegaja-v145.js && node --check public/chegaja-v148.js && node --check public/chegaja-v149.js && node --check public/sw.js && node scripts/test-customer-cooperative-link.mjs && node scripts/test-v145-fixes.mjs && node scripts/test-v146-schedule.mjs && node scripts/test-v147-schedule-photo.mjs && node scripts/test-v148-schedule.mjs && node scripts/test-v1482-shift-scope.mjs && node scripts/test-v1484-multiple-shifts.mjs && node scripts/test-v149-scheduling-address-ratings-clone.mjs && node scripts/test-v1410-financial.mjs && node scripts/test-v1411-advance-swaps-timezone.mjs && node scripts/test-v1412-financial-statewide-address.mjs && node scripts/test-v1413-weekly-guarantee-address.mjs && node scripts/test-v1414-shift-guarantees.mjs && node scripts/test-v14152-guarantee-report.mjs && node scripts/test-v14153-logo-google-maps.mjs && node scripts/test-v14154-complete-package.mjs && node scripts/test-v14156-driver-ratings.mjs && node scripts/test-v14157-schedule-queue.mjs && node scripts/test-v14158-schedule-attendants.mjs && node scripts/test-v14159-master-maps-membership.mjs",
+    "test:local": "npm run check",
+    "driver:repair": "node scripts/repair-driver-access.mjs",
+    "test:v1413": "node scripts/test-v1413-weekly-guarantee-address.mjs",
+    "test:v1414": "node scripts/test-v1414-shift-guarantees.mjs"
+  },
+  "dependencies": {
+    "hono": "^4.12.30",
+    "leaflet": "^1.9.4",
+    "qrcode-generator": "^1.4.4"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260714.1",
+    "typescript": "^5.9.3",
+    "wrangler": "^4.110.0"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "allowScripts": {
+    "esbuild@0.28.1": true,
+    "sharp@0.34.5": true,
+    "workerd@1.20260708.1": true
+  }
+}

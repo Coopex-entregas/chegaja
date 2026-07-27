@@ -1,0 +1,73 @@
+CHEGAJÁ 13.1 — TESTAR, GITHUB E CLOUDFLARE
+
+1. TESTAR LOCALMENTE
+
+Extraia em uma pasta nova e abra o PowerShell nessa pasta.
+
+Execute:
+
+powershell -ExecutionPolicy Bypass -File .\CONFIGURAR_LOCAL.ps1
+
+Quando terminar:
+
+.\INICIAR_LOCAL.bat
+
+Abra exatamente o endereço mostrado depois de "Ready on".
+Não feche o PowerShell durante o teste.
+No primeiro acesso, pressione Ctrl + F5.
+
+2. TESTES RECOMENDADOS
+
+- Cliente: abrir link com ?cliente=1&coop=CODIGO, cadastrar e verificar entrada automática.
+- Cliente: confirmar coleta e entrega e conferir o valor antes do pedido.
+- Crédito: solicitar e verificar status pendente no cliente e na cooperativa.
+- Saldo insuficiente: confirmar bloqueio do pedido cadastrado.
+- Base: editar Cliente, Coleta, Entrega, Cooperado, Valor e Status clicando no campo.
+- Base: atribuir cooperado online, escalado e elegível.
+- Base: copiar link de rastreio avulso pelo ícone.
+- Base: conferir não atribuídas primeiro e atribuídas abaixo.
+- Base: testar a fila rápida e a conclusão das entregas do dia.
+- Cooperado: entrar na fila a até 30 metros da Base.
+- Cooperado: aceitar e confirmar abertura do mapa da corrida.
+- Cooperado: recusar informando motivo e conferir na Base.
+- SOS: abrir Polícia 190, SAMU 192 e Bombeiros 193 sem entrega ativa.
+- Espera: confirmar que somente o excedente não pago fica pendente.
+
+3. GITHUB DESKTOP
+
+- File > Add local repository.
+- Escolha a pasta extraída do ChegaJá 13.1.
+- Faça Commit to main.
+- Clique em Publish repository.
+- Prefira repositório privado.
+
+O .gitignore bloqueia:
+- node_modules
+- .wrangler
+- .dev.vars
+- .env
+- logs
+
+4. CLOUDFLARE
+
+Execute:
+
+.\PUBLICAR_CLOUDFLARE.bat
+
+O instalador:
+- entra no Cloudflare;
+- localiza ou cria o D1 ligerim-db;
+- grava o ID real no wrangler.jsonc;
+- aplica as 24 migrações;
+- cria a chave JWT;
+- cria ou atualiza o Administrador Master;
+- publica o sistema.
+
+5. DEPOIS DA PUBLICAÇÃO
+
+- Abra o endereço workers.dev informado.
+- Pressione Ctrl + F5.
+- Teste geolocalização, fila, SOS e chamada telefônica em celular real.
+- Faça novo commit do wrangler.jsonc atualizado.
+
+NUNCA envie .dev.vars ao GitHub.

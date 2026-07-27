@@ -1,0 +1,138 @@
+CHEGAJÁ 14.15.9 — LEIA PRIMEIRO
+
+CORREÇÕES DESTA VERSÃO
+
+1. MAPAS NO ADMINISTRADOR MASTER
+- Abra Configurações > Mapas e endereços.
+- Escolha Google Maps ou OpenStreetMap.
+- No modo Google, informe a chave do servidor, a chave do navegador e o Map ID.
+- Use o botão de teste antes de salvar.
+- Se o Google ficar caro, selecione OpenStreetMap; o sistema deixa de usar as APIs Google.
+- As chaves não precisam mais ser informadas no instalador local.
+
+2. ATENDENTE DA BASE
+- Se a cooperativa tiver somente uma Base ativa, ela será vinculada automaticamente ao atendente.
+- Não é necessário selecionar nem cadastrar outra Base.
+- Se houver várias Bases, selecione a Base permitida.
+
+3. MATRÍCULA E HISTÓRICO DO COOPERADO
+- Matrícula no padrão 0001-26: quatro dígitos sequenciais e dois dígitos do ano de ingresso.
+- Cadastre manualmente as matrículas antigas; os próximos números serão sugeridos automaticamente.
+- O sequencial não reinicia a cada ano.
+- Excluir cooperado significa inativar o acesso; nenhum histórico é apagado.
+- Mesmo CPF e mesmo nome reativam o registro original e a mesma matrícula.
+
+4. ESCALA E FILA
+- A semana seguinte copia os mesmos cooperados, dias, locais e horários da semana anterior, alterando somente as datas.
+- Cooperados novos entram com linhas em FOLGA.
+- O cooperado vê sua posição na fila.
+
+ATUALIZAR LOCALMENTE SEM PERDER CADASTROS
+
+1. Extraia este ZIP em uma pasta nova.
+2. Copie da pasta local atual para a pasta nova:
+
+.wrangler
+.dev.vars
+
+3. Execute:
+
+ATUALIZAR_LOCAL_SEM_PERDER_CADASTROS.bat
+
+O atualizador aplica automaticamente a migração 0044 e inicia o sistema usando o mesmo banco local.
+Não execute CONFIGURAR_LOCAL.ps1 quando estiver apenas atualizando uma instalação local existente.
+
+INSTALAÇÃO LOCAL NOVA, SEM CADASTROS ANTERIORES
+
+1. Execute:
+
+powershell -ExecutionPolicy Bypass -File .\CONFIGURAR_LOCAL.ps1
+
+2. Depois execute:
+
+.\INICIAR_LOCAL.bat
+
+IMPORTANTE
+
+- Nunca envie .dev.vars, .wrangler ou node_modules ao GitHub.
+- O provedor e as chaves de mapas são configurados no Administrador Master.
+- A migração mais recente é 0044_master_maps_driver_registry.sql.
+- Antes de apagar a pasta antiga, confirme que os cadastros aparecem normalmente na nova versão.
+
+O QUE TESTAR NA VERSÃO 14.15.0
+
+1. Na Base, clique em Nova entrega e escolha “Agora” ou “Agendar data e horário”.
+2. Teste a atribuição “Não atribuir agora”, “Manual” e “Automática”. Nenhuma delas deve obrigar a escolha imediata de um cooperado.
+3. Crie uma entrega futura e confirme que ela não é enviada ao cooperado antes do horário.
+4. Digite “Natal Shopping” e também um estabelecimento de outro município do RN; confirme que aparecem sugestões em todo o estado.
+5. Use seta para baixo e Enter para selecionar a sugestão.
+6. Confira se o nome do local aparece no complemento quando o campo estiver vazio.
+7. Faça o mesmo teste sem informar a chave Google; a busca alternativa deve continuar disponível.
+8. Abra Avaliações: inicialmente devem aparecer apenas as avaliações de hoje.
+9. Filtre um período e selecione um cooperado ou “Todos os cooperados”.
+10. Clone uma entrega da Base e confirme que a janela para atribuir o cooperado é aberta.
+11. Selecione um cooperado ativo mesmo que ele não esteja online no momento.
+12. Cadastre um cliente pelo link e confirme que ele entra automaticamente no aplicativo do cliente.
+13. Saia e entre novamente pela opção “Já sou cliente” na área do cliente.
+
+ACESSOS
+
+- Cliente: usa a área do cliente, aberta pelo botão de cadastro/acesso ou pelo link da cooperativa.
+- Cooperado: usa o aplicativo do cooperado.
+- Administrador, atendente e estabelecimento: usam o acesso interno da cooperativa.
+- O cliente não utiliza os mesmos campos internos de login dos administradores e cooperados. Essa separação evita misturar permissões.
+
+IMPORTANTE
+
+- Nunca envie .dev.vars, .wrangler ou node_modules ao GitHub.
+- A chave Google é opcional no teste local. Sem ela, o sistema utiliza a alternativa gratuita.
+- Para a entrega automática agendada funcionar, deve existir cooperado elegível no horário. Se não houver, a entrega permanece sem atribuição e o sistema tenta novamente.
+
+TESTES FINANCEIROS DA VERSÃO 14.15.0
+
+14. Abra Ganhos e descontos e filtre por período, cooperado e Cliente/local.
+15. Selecione uma Base ou estabelecimento e confirme o total no fim da listagem.
+16. Exporte o Excel e confirme que o arquivo respeita o cliente/local selecionado.
+17. Abra Despesas, teste os mesmos filtros e confira os totais dos cooperados, administrativo e geral.
+18. Cadastre uma despesa administrativa vinculada a uma Base ou estabelecimento.
+19. Em Impostos e rateios, marque cinco cooperados e lance R$ 100,00 na opção Valor por cooperado. Cada um deve receber desconto de R$ 100,00.
+20. Repita com R$ 100,00 na opção Valor total dividido. A soma dos descontos deve ser exatamente R$ 100,00.
+21. Edite uma entrega concluída da Base e confirme que ganho, INSS e SEST/SENAT são atualizados sem duplicidade.
+
+TESTES DE ADIANTAMENTO, TROCAS E FUSO DA VERSÃO 14.15.0
+
+22. Entre como cooperado e abra Adiantamentos. Confira o valor máximo disponível depois de INSS, SEST/SENAT, adiantamentos anteriores, impostos, rateios e outros descontos.
+23. Tente solicitar um valor maior que o disponível. O sistema deve recusar.
+24. Entre como administrador da cooperativa, abra Adiantamentos e aprove ou recuse o pedido.
+25. No fechamento semanal, confirme a ordem: INSS, SEST/SENAT, adiantamentos, impostos/rateios na ordem cadastrada e demais despesas.
+26. Abra Trocas de escala e confira: onde cada cooperado estava, com quem trocou e para onde cada um foi após a troca.
+27. Faça uma troca direta pela cooperativa e confirme que ela também aparece no histórico.
+28. Confira os horários de cadastros, entregas, pedidos, avaliações e trocas. Eles devem aparecer no fuso de São Paulo/Brasília, sem as três horas adicionais.
+
+
+TESTES DA REGRA FINANCEIRA 14.15.0
+
+29. Finalize uma entrega de estabelecimento. Ela deve aparecer em Produção para fechamento e gerar INSS e SEST/SENAT.
+30. Finalize uma entrega da Base em PIX Cooperativa ou Crédito pré-pago. Ela deve aparecer em Produção para fechamento e pode quitar descontos.
+31. Finalize uma entrega da Base em PIX comum ou dinheiro. Ela deve aparecer em Produção já recebida e não pode quitar rateio, INSS, SEST/SENAT ou outro desconto no fechamento. Cartões e vales são usados somente para indicar como cobrar produto/refeição em entregas de estabelecimento e não são ganho do cooperado.
+32. Deixe apenas produção já recebida e um rateio maior que zero. O saldo deve ficar negativo, nunca positivo.
+33. Crie produção elegível suficiente para cobrir o rateio. Na prévia deve aparecer “Será pago ao fechar”. Clique em Fechar semana e confirme que o status definitivo passa para Pago.
+34. Crie produção elegível insuficiente e feche a semana. Somente o restante deve ir para a semana seguinte com “restante da semana DD/MM/AAAA a DD/MM/AAAA”.
+35. Confirme que nenhum identificador interno “lote ...” aparece na descrição, na tela ou no Excel.
+36. Cancele uma entrega elegível antes do fechamento e confirme que o saldo é recalculado e o desconto volta a ficar aberto quando necessário.
+37. Confira a ordem: INSS, SEST/SENAT, adiantamento, rateios/impostos e demais despesas.
+38. Pesquise endereços e nomes de estabelecimentos em Natal, Parnamirim, São Gonçalo do Amarante, Mossoró ou outro município do Rio Grande do Norte.
+TESTES DE HORÁRIOS E GARANTIDOS
+
+39. Abra o cadastro de um estabelecimento e clique em Adicionar horário. Cadastre, por exemplo, 11:00 às 15:00 com garantido de R$ 80,00 e 17:00 às 22:00 com garantido de R$ 100,00.
+40. Abra a aba Horários e confirme que cada horário aparece com seu próprio garantido.
+41. Na escala, selecione o estabelecimento e confirme que aparecem apenas os horários cadastrados nele, já com a identificação do garantido.
+42. Escale o mesmo cooperado em dois horários do mesmo estabelecimento. Cada linha deve manter seu próprio garantido e seu próprio fechamento de turno.
+43. Finalize o primeiro turno com corridas abaixo do garantido e confirme o lançamento “Complemento de garantido” somente pela diferença daquele horário.
+44. Finalize o segundo turno com corridas acima do garantido e confirme que não é criado complemento.
+45. Confirme que uma corrida é relacionada a apenas um turno, sem ser somada em dois garantidos.
+46. No turno de 11:00 às 17:00 com garantido de R$ 110,00, conclua uma entrega de R$ 36,64 lançada pelo estabelecimento durante o turno. A tela deve mostrar R$ 36,64 em corridas e R$ 73,36 em complemento.
+47. Abra o fechamento semanal do cooperado e confirme dois ganhos: a corrida de R$ 36,64 e o complemento de R$ 73,36, totalizando R$ 110,00 de produção.
+48. Use Ajustar total somente em uma exceção e confirme que o complemento é recalculado sem duplicar a corrida.
+49. Entre como estabelecimento e avalie o cooperado ao fim do turno. Confirme que a Base não possui opção de avaliação.
+50. Crie uma entrega sem preencher a descrição do item e confirme que o cadastro é aceito.

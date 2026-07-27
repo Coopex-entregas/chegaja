@@ -1,0 +1,12 @@
+import assert from 'node:assert/strict';
+import fs from 'node:fs';
+const operations=fs.readFileSync(new URL('../src/routes/operations.ts',import.meta.url),'utf8');
+const expenses=fs.readFileSync(new URL('../src/routes/platform-v10.ts',import.meta.url),'utf8');
+const deductions=fs.readFileSync(new URL('../src/routes/ligerim.ts',import.meta.url),'utf8');
+const deliveries=fs.readFileSync(new URL('../src/routes/platform-v16.ts',import.meta.url),'utf8');
+const ui=fs.readFileSync(new URL('../public/chegaja-final.js',import.meta.url),'utf8');
+assert.match(operations,/location_key/);assert.match(operations,/location_name/);assert.match(expenses,/summary:\{total_cents/);
+assert.match(deductions,/tenant\/deductions\/apply/);assert.match(deductions,/per_driver/);assert.match(deductions,/divide_total/);
+assert.doesNotMatch(deliveries,/Entrega concluída não pode ser reaberta/);assert.match(deliveries,/replaceExisting/);assert.match(deliveries,/COALESCE\(delivered_at,CURRENT_TIMESTAMP\)/);
+assert.match(ui,/SALDO PENDENTE DO FILTRO/);assert.match(ui,/TOTAL A RECEBER NO FILTRO/);assert.match(ui,/Exportar Excel por cliente/);assert.match(ui,/Selecionar todos os cooperados ativos/);
+console.log('ChegaJá 14.15.9: filtros, totais, exportação, rateios e edição concluída verificados.');
