@@ -11,6 +11,7 @@ import { tenantRoutes } from './routes/tenant';
 import { customerRoutes } from './routes/customer';
 import { ligerimRoutes } from './routes/ligerim';
 import { clientRoutes } from './routes/client';
+import { customerPasswordRoutes } from './routes/customer-password';
 import { dispatchV6Routes } from './routes/dispatch-v6';
 import { dispatchV7Routes } from './routes/dispatch-v7';
 import { scheduleV8Routes } from './routes/schedule-v8';
@@ -44,6 +45,7 @@ app.route('/api/public', publicMapSafeRoutes);
 app.route('/api/public', publicRoutes);
 app.route('/api/public/customer', customerRoutes);
 app.route('/api/public', publicV16Routes);
+app.route('/api/client', customerPasswordRoutes);
 app.route('/api/client', clientRoutes);
 app.route('/api/v1', integrationRoutes);
 
@@ -109,6 +111,7 @@ export default {
     ctx.waitUntil(processWebhookQueue(env, 50));
     ctx.waitUntil(env.DB.prepare(`DELETE FROM driver_locations WHERE recorded_at < datetime('now','-30 days')`).run());
     ctx.waitUntil(env.DB.prepare(`DELETE FROM password_reset_tokens WHERE expires_at < datetime('now','-1 day')`).run());
+    ctx.waitUntil(env.DB.prepare(`DELETE FROM customer_password_reset_tokens WHERE expires_at < datetime('now','-1 day')`).run());
     ctx.waitUntil(env.DB.prepare(`UPDATE drivers SET online=0 WHERE online=1 AND datetime(last_seen_at) < datetime('now','-10 minutes')`).run());
     ctx.waitUntil(settleDueGuarantees(env));
     ctx.waitUntil(refreshCooperativeCompliance(env));
