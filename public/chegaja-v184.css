@@ -1,0 +1,7 @@
+/* ChegaJá 14.18.4 — limpeza final dos controles antigos */
+body.cj180-driver-home .v31-driver-header{display:none!important}
+body.cj180-driver-home #cj143-driver-menu,body.cj180-driver-home #v32-driver-menu,body.cj180-driver-home #menu-button{display:none!important}
+body.cj180-driver-home #cj183-driver-top{display:flex!important}
+body.cj180-driver-home #cj180-driver-nav{display:grid!important}
+#cj180-driver-nav button[data-menu] span{font-weight:800}
+#cj180-driver-nav button[data-menu].active{color:var(--cj-brand)!important}
