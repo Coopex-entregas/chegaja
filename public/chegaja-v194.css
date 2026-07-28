@@ -1,0 +1,21 @@
+/* ChegaJá 14.19.4 — rolagem e mapa estáveis */
+#cj190-driver-map,#cj190-offer-map{background:#dfe5ed!important}
+#cj190-driver-map.cj191-leaflet-host,#cj190-offer-map.cj191-leaflet-host{z-index:1!important}
+#cj190-driver-map .leaflet-container,#cj190-offer-map .leaflet-container{width:100%!important;height:100%!important}
+.cj194-map-frame{position:absolute;inset:0;width:100%;height:100%;border:0;background:#dfe5ed}
+#cj190-expand{cursor:pointer!important;pointer-events:auto!important}
+body.cj194-internal{height:100dvh!important;min-height:100dvh!important;overflow:hidden!important;background:#f4f6f9!important}
+body.cj194-internal #app-shell{position:fixed!important;inset:0!important;width:100%!important;height:100dvh!important;overflow:hidden!important}
+body.cj194-internal .app-body{height:100dvh!important;min-height:0!important;overflow:hidden!important}
+body.cj194-internal .topbar{position:sticky!important;top:0!important;z-index:100!important;padding-left:102px!important;background:#fff!important}
+body.cj194-internal #page-content{display:block!important;height:calc(100dvh - 68px)!important;max-height:calc(100dvh - 68px)!important;min-height:0!important;overflow-y:auto!important;overflow-x:hidden!important;-webkit-overflow-scrolling:touch!important;overscroll-behavior:contain!important;touch-action:pan-y!important;padding:12px 12px calc(50px + env(safe-area-inset-bottom))!important}
+body.cj194-internal #sidebar,body.cj194-internal #menu-button,body.cj194-internal #cj190-page-menu{display:none!important}
+body.cj194-internal .panel,body.cj194-internal .card,body.cj194-internal .stat-card{border-radius:12px!important;box-shadow:0 2px 8px #0f172a12!important}
+body.cj194-internal .panel{padding:11px!important;margin-bottom:8px!important}
+body.cj194-internal .cards{gap:7px!important;grid-template-columns:repeat(2,minmax(0,1fr))!important}
+body.cj194-internal .stat-card{min-height:68px!important;padding:9px!important}
+body.cj194-internal .table-wrap{overflow-x:auto!important;-webkit-overflow-scrolling:touch!important}
+body.cj194-internal table{font-size:11px!important}
+body.cj194-internal th,body.cj194-internal td{padding:7px 6px!important}
+#cj194-back{position:fixed;left:12px;top:max(12px,env(safe-area-inset-top));z-index:30000;height:42px;border:0;border-radius:21px;padding:0 15px;background:#0D257A;color:#fff;font-weight:850;box-shadow:0 5px 18px #0003}
+@media(max-width:480px){body.cj194-internal .topbar h1{font-size:17px!important}body.cj194-internal .cards{grid-template-columns:1fr 1fr!important}}
