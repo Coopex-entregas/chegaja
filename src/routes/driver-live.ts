@@ -1,10 +1,12 @@
 import { Hono } from 'hono';
 import type { AppBindings } from '../types';
 import { bodyJson, cleanText, id, toNumber } from '../lib/util';
+import { refreshDriverCompliance } from '../lib/compliance';
 
 export const driverLiveRoutes = new Hono<AppBindings>();
 type Row = Record<string, any>;
 const localDateSql = () => `date('now','-3 hours')`;
+const activeStatuses = ['assigned','accepted','to_pickup','at_pickup','picked_up','in_route','problem'];
 
 function normalizeBrazil(lat: number | null, lng: number | null) {
   if (lat == null || lng == null) return { lat, lng };
@@ -16,7 +18,7 @@ function normalizeBrazil(lat: number | null, lng: number | null) {
 
 async function activeDriver(c: any, driverId: string, cooperativeId: string) {
   return c.env.DB.prepare(`
-    SELECT id,name,online,last_seen_at
+    SELECT id,name,online,last_seen_at,compliance_status,compliance_suspended
     FROM drivers
     WHERE id=? AND cooperative_id=? AND status='active' AND deleted_at IS NULL
   `).bind(driverId, cooperativeId).first<Row>();
@@ -62,10 +64,12 @@ const liveFields = `
 
 async function livePayload(c: any) {
   const auth = c.get('auth');
-  const [driver, assigned, summary] = await Promise.all([
+  const [driver, activeRows, summary] = await Promise.all([
     c.env.DB.prepare(`
       SELECT id,name,photo_url,online,last_seen_at,current_lat,current_lng,
-        location_accuracy,location_updated_at
+        location_accuracy,location_updated_at,compliance_status,compliance_suspended,
+        compliance_override_until,compliance_override_reason,cnh_expires_at,
+        vehicle_document_expires_at
       FROM drivers
       WHERE id=? AND cooperative_id=? AND deleted_at IS NULL
       LIMIT 1
@@ -76,13 +80,13 @@ async function livePayload(c: any) {
       JOIN establishments e ON e.id=d.establishment_id
       LEFT JOIN bases b ON b.id=d.base_id
       WHERE d.cooperative_id=? AND d.assigned_driver_id=? AND d.deleted_at IS NULL
-        AND d.status NOT IN ('delivered','cancelled')
+        AND d.status IN ('assigned','accepted','to_pickup','at_pickup','picked_up','in_route','problem')
       ORDER BY CASE d.status
         WHEN 'assigned' THEN 0 WHEN 'accepted' THEN 1 WHEN 'to_pickup' THEN 2
         WHEN 'at_pickup' THEN 3 WHEN 'picked_up' THEN 4 WHEN 'in_route' THEN 5 ELSE 6 END,
         d.created_at
-      LIMIT 1
-    `).bind(auth.cooperativeId, auth.driverId).first<Row>(),
+      LIMIT 20
+    `).bind(auth.cooperativeId, auth.driverId).all<Row>(),
     c.env.DB.prepare(`
       SELECT
         COALESCE(SUM(COALESCE(driver_net_cents,driver_earnings_cents,0)),0) earnings_today_cents,
@@ -94,8 +98,11 @@ async function livePayload(c: any) {
     `).bind(auth.cooperativeId, auth.driverId).first<Row>()
   ]);
 
-  let call = assigned?.status === 'assigned' ? { ...assigned, call_mode: 'assigned' } : null;
-  if (!call && Number(driver?.online || 0) === 1) {
+  const activeItems = activeRows.results || [];
+  const assigned = activeItems[0] || null;
+  let call = assigned?.status === 'assigned' ? { ...assigned, call_mode:'assigned' } : null;
+
+  if (!call && Number(driver?.online || 0) === 1 && Number(driver?.compliance_suspended || 0) !== 1) {
     const offered = await c.env.DB.prepare(`
       SELECT ${liveFields}
       FROM deliveries d
@@ -108,12 +115,12 @@ async function livePayload(c: any) {
           WHERE r.delivery_id=d.id AND r.driver_id=? AND r.response='declined'
         )
       ORDER BY d.created_at
-      LIMIT 8
+      LIMIT 6
     `).bind(auth.cooperativeId, auth.driverId).all<Row>();
 
     for (const item of offered.results || []) {
       if (await scheduled(c, auth.driverId, item)) {
-        call = { ...item, call_mode: 'offered' };
+        call = { ...item, call_mode:'offered' };
         break;
       }
     }
@@ -123,9 +130,10 @@ async function livePayload(c: any) {
     driver,
     call,
     active: assigned && assigned.status !== 'assigned' ? assigned : null,
+    active_items: activeItems.filter(item => item.status !== 'assigned'),
     summary: {
-      earnings_today_cents: Number(summary?.earnings_today_cents || 0),
-      deliveries_today: Number(summary?.deliveries_today || 0)
+      earnings_today_cents:Number(summary?.earnings_today_cents || 0),
+      deliveries_today:Number(summary?.deliveries_today || 0)
     }
   };
 }
@@ -133,180 +141,218 @@ async function livePayload(c: any) {
 driverLiveRoutes.get('/driver/live', async c => {
   const auth = c.get('auth');
   if (auth.role !== 'driver' || !auth.driverId || !auth.cooperativeId) {
-    return c.json({ ok: false, error: 'Acesso exclusivo do cooperado.' }, 403);
+    return c.json({ ok:false, error:'Acesso exclusivo do cooperado.' },403);
   }
-  return c.json({ ok: true, ...await livePayload(c), server_time: new Date().toISOString() });
+  return c.json({ ok:true, ...await livePayload(c), server_time:new Date().toISOString() });
 });
 
 async function setOnline(c: any, online: boolean, body: Row) {
   const auth = c.get('auth');
-  const raw = normalizeBrazil(toNumber(body.latitude), toNumber(body.longitude));
+
+  if (!online) {
+    const active = await c.env.DB.prepare(`
+      SELECT COUNT(*) total FROM deliveries
+      WHERE cooperative_id=? AND assigned_driver_id=? AND deleted_at IS NULL
+        AND status IN ('assigned','accepted','to_pickup','at_pickup','picked_up','in_route','problem')
+    `).bind(auth.cooperativeId, auth.driverId).first<Row>();
+    if (Number(active?.total || 0) > 0) {
+      return c.json({ ok:false, error:'Finalize ou resolva suas entregas ativas antes de ficar offline.' },409);
+    }
+    await c.env.DB.prepare(`UPDATE drivers SET online=0,updated_at=CURRENT_TIMESTAMP WHERE id=? AND cooperative_id=?`)
+      .bind(auth.driverId,auth.cooperativeId).run();
+    return c.json({ ok:true, online:false });
+  }
+
+  const compliance = await refreshDriverCompliance(c.env,auth.driverId);
+  if (!compliance.allowed) {
+    return c.json({
+      ok:false,
+      error:compliance.reason || 'Existem ações documentais pendentes antes de iniciar.',
+      compliance
+    },409);
+  }
+
+  const raw = normalizeBrazil(toNumber(body.latitude),toNumber(body.longitude));
+  if (raw.lat == null || raw.lng == null || Math.abs(raw.lat) > 90 || Math.abs(raw.lng) > 180) {
+    return c.json({ ok:false, error:'Autorize uma localização precisa para iniciar.' },400);
+  }
+
   await c.env.DB.prepare(`
-    UPDATE drivers SET
-      online=?,last_seen_at=CURRENT_TIMESTAMP,
-      current_lat=COALESCE(?,current_lat),current_lng=COALESCE(?,current_lng),
-      location_accuracy=COALESCE(?,location_accuracy),
-      location_updated_at=CASE WHEN ? IS NOT NULL AND ? IS NOT NULL THEN CURRENT_TIMESTAMP ELSE location_updated_at END,
-      updated_at=CURRENT_TIMESTAMP
+    UPDATE drivers SET online=1,last_seen_at=CURRENT_TIMESTAMP,current_lat=?,current_lng=?,
+      location_accuracy=?,location_updated_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
     WHERE id=? AND cooperative_id=?
-  `).bind(online ? 1 : 0, raw.lat, raw.lng, toNumber(body.accuracy), raw.lat, raw.lng, auth.driverId, auth.cooperativeId).run();
-  return c.json({ ok: true, online });
+  `).bind(raw.lat,raw.lng,toNumber(body.accuracy),auth.driverId,auth.cooperativeId).run();
+  return c.json({ ok:true, online:true, compliance });
 }
 
-for (const path of ['/v6/driver/online', '/driver/online']) {
-  driverLiveRoutes.post(path, async c => {
-    const auth = c.get('auth');
-    if (auth.role !== 'driver') return c.json({ ok: false, error: 'Acesso exclusivo do cooperado.' }, 403);
-    const body = await bodyJson<Row>(c);
-    return setOnline(c, Boolean(body.online), body);
-  });
-}
-
-for (const path of ['/v6/driver/location', '/driver/location', '/map/location']) {
+for (const path of ['/v6/driver/online','/driver/online']) {
   driverLiveRoutes.post(path, async c => {
     const auth = c.get('auth');
     if (auth.role !== 'driver' || !auth.driverId || !auth.cooperativeId) {
-      return c.json({ ok: false, error: 'Acesso exclusivo do cooperado.' }, 403);
+      return c.json({ ok:false, error:'Acesso exclusivo do cooperado.' },403);
     }
     const body = await bodyJson<Row>(c);
-    const p = normalizeBrazil(toNumber(body.latitude), toNumber(body.longitude));
-    if (p.lat == null || p.lng == null || Math.abs(p.lat) > 90 || Math.abs(p.lng) > 180) {
-      return c.json({ ok: false, error: 'Localização inválida.' }, 400);
+    return setOnline(c,Boolean(body.online),body);
+  });
+}
+
+for (const path of ['/v6/driver/location','/driver/location','/map/location']) {
+  driverLiveRoutes.post(path, async c => {
+    const auth = c.get('auth');
+    if (auth.role !== 'driver' || !auth.driverId || !auth.cooperativeId) {
+      return c.json({ ok:false, error:'Acesso exclusivo do cooperado.' },403);
     }
+
+    const current = await c.env.DB.prepare(`SELECT online FROM drivers WHERE id=? AND cooperative_id=? AND deleted_at IS NULL`)
+      .bind(auth.driverId,auth.cooperativeId).first<Row>();
+    if (!current || Number(current.online || 0) !== 1) {
+      return c.json({ ok:true, ignored:true, online:false });
+    }
+
+    const body = await bodyJson<Row>(c);
+    const p = normalizeBrazil(toNumber(body.latitude),toNumber(body.longitude));
+    if (p.lat == null || p.lng == null || Math.abs(p.lat) > 90 || Math.abs(p.lng) > 180) {
+      return c.json({ ok:false, error:'Localização inválida.' },400);
+    }
+
     await c.env.DB.batch([
       c.env.DB.prepare(`
-        UPDATE drivers SET online=1,last_seen_at=CURRENT_TIMESTAMP,current_lat=?,current_lng=?,
+        UPDATE drivers SET last_seen_at=CURRENT_TIMESTAMP,current_lat=?,current_lng=?,
           location_accuracy=?,location_updated_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
-        WHERE id=? AND cooperative_id=?
-      `).bind(p.lat, p.lng, toNumber(body.accuracy), auth.driverId, auth.cooperativeId),
+        WHERE id=? AND cooperative_id=? AND online=1
+      `).bind(p.lat,p.lng,toNumber(body.accuracy),auth.driverId,auth.cooperativeId),
       c.env.DB.prepare(`
         INSERT INTO driver_locations(cooperative_id,driver_id,latitude,longitude,accuracy,speed,heading,battery)
         SELECT ?,?,?,?,?,?,?,?
         WHERE NOT EXISTS(
           SELECT 1 FROM driver_locations WHERE driver_id=? AND recorded_at>=datetime('now','-30 seconds')
         )
-      `).bind(auth.cooperativeId, auth.driverId, p.lat, p.lng, toNumber(body.accuracy), toNumber(body.speed), toNumber(body.heading), toNumber(body.battery), auth.driverId)
+      `).bind(auth.cooperativeId,auth.driverId,p.lat,p.lng,toNumber(body.accuracy),toNumber(body.speed),toNumber(body.heading),toNumber(body.battery),auth.driverId)
     ]);
-    return c.json({ ok: true });
+    return c.json({ ok:true, online:true });
   });
 }
 
 driverLiveRoutes.get('/v6/deliveries/:id/eligible-drivers', async c => {
   const auth = c.get('auth');
-  if (!['cooperative_admin', 'dispatcher', 'establishment'].includes(auth.role) || !auth.cooperativeId) {
-    return c.json({ ok: false, error: 'Sem permissão.' }, 403);
+  if (!['cooperative_admin','dispatcher','establishment'].includes(auth.role) || !auth.cooperativeId) {
+    return c.json({ ok:false, error:'Sem permissão.' },403);
   }
   const delivery = await c.env.DB.prepare(`
     SELECT id,delivery_type,base_id,establishment_id
     FROM deliveries WHERE id=? AND cooperative_id=? AND deleted_at IS NULL
-  `).bind(c.req.param('id'), auth.cooperativeId).first<Row>();
-  if (!delivery) return c.json({ ok: false, error: 'Entrega não encontrada.' }, 404);
+  `).bind(c.req.param('id'),auth.cooperativeId).first<Row>();
+  if (!delivery) return c.json({ ok:false, error:'Entrega não encontrada.' },404);
+
   const rows = await c.env.DB.prepare(`
-    SELECT id,name,phone,vehicle_model,vehicle_plate,
+    SELECT id,name,phone,photo_url,vehicle_model,vehicle_plate,
       CASE WHEN online=1 AND datetime(last_seen_at)>=datetime('now','-10 minutes') THEN 1 ELSE 0 END online
     FROM drivers
     WHERE cooperative_id=? AND status='active' AND deleted_at IS NULL
     ORDER BY online DESC,name
   `).bind(auth.cooperativeId).all<Row>();
-  return c.json({ ok: true, items: rows.results || [], delivery_type: delivery.delivery_type });
+  return c.json({ ok:true, items:rows.results || [], delivery_type:delivery.delivery_type });
 });
 
 driverLiveRoutes.post('/v6/deliveries/:id/assign', async c => {
   const auth = c.get('auth');
-  if (!['cooperative_admin', 'dispatcher', 'establishment'].includes(auth.role) || !auth.cooperativeId) {
-    return c.json({ ok: false, error: 'Sem permissão.' }, 403);
+  if (!['cooperative_admin','dispatcher','establishment'].includes(auth.role) || !auth.cooperativeId) {
+    return c.json({ ok:false, error:'Sem permissão.' },403);
   }
   const body = await bodyJson<Row>(c);
-  const driverId = cleanText(body.driver_id, 100);
-  const [delivery, driver] = await Promise.all([
-    c.env.DB.prepare(`
-      SELECT id,status,delivery_type,establishment_id
-      FROM deliveries WHERE id=? AND cooperative_id=? AND deleted_at IS NULL
-    `).bind(c.req.param('id'), auth.cooperativeId).first<Row>(),
-    activeDriver(c, driverId, auth.cooperativeId)
+  const driverId = cleanText(body.driver_id,100);
+  const [delivery,driver] = await Promise.all([
+    c.env.DB.prepare(`SELECT id,status,delivery_type,establishment_id FROM deliveries WHERE id=? AND cooperative_id=? AND deleted_at IS NULL`)
+      .bind(c.req.param('id'),auth.cooperativeId).first<Row>(),
+    activeDriver(c,driverId,auth.cooperativeId)
   ]);
-  if (!delivery) return c.json({ ok: false, error: 'Entrega não encontrada.' }, 404);
-  if (!driver) return c.json({ ok: false, error: 'Cooperado inválido.' }, 400);
+  if (!delivery) return c.json({ ok:false, error:'Entrega não encontrada.' },404);
+  if (!driver) return c.json({ ok:false, error:'Cooperado inválido.' },400);
   if (auth.role === 'establishment' && delivery.establishment_id !== auth.establishmentId) {
-    return c.json({ ok: false, error: 'Sem permissão para esta entrega.' }, 403);
+    return c.json({ ok:false, error:'Sem permissão para esta entrega.' },403);
   }
+
   await c.env.DB.batch([
     c.env.DB.prepare(`
       UPDATE deliveries SET assigned_driver_id=?,status='assigned',assigned_by_role=?,assigned_by_user_id=?,
         assignment_source='manual_fast',updated_at=CURRENT_TIMESTAMP
       WHERE id=?
-    `).bind(driverId, auth.role, auth.id, delivery.id),
+    `).bind(driverId,auth.role,auth.id,delivery.id),
     c.env.DB.prepare(`
       INSERT INTO delivery_status_history(id,delivery_id,cooperative_id,old_status,new_status,notes,changed_by)
       VALUES (?,?,?,?,'assigned',?,?)
-    `).bind(id(), delivery.id, auth.cooperativeId, delivery.status, `Atribuída a ${driver.name}`, auth.id)
+    `).bind(id(),delivery.id,auth.cooperativeId,delivery.status,`Atribuída a ${driver.name}`,auth.id)
   ]);
-  return c.json({ ok: true });
+  return c.json({ ok:true });
 });
 
 driverLiveRoutes.post('/driver/live/:id/accept', async c => {
   const auth = c.get('auth');
   if (auth.role !== 'driver' || !auth.driverId || !auth.cooperativeId) {
-    return c.json({ ok: false, error: 'Acesso exclusivo do cooperado.' }, 403);
+    return c.json({ ok:false, error:'Acesso exclusivo do cooperado.' },403);
   }
-  const delivery = await c.env.DB.prepare(`
-    SELECT * FROM deliveries WHERE id=? AND cooperative_id=? AND deleted_at IS NULL
-  `).bind(c.req.param('id'), auth.cooperativeId).first<Row>();
-  if (!delivery) return c.json({ ok: false, error: 'A entrega não está mais disponível.' }, 409);
-  const driver = await activeDriver(c, auth.driverId, auth.cooperativeId);
-  if (!driver) return c.json({ ok: false, error: 'Cooperado inválido.' }, 403);
+
+  const [delivery,driver] = await Promise.all([
+    c.env.DB.prepare(`SELECT * FROM deliveries WHERE id=? AND cooperative_id=? AND deleted_at IS NULL`)
+      .bind(c.req.param('id'),auth.cooperativeId).first<Row>(),
+    activeDriver(c,auth.driverId,auth.cooperativeId)
+  ]);
+  if (!delivery) return c.json({ ok:false, error:'A entrega não está mais disponível.' },409);
+  if (!driver) return c.json({ ok:false, error:'Cooperado inválido.' },403);
+  if (Number(driver.online || 0) !== 1) return c.json({ ok:false, error:'Toque em INICIAR antes de aceitar a entrega.' },409);
+  if (Number(driver.compliance_suspended || 0) === 1) return c.json({ ok:false, error:'Regularize as ações necessárias antes de aceitar entregas.' },409);
 
   let result;
   if (delivery.status === 'assigned' && delivery.assigned_driver_id === auth.driverId) {
     result = await c.env.DB.prepare(`
       UPDATE deliveries SET status='accepted',accepted_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP
       WHERE id=? AND assigned_driver_id=? AND status='assigned'
-    `).bind(delivery.id, auth.driverId).run();
+    `).bind(delivery.id,auth.driverId).run();
   } else if (delivery.status === 'offered' && !delivery.assigned_driver_id) {
-    if (!(await scheduled(c, auth.driverId, delivery))) {
-      return c.json({ ok: false, error: 'Você não está escalado ou liberado para este local.' }, 409);
+    if (!(await scheduled(c,auth.driverId,delivery))) {
+      return c.json({ ok:false, error:'Você não está escalado ou liberado para este local.' },409);
     }
     result = await c.env.DB.prepare(`
       UPDATE deliveries SET assigned_driver_id=?,status='accepted',accepted_at=CURRENT_TIMESTAMP,
         assignment_source='offer_live',updated_at=CURRENT_TIMESTAMP
       WHERE id=? AND assigned_driver_id IS NULL AND status='offered'
-    `).bind(auth.driverId, delivery.id).run();
+    `).bind(auth.driverId,delivery.id).run();
   } else {
-    return c.json({ ok: false, error: 'A entrega já foi aceita ou retirada.' }, 409);
+    return c.json({ ok:false, error:'A entrega já foi aceita ou retirada.' },409);
   }
-  if (!result.meta.changes) return c.json({ ok: false, error: 'Outro cooperado aceitou primeiro.' }, 409);
+  if (!result.meta.changes) return c.json({ ok:false, error:'Outro cooperado aceitou primeiro.' },409);
 
   await c.env.DB.batch([
-    c.env.DB.prepare(`UPDATE drivers SET online=1,last_seen_at=CURRENT_TIMESTAMP WHERE id=?`).bind(auth.driverId),
+    c.env.DB.prepare(`UPDATE drivers SET last_seen_at=CURRENT_TIMESTAMP WHERE id=? AND online=1`).bind(auth.driverId),
     c.env.DB.prepare(`
       INSERT INTO driver_offer_responses(delivery_id,driver_id,response,responded_at)
       VALUES (?,?,'accepted',CURRENT_TIMESTAMP)
       ON CONFLICT(delivery_id,driver_id) DO UPDATE SET response='accepted',responded_at=CURRENT_TIMESTAMP
-    `).bind(delivery.id, auth.driverId),
+    `).bind(delivery.id,auth.driverId),
     c.env.DB.prepare(`
       INSERT INTO delivery_status_history(id,delivery_id,cooperative_id,old_status,new_status,notes,changed_by)
       VALUES (?,?,?,?,'accepted','Aceita pela chamada em tela cheia',?)
-    `).bind(id(), delivery.id, auth.cooperativeId, delivery.status, auth.id)
+    `).bind(id(),delivery.id,auth.cooperativeId,delivery.status,auth.id)
   ]);
-  return c.json({ ok: true, item: { ...delivery, status: 'accepted' } });
+  return c.json({ ok:true, item:{ ...delivery, status:'accepted' } });
 });
 
 driverLiveRoutes.post('/driver/live/:id/decline', async c => {
   const auth = c.get('auth');
   if (auth.role !== 'driver' || !auth.driverId || !auth.cooperativeId) {
-    return c.json({ ok: false, error: 'Acesso exclusivo do cooperado.' }, 403);
+    return c.json({ ok:false, error:'Acesso exclusivo do cooperado.' },403);
   }
   const delivery = await c.env.DB.prepare(`
     SELECT id,status,assigned_driver_id
     FROM deliveries WHERE id=? AND cooperative_id=? AND deleted_at IS NULL
-  `).bind(c.req.param('id'), auth.cooperativeId).first<Row>();
-  if (!delivery) return c.json({ ok: true });
+  `).bind(c.req.param('id'),auth.cooperativeId).first<Row>();
+  if (!delivery) return c.json({ ok:true });
 
   await c.env.DB.prepare(`
     INSERT INTO driver_offer_responses(delivery_id,driver_id,response,reason,responded_at)
     VALUES (?,?,'declined','Recusada no aplicativo',CURRENT_TIMESTAMP)
     ON CONFLICT(delivery_id,driver_id) DO UPDATE SET response='declined',responded_at=CURRENT_TIMESTAMP
-  `).bind(delivery.id, auth.driverId).run();
+  `).bind(delivery.id,auth.driverId).run();
 
   if (delivery.status === 'assigned' && delivery.assigned_driver_id === auth.driverId) {
     await c.env.DB.prepare(`
@@ -314,5 +360,5 @@ driverLiveRoutes.post('/driver/live/:id/decline', async c => {
       WHERE id=?
     `).bind(delivery.id).run();
   }
-  return c.json({ ok: true });
+  return c.json({ ok:true });
 });
