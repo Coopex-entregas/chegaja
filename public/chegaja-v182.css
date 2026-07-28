@@ -1,0 +1,9 @@
+/* ChegaJá 14.18.2 — controles do cooperado */
+body.cj180-driver-home .v31-driver-header.cj182-header{position:absolute!important;top:max(12px,env(safe-area-inset-top))!important;left:12px!important;right:12px!important;height:48px!important;display:flex!important;align-items:center!important;justify-content:center!important;pointer-events:none!important}
+body.cj180-driver-home .v31-driver-header.cj182-header .v31-driver-brand{position:absolute!important;left:0!important;top:0!important;margin:0!important;pointer-events:auto!important}
+body.cj180-driver-home .v31-driver-header.cj182-header #v31-driver-online.cj182-online-center{position:absolute!important;left:50%!important;top:0!important;transform:translateX(-50%)!important;min-width:112px!important;display:flex!important;align-items:center!important;justify-content:center!important;gap:6px!important;padding:0 16px!important;pointer-events:auto!important;z-index:3!important}
+body.cj180-driver-home .v31-driver-header.cj182-header #v31-driver-menu.cj182-hidden-menu{display:none!important}
+#cj180-driver-nav button[data-profile-menu] i{font-size:21px!important}
+#cj180-driver-nav button[data-profile-menu].active,#cj180-driver-nav button[data-profile-menu]:active{color:var(--cj180)!important}
+.cj182-map-message{position:absolute;inset:0;display:grid;place-content:center;gap:7px;padding:25px;text-align:center;background:#e8edf4;color:#15294f;z-index:50}.cj182-map-message strong{font-size:17px}.cj182-map-message span{max-width:330px;font-size:12px;color:#65728a;line-height:1.45}
+@media(max-width:430px){body.cj180-driver-home .v31-driver-header.cj182-header .v31-driver-brand{max-width:130px!important}body.cj180-driver-home .v31-driver-header.cj182-header .v31-driver-brand small{display:none!important}body.cj180-driver-home .v31-driver-header.cj182-header #v31-driver-online.cj182-online-center{min-width:104px!important;padding:0 12px!important}}
