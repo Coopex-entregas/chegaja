@@ -1,0 +1,10 @@
+/* ChegaJá 14.19.2 — estilos isolados do mapa de contingência */
+.cj191-leaflet-host{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:240px!important;background:#e5e7eb!important;z-index:1!important}
+.cj191-leaflet-host .leaflet-container{width:100%!important;height:100%!important}
+.cj191-leaflet-host .leaflet-control-attribution{font-size:8px!important}
+.cj191-leaflet-icon{background:transparent!important;border:0!important}
+.cj191-photo-marker{position:relative;width:34px;height:34px;border-radius:50%;border:3px solid #fff;overflow:visible;box-shadow:0 3px 10px #0004;background:#fff}
+.cj191-photo-marker img{width:100%;height:100%;object-fit:cover;border-radius:50%}
+.cj191-photo-marker i{position:absolute;left:50%;bottom:-10px;transform:translateX(-50%);border:6px solid transparent;border-top-color:#fff}
+.cj191-letter-marker{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;background:#0D257A;color:#fff;border:3px solid #fff;font-weight:900;box-shadow:0 3px 10px #0004}
+#cj190-driver-map,#cj190-client-map,#cj190-track-map,#v31-base-map,#cj14-est-map{min-height:240px!important}
