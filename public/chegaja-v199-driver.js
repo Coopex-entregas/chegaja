@@ -1,40 +1,217 @@
-/* ChegaJá 14.19.9 — painel do cooperado conforme visual aprovado */
+/* ChegaJá 14.22.0 — painel único, estável e somente Leaflet */
 (()=>{
 'use strict';
+if(window.__CJ_DRIVER_14220__)return;
+window.__CJ_DRIVER_14220__=true;
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0)/100);
-const auth=()=>String(window.state?.token||localStorage.getItem('lg_token')||'').trim();
+const token=()=>String(window.state?.token||localStorage.getItem('lg_token')||'').trim();
 const isDriver=()=>window.state?.user?.role==='driver';
-const home=()=>isDriver()&&window.state?.page==='dashboard';
-const R={installed:false,oldDashboard:null,oldNavigate:null,map:null,host:null,self:null,pickup:null,delivery:null,route:null,data:null,timer:null,busy:false,gps:null,lastGps:null,lastSend:0,card:0,touchX:null,touchY:null,operational:new Map()};
-async function api(path,opt={}){const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),opt.timeout||6500);try{const response=await fetch(path,{method:opt.method||'GET',headers:{...(opt.body?{'Content-Type':'application/json'}:{}),...(auth()?{Authorization:`Bearer ${auth()}`}:{})},body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store',signal:controller.signal});const data=await response.json().catch(()=>({}));if(!response.ok||data.ok===false)throw new Error(data.error||`Erro ${response.status}`);return data}finally{clearTimeout(timer)}}
-const point=(lat,lng)=>({lat:Number(lat),lng:Number(lng)});const valid=p=>Number.isFinite(p?.lat)&&Number.isFinite(p?.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;
-const pos=()=>new Promise((ok,no)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(ok,no,{enableHighAccuracy:true,maximumAge:2500,timeout:12000}):no(new Error('GPS indisponível.')));
-function notice(text,error=false){let n=$('#cj199-notice');if(!n){n=document.createElement('div');n.id='cj199-notice';document.body.appendChild(n)}n.textContent=text;n.className=`show${error?' error':''}`;clearTimeout(n._t);n._t=setTimeout(()=>n.className='',3500)}
-function shell(){return `<main id="cj199-app"><div id="cj199-map"></div><button id="cj199-metric" type="button"><small id="cj199-metric-label">GANHOS HOJE</small><strong id="cj199-metric-value">R$ 0,00</strong><span id="cj199-metric-hint">Toque para ver sua nota</span></button><button id="cj199-queue" type="button"><small>FILA</small><strong id="cj199-queue-number">+</strong></button><button id="cj199-center" type="button">◎</button><button id="cj199-start" type="button"><span>INICIAR</span></button><button id="cj199-qr" type="button">▦</button><section id="cj199-bottom"><button id="cj199-up" type="button">⌃</button><div><strong id="cj199-online">Você está offline</strong><small id="cj199-queue-text">Você está fora da fila</small></div><button id="cj199-menu" type="button">☰</button></section><section id="cj199-sheet"><button class="handle" type="button"></button><header><div><small>MINHA ESCALA</small><strong>Datas, horários e locais</strong></div><button id="cj199-down" type="button">⌄</button></header><div id="cj199-schedules"><p>Carregando escala…</p></div></section><div id="cj199-drawer"><button class="backdrop"></button><aside><header><div id="cj199-photo">CJ</div><span><strong id="cj199-name">Cooperado</strong><small>Meu aplicativo</small></span><button data-close>×</button></header><nav><button data-go="dashboard">Início</button><button data-go="deliveries">Entregas</button><button data-go="routes">Rotas</button><button data-go="schedules">Minha escala</button><button data-go="financial">Ganhos e descontos</button><button data-go="advances">Adiantamentos</button><button data-go="attendance">Check-in</button><button data-go="account">Minha conta</button><button data-logout>Sair</button></nav></aside></div></main>`}
-function cleanup(){document.body.classList.remove('cj24-driver-mode','cj196-driver-mode','cj190-driver-home','cj194-internal','driver-app-mode','v31-driver-mode','v32-driver-single-menu');['#cj194-back','#cj190-page-menu','#cj190-drawer','#cj196-driver-app','#cj24-driver-app'].forEach(s=>$(s)?.remove())}
-async function mount(){if(!home())return;cleanup();document.body.classList.add('cj199-driver');$('#auth-screen')?.classList.add('hidden');$('#app-shell')?.classList.remove('hidden');const content=$('#page-content');if(!content)return;if(!$('#cj199-app')){destroyMap();content.innerHTML=shell();bind()}await ensureMap();await refresh(true);start();startGps()}
-function leave(){document.body.classList.remove('cj199-driver');stop();closeSheet();$('#cj199-drawer')?.classList.remove('open')}
-function bind(){const metric=$('#cj199-metric');metric.onclick=()=>cycle(1);metric.addEventListener('touchstart',e=>R.touchX=e.touches[0]?.clientX??null,{passive:true});metric.addEventListener('touchend',e=>{const d=(e.changedTouches[0]?.clientX??R.touchX)-R.touchX;R.touchX=null;if(Math.abs(d)>35)cycle(d<0?1:-1)},{passive:true});$('#cj199-start').onclick=toggleOnline;$('#cj199-queue').onclick=toggleQueue;$('#cj199-center').onclick=()=>updateMap(R.data,true);$('#cj199-qr').onclick=()=>window.navigate?.('attendance');$('#cj199-up').onclick=openSheet;$('#cj199-down').onclick=$('#cj199-sheet .handle').onclick=closeSheet;for(const n of [$('#cj199-bottom'),$('#cj199-sheet')]){n.addEventListener('touchstart',e=>R.touchY=e.touches[0]?.clientY??null,{passive:true});n.addEventListener('touchend',e=>{const d=(e.changedTouches[0]?.clientY??R.touchY)-R.touchY;R.touchY=null;if(d<-35)openSheet();if(d>35)closeSheet()},{passive:true})}$('#cj199-menu').onclick=()=>$('#cj199-drawer').classList.add('open');$('#cj199-drawer [data-close]').onclick=$('#cj199-drawer .backdrop').onclick=()=>$('#cj199-drawer').classList.remove('open');$$('#cj199-drawer [data-go]').forEach(b=>b.onclick=()=>{$('#cj199-drawer').classList.remove('open');window.navigate?.(b.dataset.go)});$('#cj199-drawer [data-logout]').onclick=()=>window.logout?.()}
-function openSheet(){$('#cj199-sheet')?.classList.add('open');$('#cj199-up').textContent='⌄';setTimeout(()=>R.map?.invalidateSize(false),220)}function closeSheet(){$('#cj199-sheet')?.classList.remove('open');if($('#cj199-up'))$('#cj199-up').textContent='⌃';setTimeout(()=>R.map?.invalidateSize(false),220)}
-function photoIcon(url,name,size=38){const ini=String(name||'EU').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();return L.divIcon({className:'cj199-photo-marker',html:`<span style="--s:${size}px">${url?`<img src="${esc(url)}" alt="">`:`<b>${esc(ini)}</b>`}</span>`,iconSize:[size,size],iconAnchor:[size/2,size/2]})}
-async function ensureMap(){const host=$('#cj199-map');if(!host||R.map&&R.host===host)return;destroyMap();R.host=host;await new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r)));R.map=L.map(host,{zoomControl:false,preferCanvas:true,zoomSnap:.5}).setView([-5.7945,-35.211],14);L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,updateWhenIdle:true,keepBuffer:5,attribution:'© OpenStreetMap'}).addTo(R.map);L.control.zoom({position:'bottomleft'}).addTo(R.map);setTimeout(()=>R.map?.invalidateSize(false),100)}
-function destroyMap(){if(R.map)try{R.map.remove()}catch{}R.map=R.host=R.self=R.pickup=R.delivery=R.route=null}
-function parseRoute(raw){let d=raw;try{if(typeof d==='string')d=JSON.parse(d)}catch{return[]}if(d?.type==='Feature')d=d.geometry;if(d?.type==='LineString')return d.coordinates.map(p=>[Number(p[1]),Number(p[0])]);if(Array.isArray(d))return d.map(p=>Array.isArray(p)?(Math.abs(Number(p[0]))<=90?[Number(p[0]),Number(p[1])]:[Number(p[1]),Number(p[0])]):null).filter(Boolean);return[]}
-function updateMap(data,fit=false){if(!R.map||!data)return;const driver=data.driver||{},self=R.lastGps||point(driver.current_lat,driver.current_lng),active=data.active||null;if(valid(self)){if(!R.self)R.self=L.marker([self.lat,self.lng],{icon:photoIcon(driver.photo_url,driver.name,40),zIndexOffset:1000}).addTo(R.map);else R.self.setLatLng([self.lat,self.lng])}R.pickup?.remove();R.delivery?.remove();R.route?.remove();R.pickup=R.delivery=R.route=null;const pts=[];if(valid(self))pts.push([self.lat,self.lng]);if(active){const p=point(active.pickup_lat,active.pickup_lng),d=point(active.delivery_lat,active.delivery_lng);if(valid(p)){pts.push([p.lat,p.lng]);R.pickup=L.marker([p.lat,p.lng],{icon:L.divIcon({className:'cj199-stop pickup',html:'C',iconSize:[32,32],iconAnchor:[16,16]})}).addTo(R.map)}if(valid(d)){pts.push([d.lat,d.lng]);R.delivery=L.marker([d.lat,d.lng],{icon:L.divIcon({className:'cj199-stop delivery',html:'E',iconSize:[32,32],iconAnchor:[16,16]})}).addTo(R.map)}const route=parseRoute(active.route_geometry);if(route.length>1)R.route=L.polyline(route,{weight:6,opacity:.86}).addTo(R.map)}if(fit){if(pts.length>1)R.map.fitBounds(pts,{paddingTopLeft:[28,110],paddingBottomRight:[28,185],maxZoom:16,animate:false});else if(pts.length===1)R.map.setView(pts[0],16,{animate:false})}}
-async function queue(){try{const d=await api('/api/app/v10/queue/locations',{timeout:5000});return d.active||d.queue||null}catch{return null}}
-async function schedules(){const now=new Date(),from=now.toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'}),end=new Date(`${from}T12:00:00`);end.setDate(end.getDate()+6);try{const d=await api(`/api/app/v18/driver/schedule?from=${from}&to=${end.toISOString().slice(0,10)}`);return d.items||d.schedules||[]}catch{return[]}}
-async function refresh(force=false){if(R.busy||!home())return;R.busy=true;try{const [live,q,sc]=await Promise.all([api('/api/app/driver/live'),queue(),schedules()]);R.data={...live,queue:q,schedules:sc};render();updateMap(R.data,force)}catch(e){if(force)notice(e.message,true)}finally{R.busy=false}}
-function metrics(){const d=R.data||{},q=d.queue;return[{label:'GANHOS HOJE',value:money(d.summary?.earnings_today_cents),hint:'Toque para ver sua nota'},{label:'MINHA NOTA',value:`★ ${Number(d.summary?.rating||5).toFixed(2).replace('.',',')}`,hint:'Toque para ver entregas'},{label:'ENTREGAS HOJE',value:String(d.summary?.deliveries_today||0),hint:'Toque para ver a fila'},{label:'MINHA FILA',value:q?`${q.queue_position||q.position||1}º de ${q.queue_total||q.total||1}`:'Fora da fila',hint:q?.location_name||'Toque para ver ganhos'}]}
-function cycle(n){R.card=(R.card+n+4)%4;renderMetric()}function renderMetric(){const x=metrics()[R.card];$('#cj199-metric-label').textContent=x.label;$('#cj199-metric-value').textContent=x.value;$('#cj199-metric-hint').textContent=x.hint}
-function render(){const d=R.data||{},driver=d.driver||{},q=d.queue,online=Boolean(driver.online);renderMetric();$('#cj199-queue-number').textContent=q?String(q.queue_position||q.position||1):'+';$('#cj199-queue').classList.toggle('active',Boolean(q));$('#cj199-start').classList.toggle('online',online);$('#cj199-start span').textContent=online?'PARAR':'INICIAR';$('#cj199-online').textContent=online?'Você está online':'Você está offline';$('#cj199-queue-text').textContent=q?`Você é o ${q.queue_position||q.position||1}º da fila`:'Você está fora da fila';$('#cj199-name').textContent=driver.name||'Cooperado';$('#cj199-photo').innerHTML=driver.photo_url?`<img src="${esc(driver.photo_url)}" alt="">`:esc((driver.name||'CJ').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase());renderSchedules(d.schedules||[])}
-function renderSchedules(items){const host=$('#cj199-schedules');if(!host)return;host.innerHTML=items.length?items.map(item=>{const date=String(item.start_at||'').slice(0,10),dt=date?new Date(`${date}T12:00:00`):null,day=dt?dt.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').toUpperCase():'',num=dt?String(dt.getDate()).padStart(2,'0'):'',month=dt?dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase():'';const type=String(item.entry_type||'work').toUpperCase(),location=item.location_name||item.contract_name||item.establishment_name||item.base_name||(type==='OFF'?'Folga':'Local não informado'),address=item.location_address||item.address||item.pickup_address||item.base_address||item.establishment_address||'';return `<article><div class="date"><small>${esc(day)}</small><strong>${esc(num)}</strong><span>${esc(month)}</span></div><div class="info"><strong>${esc(location)}</strong><b>${esc(String(item.start_at||'').slice(11,16))} às ${esc(String(item.end_at||'').slice(11,16))} • ${esc(item.shift_label||type)}</b>${address?`<p>${esc(address)}</p>`:''}<em>${esc(item.status==='confirmed'?'CONFIRMADA':'AGENDADA')}</em></div></article>`}).join(''):'<p class="empty">Sem escala cadastrada nos próximos dias.</p>'}
-async function toggleOnline(){const b=$('#cj199-start');if(b.disabled)return;b.disabled=true;try{const online=Boolean(R.data?.driver?.online);let body={online:!online};if(!online){const p=await pos();R.lastGps=point(p.coords.latitude,p.coords.longitude);body={online:true,latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy}}await api('/api/app/driver/online',{method:'POST',body});await refresh(true)}catch(e){notice(e.message,true)}finally{b.disabled=false}}
-async function toggleQueue(){const b=$('#cj199-queue');if(b.disabled)return;b.disabled=true;try{if(R.data?.queue){await api('/api/app/v10/queue/leave',{method:'POST',body:{}});return refresh()}if(!R.data?.driver?.online)throw new Error('Fique online antes de entrar na fila.');const d=await api('/api/app/v10/queue/locations'),items=d.items||[];if(!items.length)throw new Error('Nenhuma fila disponível para sua escala agora.');const p=await pos(),x=items[0];await api('/api/app/v10/queue/arrive',{method:'POST',body:{location_type:x.location_type,location_id:x.location_id,latitude:p.coords.latitude,longitude:p.coords.longitude}});await refresh()}catch(e){notice(e.message,true)}finally{b.disabled=false}}
-function startGps(){if(R.gps!=null||!navigator.geolocation)return;R.gps=navigator.geolocation.watchPosition(p=>{R.lastGps=point(p.coords.latitude,p.coords.longitude);R.self?.setLatLng([R.lastGps.lat,R.lastGps.lng]);if(!R.data?.driver?.online||Date.now()-R.lastSend<6500)return;R.lastSend=Date.now();api('/api/app/map/location',{method:'POST',body:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,speed:p.coords.speed,heading:p.coords.heading},timeout:4500}).catch(()=>{})},()=>{},{enableHighAccuracy:true,maximumAge:4000,timeout:15000})}
-function start(){stop();R.timer=setInterval(()=>{if(!document.hidden&&home())refresh()},4500)}function stop(){clearInterval(R.timer);R.timer=null}
-function install(){if(R.installed||!window.pages||typeof window.navigate!=='function')return;R.installed=true;R.oldDashboard=window.pages.dashboard;R.oldNavigate=window.navigate;window.pages.dashboard=async function(){if(isDriver())return mount();return R.oldDashboard?.apply(this,arguments)};window.navigate=async function(page,...rest){if(isDriver()&&page!=='dashboard')leave();const result=await R.oldNavigate.call(this,page,...rest);if(isDriver()&&page!=='dashboard'){cleanup();document.body.classList.add('cj199-driver-page');$('#auth-screen')?.classList.add('hidden');$('#app-shell')?.classList.remove('hidden');window.scrollTo(0,0)}if(isDriver()&&page==='dashboard')await mount();return result};if(home())mount()}
-function boot(){install();new MutationObserver(()=>requestAnimationFrame(()=>{install();if(home()&&!$('#cj199-app'))mount()})).observe(document.documentElement,{childList:true,subtree:true});document.addEventListener('visibilitychange',()=>{if(!document.hidden&&home()){R.map?.invalidateSize(false);refresh()}})}
+const isHome=()=>isDriver()&&window.state?.page==='dashboard';
+const D={installed:false,oldDashboard:null,oldNavigate:null,map:null,mapHost:null,self:null,pickup:null,delivery:null,route:null,data:null,timer:null,health:null,gpsWatch:null,lastGps:null,lastSent:0,busy:false,card:0,touchX:null,touchY:null,mounted:false};
+async function api(path,opt={}){
+ const controller=new AbortController(),timeout=setTimeout(()=>controller.abort(),opt.timeout||7500);
+ try{
+  const response=await fetch(path,{method:opt.method||'GET',headers:{...(opt.body?{'Content-Type':'application/json'}:{}),...(token()?{Authorization:`Bearer ${token()}`}:{})},body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store',signal:controller.signal});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok||data.ok===false)throw new Error(data.error||`Erro ${response.status}`);
+  return data;
+ }finally{clearTimeout(timeout)}
+}
+const point=(lat,lng)=>({lat:Number(lat),lng:Number(lng)});
+const valid=p=>Number.isFinite(p?.lat)&&Number.isFinite(p?.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180&&Math.abs(p.lat)+Math.abs(p.lng)>.01;
+const position=()=>new Promise((resolve,reject)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,maximumAge:2500,timeout:12000}):reject(new Error('GPS indisponível.')));
+function notice(text,error=false){let node=$('#cj199-notice');if(!node){node=document.createElement('div');node.id='cj199-notice';document.body.appendChild(node)}node.textContent=text;node.className=`show${error?' error':''}`;clearTimeout(node._t);node._t=setTimeout(()=>node.className='',3800)}
+function disableLegacy(){
+ try{window.ChegaJaV31?.stopDriver?.()}catch{}
+ try{window.stopLocation?.()}catch{}
+ document.body.classList.remove('v31-driver-mode','v32-driver-single-menu','cj14-driver','cj143-driver','cj190-driver-home','cj24-driver-mode','cj196-driver-mode','driver-app-mode');
+ ['#cj143-driver-nav','#cj143-driver-menu','#cj143-driver-drawer','#v31-driver-bottom','#cj42-driver-nav','#cj42-driver-menu','#cj42-driver-drawer','#cj196-driver-app','#cj24-driver-app','#cj190-drawer','#cj190-page-menu'].forEach(s=>$$(s).forEach(n=>n.remove()));
+}
+function shell(){return `<main id="cj199-app" aria-label="Painel do cooperado">
+ <div id="cj199-map" aria-label="Mapa do cooperado"></div>
+ <button id="cj199-metric" type="button"><small id="cj199-metric-label">GANHOS HOJE</small><strong id="cj199-metric-value">R$ 0,00</strong><span id="cj199-metric-hint">Toque ou deslize para ver mais</span></button>
+ <button id="cj199-queue" type="button"><small>FILA</small><strong id="cj199-queue-number">+</strong></button>
+ <button id="cj199-center" type="button" aria-label="Centralizar mapa">◎</button>
+ <button id="cj199-start" type="button"><span>INICIAR</span></button>
+ <button id="cj199-checkin" type="button"><b>✓</b><small>CHECK-IN</small></button>
+ <section id="cj199-bottom"><button id="cj199-up" type="button" aria-label="Abrir escala">⌃</button><div><strong id="cj199-online">Você está offline</strong><small id="cj199-queue-text">Você está fora da fila</small></div><button id="cj199-menu" type="button" aria-label="Abrir menu">☰</button></section>
+ <section id="cj199-sheet"><button class="handle" type="button" aria-label="Fechar escala"></button><header><div><small>MINHA ESCALA</small><strong>Datas, horários e locais</strong></div><button id="cj199-down" type="button">⌄</button></header><div id="cj199-schedules"><p class="empty">Carregando escala…</p></div></section>
+ <div id="cj199-drawer"><button class="backdrop" type="button"></button><aside><header><div id="cj199-photo">CJ</div><span><strong id="cj199-name">Cooperado</strong><small>Meu aplicativo</small></span><button data-close type="button">×</button></header><nav><button data-go="dashboard">Início</button><button data-go="deliveries">Entregas</button><button data-scale>Minha escala</button><button data-go="routes">Rotas</button><button data-go="financial">Ganhos e descontos</button><button data-go="advances">Adiantamentos</button><button data-checkin>Fazer check-in</button><button data-go="ratings">Avaliações</button><button data-go="profile">Perfil e configurações</button><button data-go="account">Alterar senha</button><button data-logout>Sair</button></nav></aside></div>
+ </main>`}
+async function mount(){
+ if(!isHome())return;
+ disableLegacy();
+ document.body.classList.remove('cj199-driver-page');document.body.classList.add('cj199-driver');
+ $('#auth-screen')?.classList.add('hidden');$('#customer-screen')?.classList.add('hidden');$('#tracking-screen')?.classList.add('hidden');$('#app-shell')?.classList.remove('hidden');
+ const content=$('#page-content');if(!content)return;
+ if(!$('#cj199-app',content)){
+  destroyMap();content.innerHTML=shell();bind();D.mounted=true;
+ }
+ await ensureMap();
+ await refresh(true);
+ startPolling();startGps();
+}
+function leaveHome(){
+ document.body.classList.remove('cj199-driver');document.body.classList.add('cj199-driver-page');
+ stopPolling();closeSheet();$('#cj199-drawer')?.classList.remove('open');
+}
+function bind(){
+ const metric=$('#cj199-metric');
+ metric.onclick=()=>cycleMetric(1);
+ metric.addEventListener('touchstart',e=>D.touchX=e.touches[0]?.clientX??null,{passive:true});
+ metric.addEventListener('touchend',e=>{if(D.touchX==null)return;const end=e.changedTouches[0]?.clientX??D.touchX,delta=end-D.touchX;D.touchX=null;if(Math.abs(delta)>34)cycleMetric(delta<0?1:-1)},{passive:true});
+ $('#cj199-start').onclick=toggleOnline;$('#cj199-queue').onclick=toggleQueue;$('#cj199-checkin').onclick=doCheckin;$('#cj199-center').onclick=()=>updateMap(true);
+ $('#cj199-up').onclick=openSheet;$('#cj199-down').onclick=$('#cj199-sheet .handle').onclick=closeSheet;
+ for(const node of [$('#cj199-bottom'),$('#cj199-sheet')]){
+  node.addEventListener('touchstart',e=>D.touchY=e.touches[0]?.clientY??null,{passive:true});
+  node.addEventListener('touchend',e=>{if(D.touchY==null)return;const end=e.changedTouches[0]?.clientY??D.touchY,delta=end-D.touchY;D.touchY=null;if(delta<-35)openSheet();if(delta>35)closeSheet()},{passive:true});
+ }
+ $('#cj199-menu').onclick=()=>$('#cj199-drawer').classList.add('open');
+ $('#cj199-drawer [data-close]').onclick=$('#cj199-drawer .backdrop').onclick=()=>$('#cj199-drawer').classList.remove('open');
+ $$('#cj199-drawer [data-go]').forEach(button=>button.onclick=()=>go(button.dataset.go));
+ $('#cj199-drawer [data-scale]').onclick=()=>{$('#cj199-drawer').classList.remove('open');openSheet()};
+ $('#cj199-drawer [data-checkin]').onclick=()=>{$('#cj199-drawer').classList.remove('open');doCheckin()};
+ $('#cj199-drawer [data-logout]').onclick=()=>window.logout?.();
+}
+function openSheet(){$('#cj199-sheet')?.classList.add('open');const b=$('#cj199-up');if(b)b.textContent='⌄';setTimeout(()=>D.map?.invalidateSize(false),240)}
+function closeSheet(){$('#cj199-sheet')?.classList.remove('open');const b=$('#cj199-up');if(b)b.textContent='⌃';setTimeout(()=>D.map?.invalidateSize(false),240)}
+function photoIcon(url,name,size=40){const initials=String(name||'EU').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();return L.divIcon({className:'cj199-photo-marker',html:`<span style="--s:${size}px">${url?`<img src="${esc(url)}" alt="">`:`<b>${esc(initials||'EU')}</b>`}</span>`,iconSize:[size,size],iconAnchor:[size/2,size/2]})}
+function stopIcon(label,kind){return L.divIcon({className:`cj199-stop ${kind}`,html:label,iconSize:[34,34],iconAnchor:[17,17]})}
+async function ensureMap(){
+ const host=$('#cj199-map');if(!host||typeof L==='undefined')return;
+ if(D.map&&D.mapHost===host){setTimeout(()=>D.map.invalidateSize(false),30);return}
+ destroyMap();D.mapHost=host;host.replaceChildren();
+ await new Promise(resolve=>requestAnimationFrame(()=>requestAnimationFrame(resolve)));
+ D.map=L.map(host,{zoomControl:false,attributionControl:true,preferCanvas:true,zoomSnap:.5,tap:true}).setView([-5.7945,-35.211],14);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,updateWhenIdle:true,keepBuffer:5,attribution:'© OpenStreetMap'}).addTo(D.map);
+ L.control.zoom({position:'bottomleft'}).addTo(D.map);
+ setTimeout(()=>D.map?.invalidateSize(false),120);
+}
+function destroyMap(){if(D.map)try{D.map.remove()}catch{}D.map=D.mapHost=D.self=D.pickup=D.delivery=D.route=null}
+function routePoints(raw){let value=raw;try{if(typeof value==='string')value=JSON.parse(value)}catch{return[]}if(value?.type==='Feature')value=value.geometry;if(value?.type==='LineString')value=value.coordinates;if(value?.type==='MultiLineString')value=(value.coordinates||[]).flat();if(!Array.isArray(value))return[];return value.map(item=>{if(!Array.isArray(item)||item.length<2)return null;const a=Number(item[0]),b=Number(item[1]);return Math.abs(a)<=35&&Math.abs(b)>=32?[a,b]:[b,a]}).filter(p=>Number.isFinite(p?.[0])&&Number.isFinite(p?.[1]))}
+function updateMap(fit=false){
+ if(!D.map||!D.data)return;
+ const driver=D.data.driver||{},self=D.lastGps||point(driver.current_lat,driver.current_lng),active=D.data.active||D.data.call||null,points=[];
+ if(valid(self)){
+  points.push([self.lat,self.lng]);
+  if(!D.self)D.self=L.marker([self.lat,self.lng],{icon:photoIcon(driver.photo_url||window.state?.user?.photo_url,driver.name||window.state?.user?.name,42),zIndexOffset:1000}).addTo(D.map);
+  else D.self.setLatLng([self.lat,self.lng]);
+ }
+ for(const layer of ['pickup','delivery','route']){if(D[layer])try{D[layer].remove()}catch{}D[layer]=null}
+ if(active){
+  const pickup=point(active.pickup_lat,active.pickup_lng),delivery=point(active.delivery_lat,active.delivery_lng);
+  if(valid(pickup)){points.push([pickup.lat,pickup.lng]);D.pickup=L.marker([pickup.lat,pickup.lng],{icon:stopIcon('C','pickup')}).addTo(D.map).bindPopup(`<strong>Coleta</strong><br>${esc(active.pickup_address||'')}`)}
+  if(valid(delivery)){points.push([delivery.lat,delivery.lng]);D.delivery=L.marker([delivery.lat,delivery.lng],{icon:stopIcon('E','delivery')}).addTo(D.map).bindPopup(`<strong>Entrega</strong><br>${esc(active.delivery_address||'')}`)}
+  const route=routePoints(active.route_geometry);if(route.length>1)D.route=L.polyline(route,{color:'#0d45d8',weight:6,opacity:.86}).addTo(D.map);
+ }
+ if(fit){if(points.length>1)D.map.fitBounds(points,{paddingTopLeft:[26,112],paddingBottomRight:[26,182],maxZoom:16,animate:false});else if(points.length===1)D.map.setView(points[0],16,{animate:false})}
+ D.map.invalidateSize(false);
+}
+async function getQueue(){try{const data=await api('/api/app/v10/queue/locations',{timeout:5500});return {active:data.active||null,items:data.items||[]}}catch{return {active:null,items:[]}}}
+async function getSchedules(){
+ const now=new Date(),from=now.toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'}),end=new Date(`${from}T12:00:00`);end.setDate(end.getDate()+7);
+ try{const data=await api(`/api/app/v18/driver/schedule?from=${from}&to=${end.toISOString().slice(0,10)}`,{timeout:6000});return data.items||data.schedules||[]}catch{return[]}
+}
+async function refresh(fit=false){
+ if(D.busy||!isHome())return;D.busy=true;
+ try{
+  const [live,queue,schedules]=await Promise.all([api('/api/app/driver/live'),getQueue(),getSchedules()]);
+  D.data={...live,queue:queue.active,queueLocations:queue.items,schedules};render();updateMap(fit);
+ }catch(error){if(fit)notice(error.name==='AbortError'?'A conexão demorou. Toque novamente.':error.message,true)}finally{D.busy=false}
+}
+function metrics(){const data=D.data||{},queue=data.queue;return[
+ {label:'GANHOS HOJE',value:money(data.summary?.earnings_today_cents),hint:'Toque ou deslize para ver sua nota'},
+ {label:'MINHA NOTA',value:`★ ${Number(data.summary?.rating||5).toFixed(2).replace('.',',')}`,hint:'Toque para ver entregas'},
+ {label:'ENTREGAS HOJE',value:String(data.summary?.deliveries_today||0),hint:'Toque para ver a fila'},
+ {label:'MINHA FILA',value:queue?`${queue.queue_position||1}º de ${queue.queue_total||1}`:'Fora da fila',hint:queue?.location_name||'Toque para voltar aos ganhos'}
+]}
+function cycleMetric(step){D.card=(D.card+step+4)%4;renderMetric()}
+function renderMetric(){const item=metrics()[D.card];$('#cj199-metric-label').textContent=item.label;$('#cj199-metric-value').textContent=item.value;$('#cj199-metric-hint').textContent=item.hint}
+function render(){
+ const data=D.data||{},driver=data.driver||{},queue=data.queue,online=Boolean(Number(driver.online));renderMetric();
+ $('#cj199-queue-number').textContent=queue?String(queue.queue_position||1):'+';$('#cj199-queue').classList.toggle('active',Boolean(queue));
+ $('#cj199-start').classList.toggle('online',online);$('#cj199-start span').textContent=online?'PARAR':'INICIAR';
+ $('#cj199-online').textContent=online?'Você está online':'Você está offline';$('#cj199-queue-text').textContent=queue?`Você é o ${queue.queue_position||1}º da fila`:'Você está fora da fila';
+ $('#cj199-name').textContent=driver.name||window.state?.user?.name||'Cooperado';
+ const photo=driver.photo_url||window.state?.user?.photo_url,initials=String(driver.name||window.state?.user?.name||'CJ').split(/\s+/).slice(0,2).map(x=>x[0]).join('').toUpperCase();$('#cj199-photo').innerHTML=photo?`<img src="${esc(photo)}" alt="">`:esc(initials);
+ renderSchedules(data.schedules||[]);
+}
+function renderSchedules(items){
+ const host=$('#cj199-schedules');if(!host)return;
+ host.innerHTML=items.length?items.map(item=>{
+  const raw=String(item.start_at||''),date=raw.slice(0,10),dt=date?new Date(`${date}T12:00:00`):null,day=dt?dt.toLocaleDateString('pt-BR',{weekday:'short'}).replace('.','').toUpperCase():'',num=dt?String(dt.getDate()).padStart(2,'0'):'',month=dt?dt.toLocaleDateString('pt-BR',{month:'short'}).replace('.','').toUpperCase():'';
+  const entry=String(item.entry_type||'work').toLowerCase(),location=item.location_name||item.contract_name||item.base_name||item.establishment_name||(entry==='off'?'Folga':'Local não informado');
+  const address=item.location_address||item.base_address||item.establishment_address||item.address||item.pickup_address||'';
+  return `<article><div class="date"><small>${esc(day)}</small><strong>${esc(num)}</strong><span>${esc(month)}</span></div><div class="info"><strong>${esc(location)}</strong><b>${esc(raw.slice(11,16))} às ${esc(String(item.end_at||'').slice(11,16))} • ${esc(item.shift_label||entry.toUpperCase())}</b>${address?`<p>${esc(address)}</p>`:'<p>Endereço não informado no cadastro do local.</p>'}<em>${esc(item.status==='confirmed'?'CONFIRMADA':'AGENDADA')}</em></div></article>`
+ }).join(''):'<p class="empty">Sem escala cadastrada para os próximos dias.</p>';
+}
+async function toggleOnline(){
+ const button=$('#cj199-start');if(button?.disabled)return;button.disabled=true;
+ try{
+  const online=Boolean(Number(D.data?.driver?.online));let body={online:!online};
+  if(!online){const p=await position();D.lastGps=point(p.coords.latitude,p.coords.longitude);body={online:true,latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy}}
+  await api('/api/app/driver/online',{method:'POST',body});await refresh(true);
+ }catch(error){notice(error.message,true)}finally{if(button)button.disabled=false}
+}
+async function doCheckin(){
+ const button=$('#cj199-checkin');if(button?.disabled)return;button.disabled=true;
+ try{
+  const locations=await api('/api/app/v25/driver/checkin/locations'),items=locations.items||[];
+  if(locations.active){notice(`Check-in já ativo em ${locations.active.location_name||'seu local'}.`);return}
+  if(!items.length)throw new Error('Nenhuma escala ativa para fazer check-in agora.');
+  const item=items[0],p=await position();D.lastGps=point(p.coords.latitude,p.coords.longitude);
+  const result=await api('/api/app/v25/driver/checkin',{method:'POST',body:{location_type:item.location_type,location_id:item.location_id,latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy}});
+  notice(result.message||'Check-in confirmado.');await refresh(true);
+ }catch(error){notice(error.message,true)}finally{if(button)button.disabled=false}
+}
+async function toggleQueue(){
+ const button=$('#cj199-queue');if(button?.disabled)return;button.disabled=true;
+ try{
+  if(D.data?.queue){await api('/api/app/v10/queue/leave',{method:'POST',body:{}});notice('Você saiu da fila.');await refresh();return}
+  if(!D.data?.driver?.online)throw new Error('Faça o check-in ou fique online antes de entrar na fila.');
+  const locations=D.data?.queueLocations?.length?D.data.queueLocations:(await getQueue()).items;if(!locations.length)throw new Error('Nenhuma fila disponível para sua escala agora.');
+  const item=locations[0],p=await position();D.lastGps=point(p.coords.latitude,p.coords.longitude);
+  const result=await api('/api/app/v25/driver/queue/arrive',{method:'POST',body:{location_type:item.location_type,location_id:item.location_id,latitude:p.coords.latitude,longitude:p.coords.longitude}});
+  notice(`Entrada na fila confirmada${result.distance_meters!=null?` a ${result.distance_meters} m do local`:''}.`);await refresh();
+ }catch(error){notice(error.message,true)}finally{if(button)button.disabled=false}
+}
+function startGps(){
+ if(D.gpsWatch!=null||!navigator.geolocation)return;
+ D.gpsWatch=navigator.geolocation.watchPosition(p=>{
+  D.lastGps=point(p.coords.latitude,p.coords.longitude);if(D.self)D.self.setLatLng([D.lastGps.lat,D.lastGps.lng]);
+  if(!D.data?.driver?.online||Date.now()-D.lastSent<7000)return;D.lastSent=Date.now();
+  api('/api/app/map/location',{method:'POST',body:{latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,speed:p.coords.speed,heading:p.coords.heading},timeout:4800}).catch(()=>{});
+ },()=>{},{enableHighAccuracy:true,maximumAge:5000,timeout:15000});
+}
+function startPolling(){stopPolling();D.timer=setInterval(()=>{if(!document.hidden&&isHome())refresh()},5000)}
+function stopPolling(){clearInterval(D.timer);D.timer=null}
+async function go(page){
+ $('#cj199-drawer')?.classList.remove('open');
+ if(page==='dashboard'){await mount();return}
+ leaveHome();
+ try{await D.oldNavigate?.call(window,page);decorateInternal(page)}catch(error){notice(error.message,true)}
+}
+function decorateInternal(page){
+ document.body.classList.add('cj199-driver-page');document.body.classList.remove('cj199-driver');
+ $('#auth-screen')?.classList.add('hidden');$('#app-shell')?.classList.remove('hidden');
+ const content=$('#page-content');if(!content)return;
+ let header=$('#cj199-internal-header');if(!header){header=document.createElement('header');header.id='cj199-internal-header';header.innerHTML='<button type="button">←</button><div><small>MEU APLICATIVO</small><strong></strong></div><button class="menu" type="button">☰</button>';content.prepend(header);header.querySelector('button').onclick=()=>go('dashboard');header.querySelector('.menu').onclick=()=>{document.body.classList.add('cj199-driver');mount().then(()=>$('#cj199-drawer')?.classList.add('open'))}}
+ const titles={deliveries:'Minhas entregas',routes:'Rotas',financial:'Ganhos e descontos',advances:'Adiantamentos',ratings:'Avaliações',profile:'Perfil e configurações',account:'Alterar senha',attendance:'Check-in'};header.querySelector('strong').textContent=titles[page]||'Meu aplicativo';window.scrollTo(0,0);
+}
+function install(){
+ if(D.installed||!window.pages||typeof window.navigate!=='function')return;D.installed=true;D.oldDashboard=window.pages.dashboard;D.oldNavigate=window.navigate;
+ window.pages.dashboard=async function(){if(isDriver())return mount();return D.oldDashboard?.apply(this,arguments)};
+ window.navigate=async function(page,...rest){if(isDriver()){if(page==='dashboard')return mount();leaveHome();const result=await D.oldNavigate.call(this,page,...rest);decorateInternal(page);return result}return D.oldNavigate.call(this,page,...rest)};
+ if(window.ChegaJaV31){window.ChegaJaV31.stopDriver?.();window.ChegaJaV31.installDriver=mount;window.ChegaJaV31.loadDriverDashboard=refresh}
+ if(isHome())mount();
+}
+function boot(){
+ install();
+ clearInterval(D.health);D.health=setInterval(()=>{if(!isDriver())return;if(isHome()){disableLegacy();if(!$('#cj199-app'))mount();else D.map?.invalidateSize(false)}},1800);
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden&&isHome()){D.map?.invalidateSize(false);refresh()}});
+ window.addEventListener('orientationchange',()=>setTimeout(()=>D.map?.invalidateSize(false),350));
+}
 window.addEventListener('load',boot,{once:true});if(document.readyState==='complete')boot();
 })();
