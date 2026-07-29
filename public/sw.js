@@ -1,13 +1,13 @@
-const CACHE='chegaja-static-14-21-0';
+const CACHE='chegaja-static-14-21-1';
 const CORE=[
   '/','/index.html','/manifest.webmanifest',
   '/icons/icon-official.png','/icons/logo-official.png',
   '/vendor/leaflet/leaflet.css','/vendor/leaflet/leaflet.js','/vendor/qrcode.js',
   '/chegaja-final.css?v=14.15.9','/chegaja-v144.css?v=14.15.9','/chegaja-v145.css?v=14.15.9',
   '/chegaja-v148.css?v=14.15.9','/chegaja-v149.css?v=14.15.9','/chegaja-mobile-app.css?v=14.16.0',
-  '/chegaja-map-fallback.css?v=14.21.0','/chegaja-v197-client-entry.css?v=14.20.1','/chegaja-v199-driver.css?v=14.21.0','/chegaja-v201-operational.css?v=14.21.0','/chegaja-v203-client-rebuild.css?v=14.21.0','/chegaja-v204-driver-pages.css?v=14.21.0',
+  '/chegaja-map-fallback.css?v=14.21.0','/chegaja-v197-client-entry.css?v=14.20.1','/chegaja-v201-operational.css?v=14.21.0','/chegaja-v203-client-rebuild.css?v=14.21.0',
   '/chegaja-maps-leaflet.js?v=14.21.0','/app.js?v=14.15.9','/chegaja-v198-auth.js?v=14.20.0','/chegaja-final.js?v=14.15.9','/chegaja-v144.js?v=14.15.9',
-  '/chegaja-v145.js?v=14.15.9','/chegaja-v148.js?v=14.15.9','/chegaja-v149.js?v=14.15.9','/chegaja-v197-client-entry.js?v=14.20.1','/chegaja-v199-driver.js?v=14.21.0','/chegaja-v200-proximity.js?v=14.21.0','/chegaja-v201-operational.js?v=14.21.0','/chegaja-v203-client-rebuild.js?v=14.21.0','/chegaja-v204-driver-pages.js?v=14.21.0'
+  '/chegaja-v145.js?v=14.15.9','/chegaja-v148.js?v=14.15.9','/chegaja-v149.js?v=14.15.9','/chegaja-v197-client-entry.js?v=14.20.1','/chegaja-v201-operational.js?v=14.21.0','/chegaja-v203-client-rebuild.js?v=14.21.0'
 ];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).catch(()=>{}))});
 self.addEventListener('activate',event=>{event.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))]))});
