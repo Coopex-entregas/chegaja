@@ -15,10 +15,10 @@
   <link rel="stylesheet" href="/chegaja-v148.css?v=14.15.9" />
   <link rel="stylesheet" href="/chegaja-v149.css?v=14.15.9" />
   <link rel="stylesheet" href="/chegaja-mobile-app.css?v=14.16.0" />
-  <link rel="stylesheet" href="/chegaja-map-fallback.css?v=14.21.0" />
-  <link rel="stylesheet" href="/chegaja-v197-client-entry.css?v=14.20.1" />
-  <link rel="stylesheet" href="/chegaja-v201-operational.css?v=14.21.0" />
-  <link rel="stylesheet" href="/chegaja-v203-client-rebuild.css?v=14.21.0" />
+  <link rel="stylesheet" href="/chegaja-map-fallback.css?v=14.22.0" />
+  <link rel="stylesheet" href="/chegaja-v201-operational.css?v=14.22.0" />
+  <link rel="stylesheet" href="/chegaja-v203-client-rebuild.css?v=14.22.0" />
+  <link rel="stylesheet" href="/chegaja-v199-driver.css?v=14.22.0" />
 </head>
 <body>
   <div id="auth-screen" class="auth-screen">
@@ -34,7 +34,7 @@
         <label>Usuário ou e-mail<input name="login" autocomplete="username" required placeholder="seu@email.com" /></label>
         <label>Senha<div class="password-field"><input name="password" type="password" autocomplete="current-password" required placeholder="••••••••" /><button type="button" id="show-login-password" class="password-toggle">Mostrar</button></div></label>
         <button class="btn primary full" type="submit">Entrar</button><button class="link-button" id="forgot-link" type="button">Esqueci minha senha</button>
-        <div class="customer-entry-actions"><button class="btn customer-register-button" id="customer-app-link" type="button">Cadastre-se</button><button class="btn customer-guest-button" id="customer-guest-link" type="button">Pedir sem cadastro</button></div>
+        <div class="customer-entry-actions"><button class="btn customer-register-button" id="customer-app-link" type="button">Entrar ou criar conta</button><button class="btn customer-guest-button" id="customer-guest-link" type="button">Pedir avulso</button></div>
         <p id="login-message" class="form-message"></p>
       </form>
       <form id="forgot-form" class="auth-card hidden"><p class="eyebrow">Recuperar acesso</p><h2>Redefinir senha</h2><p class="muted">Informe o e-mail cadastrado.</p><label>E-mail<input name="email" type="email" required /></label><button class="btn primary full" type="submit">Enviar instruções</button><button class="link-button back-login" type="button">Voltar ao login</button><p id="forgot-message" class="form-message"></p></form>
@@ -46,7 +46,7 @@
   <div id="app-shell" class="app-shell hidden"><aside class="sidebar" id="sidebar"><div class="sidebar-brand"><img class="brand-icon" src="/icons/icon-official.png" alt=""><div><strong>ChegaJá</strong><small id="tenant-name">Gestão integrada</small></div></div><nav id="sidebar-nav"></nav><div class="sidebar-footer"><div class="user-mini"><div class="avatar" id="user-avatar">LG</div><div><strong id="user-name">Usuário</strong><small id="user-role">Perfil</small></div></div><button class="nav-item danger" id="logout-button" type="button"><span>↪</span>Sair</button></div></aside><div class="app-body"><header class="topbar"><div><p class="eyebrow" id="page-kicker">ChegaJá</p><h1 id="page-title">Visão geral</h1></div><div class="topbar-actions"><select id="master-coop-filter" class="master-coop-filter hidden" title="Cooperativa"></select><div id="online-control" class="online-control hidden"><span class="status-dot"></span><span id="online-label">Offline</span><button id="online-toggle" class="btn small">Ficar online</button></div><button class="v21-top-action hidden" id="v21-attendants" type="button">Atendentes</button><button class="v21-top-action hidden" id="v21-switch-attendant" type="button">Trocar atendente</button><button class="v21-top-action danger hidden" id="v21-logout" type="button">Sair</button><button class="icon-button" id="refresh-button" title="Atualizar">↻</button></div><button class="icon-button mobile-only" id="menu-button" aria-label="Abrir menu">☰</button></header><main id="page-content" class="page-content"></main></div></div>
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-backdrop" aria-hidden="true"></div><div class="modal-card"><header><div><p class="eyebrow">ChegaJá</p><h2 id="modal-title">Formulário</h2></div><button class="icon-button" data-close-modal>×</button></header><div id="modal-body"></div></div></div>
   <div id="toast-container" class="toast-container"></div><div id="loading" class="loading hidden"><div class="spinner"></div><span>Carregando...</span></div>
-  <script src="/vendor/leaflet/leaflet.js"></script><script src="/vendor/qrcode.js"></script><script src="/chegaja-maps-leaflet.js?v=14.21.0"></script>
-  <script src="/app.js?v=14.15.9" defer></script><script src="/chegaja-v198-auth.js?v=14.20.0" defer></script><script src="/chegaja-final.js?v=14.15.9" defer></script><script src="/chegaja-v144.js?v=14.15.9" defer></script><script src="/chegaja-v145.js?v=14.15.9" defer></script><script src="/chegaja-v148.js?v=14.15.9" defer></script><script src="/chegaja-v149.js?v=14.15.9" defer></script><script src="/chegaja-v197-client-entry.js?v=14.20.1" defer></script><script src="/chegaja-v201-operational.js?v=14.21.0" defer></script><script src="/chegaja-v203-client-rebuild.js?v=14.21.0" defer></script>
+  <script src="/vendor/leaflet/leaflet.js"></script><script src="/vendor/qrcode.js"></script><script src="/chegaja-maps-leaflet.js?v=14.22.0"></script>
+  <script src="/app.js?v=14.15.9" defer></script><script src="/chegaja-v198-auth.js?v=14.22.0" defer></script><script src="/chegaja-final.js?v=14.15.9" defer></script><script src="/chegaja-v144.js?v=14.15.9" defer></script><script src="/chegaja-v145.js?v=14.15.9" defer></script><script src="/chegaja-v148.js?v=14.15.9" defer></script><script src="/chegaja-v149.js?v=14.15.9" defer></script><script src="/chegaja-v201-operational.js?v=14.22.0" defer></script><script src="/chegaja-v203-client-rebuild.js?v=14.22.0" defer></script><script src="/chegaja-v199-driver.js?v=14.22.0" defer></script>
 </body>
 </html>
