@@ -64,7 +64,7 @@ app.use('/api/app/*', async (c, next) => {
 });
 app.use('/api/app/*', async (c, next) => {
   const auth=c.get('auth');
-  if(auth.role==='establishment'&&c.req.method!=='GET'&&\/(?:schedules?|schedule-grid|schedule-planner|schedule-swaps)(?:\/|$)/.test(c.req.path))return c.json({ok:false,error:'O estabelecimento possui acesso somente para visualizar a escala. Alterações são feitas pela cooperativa; trocas são solicitadas pelos próprios cooperados.'},403);
+  if(auth.role==='establishment'&&c.req.method!=='GET'&&/(?:schedules?|schedule-grid|schedule-planner|schedule-swaps)(?:\/|$)/.test(c.req.path))return c.json({ok:false,error:'O estabelecimento possui acesso somente para visualizar a escala. Alterações são feitas pela cooperativa; trocas são solicitadas pelos próprios cooperados.'},403);
   if(auth.role==='platform_admin'){
     const allowed=['/api/app/dashboard','/api/app/cooperatives','/api/app/platform/','/api/app/audit','/api/app/map/'];
     if(!allowed.some(prefix=>c.req.path===prefix||c.req.path.startsWith(prefix)))return c.json({ok:false,error:'O Administrador Principal acessa somente cooperativas, indicadores e auditoria da plataforma.'},403);
