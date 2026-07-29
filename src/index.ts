@@ -26,6 +26,7 @@ import { platformV19Routes } from './routes/platform-v19';
 import { platformV21Routes } from './routes/platform-v21';
 import { platformV22Routes } from './routes/platform-v22';
 import { platformV23Routes } from './routes/platform-v23';
+import { platformV25Routes } from './routes/platform-v25';
 import { mapSafeRoutes, publicMapSafeRoutes } from './routes/map-safe';
 import { driverLiveRoutes } from './routes/driver-live';
 import { settleDueGuarantees } from './lib/guarantees';
@@ -41,8 +42,6 @@ app.use('*', secureHeaders());
 app.use('/api/*', cors({ origin: '*', allowHeaders: ['Authorization','Content-Type','X-API-Key'], allowMethods: ['GET','POST','PUT','PATCH','DELETE','OPTIONS'] }));
 app.get('/api/health', (c) => c.json({ ok:true, app:c.env.APP_NAME, time:new Date().toISOString() }));
 
-// A configuração do mapa precisa existir também em /api/auth porque os módulos
-// internos consultam essa rota antes e depois do login.
 app.route('/api/auth', publicMapSafeRoutes);
 app.route('/api/auth', authRoutes);
 app.route('/api/public', publicMapSafeRoutes);
@@ -89,6 +88,7 @@ app.route('/api/app', platformV19Routes);
 app.route('/api/app', platformV21Routes);
 app.route('/api/app', platformV22Routes);
 app.route('/api/app', platformV23Routes);
+app.route('/api/app', platformV25Routes);
 
 app.onError((error,c)=>{console.error(error);const message=error instanceof Error?error.message:'Erro interno.';const status=message.includes('não autorizado')?403:400;return c.json({ok:false,error:c.env.APP_ENV==='production'&&status===400&&message.includes('D1')?'Não foi possível concluir a operação.':message},status)});
 app.notFound(async c=>c.req.path.startsWith('/api/')?jsonError('Rota não encontrada.',404):c.env.ASSETS.fetch(c.req.raw));
