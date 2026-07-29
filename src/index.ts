@@ -29,6 +29,7 @@ import { platformV23Routes } from './routes/platform-v23';
 import { platformV25Routes } from './routes/platform-v25';
 import { platformV26Routes } from './routes/platform-v26';
 import { platformV27Routes } from './routes/platform-v27';
+import { platformV28Routes } from './routes/platform-v28';
 import { mapSafeRoutes, publicMapSafeRoutes } from './routes/map-safe';
 import { driverLiveRoutes } from './routes/driver-live';
 import { settleDueGuarantees } from './lib/guarantees';
@@ -63,7 +64,7 @@ app.use('/api/app/*', async (c, next) => {
 });
 app.use('/api/app/*', async (c, next) => {
   const auth=c.get('auth');
-  if(auth.role==='establishment'&&c.req.method!=='GET'&&/\/(?:schedules?|schedule-grid|schedule-planner|schedule-swaps)(?:\/|$)/.test(c.req.path))return c.json({ok:false,error:'O estabelecimento possui acesso somente para visualizar a escala. Alterações são feitas pela cooperativa; trocas são solicitadas pelos próprios cooperados.'},403);
+  if(auth.role==='establishment'&&c.req.method!=='GET'&&\/(?:schedules?|schedule-grid|schedule-planner|schedule-swaps)(?:\/|$)/.test(c.req.path))return c.json({ok:false,error:'O estabelecimento possui acesso somente para visualizar a escala. Alterações são feitas pela cooperativa; trocas são solicitadas pelos próprios cooperados.'},403);
   if(auth.role==='platform_admin'){
     const allowed=['/api/app/dashboard','/api/app/cooperatives','/api/app/platform/','/api/app/audit','/api/app/map/'];
     if(!allowed.some(prefix=>c.req.path===prefix||c.req.path.startsWith(prefix)))return c.json({ok:false,error:'O Administrador Principal acessa somente cooperativas, indicadores e auditoria da plataforma.'},403);
@@ -93,6 +94,7 @@ app.route('/api/app', platformV23Routes);
 app.route('/api/app', platformV25Routes);
 app.route('/api/app', platformV26Routes);
 app.route('/api/app', platformV27Routes);
+app.route('/api/app', platformV28Routes);
 
 app.onError((error,c)=>{console.error(error);const message=error instanceof Error?error.message:'Erro interno.';const status=message.includes('não autorizado')?403:400;return c.json({ok:false,error:c.env.APP_ENV==='production'&&status===400&&message.includes('D1')?'Não foi possível concluir a operação.':message},status)});
 app.notFound(async c=>c.req.path.startsWith('/api/')?jsonError('Rota não encontrada.',404):c.env.ASSETS.fetch(c.req.raw));
