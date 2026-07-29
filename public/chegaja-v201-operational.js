@@ -1,4 +1,4 @@
-/* ChegaJá 14.20.1 — Leaflet nos mapas visíveis; Google somente em endereços */
+/* ChegaJá 14.22.6 — Leaflet nos mapas visíveis; fotos reais e Google somente em endereços */
 (()=>{
 'use strict';
 if(window.__cj201Operational)return;window.__cj201Operational=true;
@@ -7,7 +7,8 @@ const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&
 const valid=p=>Number.isFinite(p?.lat)&&Number.isFinite(p?.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;
 const point=(a,b)=>Array.isArray(a)?{lat:Number(a[0]),lng:Number(a[1])}:{lat:Number(a?.lat??a?.latitude??a),lng:Number(a?.lng??a?.longitude??b)};
 const runtime={instances:new Map(),est:null,estHost:null,estLayer:null,estTimer:null};
-function photoIcon(url,name='CJ',size=34){const initials=String(name||'CJ').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();return L.divIcon({className:'cj201-photo-icon',html:`<span style="--s:${size}px">${url?`<img src="${esc(url)}" alt="">`:`<b>${esc(initials||'CJ')}</b>`}</span>`,iconSize:[size,size],iconAnchor:[size/2,size/2]})}
+function photoIcon(url,name='CJ',size=34){const initials=String(name||'CJ').split(/\s+/).filter(Boolean).slice(0,2).map(x=>x[0]).join('').toUpperCase();return L.divIcon({className:'cj201-photo-icon',html:`<span style="--s:${size}px">${url?`<img src="${esc(url)}" alt="Foto de ${esc(name)}">`:`<b>${esc(initials||'CJ')}</b>`}</span>`,iconSize:[size,size],iconAnchor:[size/2,size/2]})}
+function markerPhoto(opt={}){return opt.photo||window.ChegaJaBasePhotos?.find?.(opt.title||'')?.url||null}
 function geometry(raw){let data=raw;try{if(typeof data==='string')data=JSON.parse(data)}catch{return[]}if(data?.type==='Feature')data=data.geometry;if(data?.type==='LineString')data=data.coordinates;if(data?.type==='MultiLineString')data=(data.coordinates||[]).flat();if(!Array.isArray(data))return[];return data.map(item=>{if(!Array.isArray(item))return null;const a=Number(item[0]),b=Number(item[1]);return Math.abs(a)<=35&&Math.abs(b)>=32?[a,b]:[b,a]}).filter(item=>Number.isFinite(item?.[0])&&Number.isFinite(item?.[1]))}
 function createLeaflet(host,options={}){
  if(!host||typeof L==='undefined')throw new Error('Mapa Leaflet indisponível.');
@@ -19,7 +20,7 @@ function createLeaflet(host,options={}){
  const groups=new Map();const remember=(group,item)=>{const key=group||'default';if(!groups.has(key))groups.set(key,[]);groups.get(key).push(item);return item};
  const adapter={provider:'leaflet',raw:map,host,
   clearGroup(group){for(const item of groups.get(group)||[])try{map.removeLayer(item)}catch{}groups.delete(group)},
-  addMarker(value,opt={}){const p=point(value);if(!valid(p))return null;const marker=L.marker([p.lat,p.lng],{icon:photoIcon(opt.photo,opt.title||opt.label||'CJ',Number(opt.size||34)),title:opt.title||''}).addTo(map);if(opt.popup)marker.bindPopup(opt.popup);return remember(opt.group,marker)},
+  addMarker(value,opt={}){const p=point(value);if(!valid(p))return null;const name=opt.title||opt.label||'CJ',photo=markerPhoto(opt);const marker=L.marker([p.lat,p.lng],{icon:photoIcon(photo,name,Number(opt.size||34)),title:opt.title||''}).addTo(map);if(opt.popup)marker.bindPopup(opt.popup);return remember(opt.group,marker)},
   addCircleMarker(value,opt={}){const p=point(value);if(!valid(p))return null;const marker=L.circleMarker([p.lat,p.lng],{radius:Number(opt.radius||8),weight:Number(opt.weight||3),color:opt.color||'#0d45d8',fillColor:opt.color||'#0d45d8',fillOpacity:1}).addTo(map);if(opt.popup)marker.bindPopup(opt.popup);return remember(opt.group,marker)},
   addPolyline(values,opt={}){const path=(values||[]).map(item=>point(item)).filter(valid).map(p=>[p.lat,p.lng]);if(!path.length)return null;return remember(opt.group,L.polyline(path,{color:opt.color||'#0d45d8',weight:Number(opt.weight||6),opacity:Number(opt.opacity??.85)}).addTo(map))},
   addGeoJSON(raw,opt={}){return adapter.addPolyline(geometry(raw),opt)},
@@ -34,9 +35,7 @@ function forceMapEngine(){
  if(!window.ChegaJaMaps)return;
  window.ChegaJaMaps.createMap=async(hostOrId,options={})=>{const host=typeof hostOrId==='string'?document.getElementById(hostOrId):hostOrId;if(!host)throw new Error('Área do mapa não encontrada.');return createLeaflet(host,options)};
 }
-function removeSoundButtons(){
- $$('button').forEach(button=>{if(/ativar sons|sons ativos/i.test(button.textContent||''))button.remove()});
-}
+function removeSoundButtons(){$$('button').forEach(button=>{if(/ativar sons|sons ativos/i.test(button.textContent||''))button.remove()})}
 async function api(path){const token=String(window.state?.token||localStorage.getItem('lg_token')||'');const response=await fetch(path,{headers:token?{Authorization:`Bearer ${token}`}:{},cache:'no-store'});const data=await response.json().catch(()=>({}));if(!response.ok||data.ok===false)throw new Error(data.error||`Erro ${response.status}`);return data}
 function ensureEstablishmentLeaflet(){
  const source=$('#cj14-est-map');if(!source||window.state?.user?.role!=='establishment'||window.state?.page!=='dashboard'){destroyEst();return}
