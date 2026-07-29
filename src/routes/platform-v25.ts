@@ -83,6 +83,13 @@ platformV25Routes.post('/v25/driver/queue/arrive',async c=>{
   const latitude=Number(body.latitude),longitude=Number(body.longitude);
   if(!['base','establishment'].includes(type)||!locationId)return c.json({ok:false,error:'Selecione a fila da sua escala.'},400);
   if(!validPoint(latitude,longitude))return c.json({ok:false,error:'Ative a localização precisa para entrar na fila.'},400);
+
+  const activeDelivery=await c.env.DB.prepare(`SELECT id,display_code,status FROM deliveries
+    WHERE cooperative_id=? AND assigned_driver_id=? AND deleted_at IS NULL
+      AND status IN ('assigned','accepted','to_pickup','at_pickup','picked_up','in_route','problem')
+    ORDER BY created_at LIMIT 1`).bind(auth.cooperativeId,auth.driverId).first<Row>();
+  if(activeDelivery)return c.json({ok:false,error:`Você já está com a entrega ${activeDelivery.display_code||''}. Finalize-a antes de entrar na fila.`},409);
+
   const schedule=await activeSchedule(c.env,auth.cooperativeId,auth.driverId,type,locationId);
   if(!schedule)return c.json({ok:false,error:'Você não possui uma escala ativa neste local agora.'},403);
   const localLat=Number(schedule.latitude),localLng=Number(schedule.longitude);
