@@ -1,0 +1,18 @@
+/* ChegaJá 14.20.2 — painel do cooperado em tamanho real e clicável */
+html:has(body.cj202-driver-ready){width:100%!important;min-width:0!important;overflow:hidden!important;-webkit-text-size-adjust:100%!important;text-size-adjust:100%!important}
+body.cj202-driver-ready{width:100%!important;min-width:0!important;max-width:none!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;overflow:hidden!important;touch-action:manipulation!important}
+body.cj202-driver-ready #app-shell,body.cj202-driver-ready .app-body,body.cj202-driver-ready #page-content{position:fixed!important;inset:0!important;width:100vw!important;min-width:0!important;max-width:100vw!important;height:100dvh!important;min-height:0!important;margin:0!important;padding:0!important;overflow:hidden!important;transform:none!important;zoom:1!important}
+body.cj202-driver-ready #cj199-app{position:fixed!important;inset:0!important;width:100vw!important;min-width:0!important;max-width:100vw!important;height:100dvh!important;min-height:100dvh!important;margin:0!important;transform:none!important;zoom:1!important;overflow:hidden!important;pointer-events:auto!important;touch-action:manipulation!important}
+body.cj202-driver-ready #cj199-map{position:absolute!important;inset:0!important;width:100%!important;height:100%!important;min-height:100%!important;display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important;background:#dfe7ef!important}
+body.cj202-driver-ready #cj199-map .leaflet-container,body.cj202-driver-ready #cj199-map.leaflet-container{width:100%!important;height:100%!important;min-height:100%!important;display:block!important}
+body.cj202-driver-ready #cj199-app button{pointer-events:auto!important;touch-action:manipulation!important;-webkit-tap-highlight-color:transparent!important;cursor:pointer!important}
+body.cj202-driver-ready #cj199-metric{left:12px!important;right:auto!important;top:max(14px,env(safe-area-inset-top))!important;width:calc(100vw - 108px)!important;max-width:340px!important;min-width:0!important;box-sizing:border-box!important}
+body.cj202-driver-ready #cj199-queue{right:12px!important;top:max(16px,env(safe-area-inset-top))!important}
+body.cj202-driver-ready #cj199-center{right:16px!important;top:106px!important}
+body.cj202-driver-ready #cj199-start{left:50%!important;right:auto!important;bottom:calc(116px + env(safe-area-inset-bottom))!important;transform:translateX(-50%)!important}
+body.cj202-driver-ready #cj199-qr{right:16px!important;bottom:calc(104px + env(safe-area-inset-bottom))!important}
+body.cj202-driver-ready #cj199-bottom{left:0!important;right:0!important;bottom:0!important;width:100%!important;box-sizing:border-box!important}
+body.cj202-driver-ready #loading.hidden{display:none!important;pointer-events:none!important}
+body.cj202-driver-ready #cj190-driver-app[data-cj202-sentinel]{display:none!important;width:0!important;height:0!important;pointer-events:none!important}
+@media(max-width:390px){body.cj202-driver-ready #cj199-metric{width:calc(100vw - 94px)!important;padding:11px 14px!important}body.cj202-driver-ready #cj199-metric strong{font-size:29px!important}body.cj202-driver-ready #cj199-queue{width:66px!important;height:66px!important}body.cj202-driver-ready #cj199-center{width:52px!important;height:52px!important;top:96px!important}body.cj202-driver-ready #cj199-start{width:112px!important;height:112px!important;font-size:17px!important}body.cj202-driver-ready #cj199-qr{width:52px!important;height:52px!important}}
+@media(min-width:800px){body.cj202-driver-ready #cj199-app{left:50%!important;right:auto!important;width:min(520px,100vw)!important;max-width:520px!important;transform:translateX(-50%)!important}}
