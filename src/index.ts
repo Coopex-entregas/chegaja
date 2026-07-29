@@ -27,6 +27,7 @@ import { platformV21Routes } from './routes/platform-v21';
 import { platformV22Routes } from './routes/platform-v22';
 import { platformV23Routes } from './routes/platform-v23';
 import { platformV25Routes } from './routes/platform-v25';
+import { platformV26Routes } from './routes/platform-v26';
 import { mapSafeRoutes, publicMapSafeRoutes } from './routes/map-safe';
 import { driverLiveRoutes } from './routes/driver-live';
 import { settleDueGuarantees } from './lib/guarantees';
@@ -89,6 +90,7 @@ app.route('/api/app', platformV21Routes);
 app.route('/api/app', platformV22Routes);
 app.route('/api/app', platformV23Routes);
 app.route('/api/app', platformV25Routes);
+app.route('/api/app', platformV26Routes);
 
 app.onError((error,c)=>{console.error(error);const message=error instanceof Error?error.message:'Erro interno.';const status=message.includes('não autorizado')?403:400;return c.json({ok:false,error:c.env.APP_ENV==='production'&&status===400&&message.includes('D1')?'Não foi possível concluir a operação.':message},status)});
 app.notFound(async c=>c.req.path.startsWith('/api/')?jsonError('Rota não encontrada.',404):c.env.ASSETS.fetch(c.req.raw));
