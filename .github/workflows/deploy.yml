@@ -22,8 +22,8 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN || secrets.API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID || secrets.ACCOUNT_ID || vars.CLOUDFLARE_ACCOUNT_ID || vars.ACCOUNT_ID }}
     steps:
       - uses: actions/checkout@v4
 
@@ -39,11 +39,11 @@ jobs:
         shell: bash
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ]; then
-            echo "::error::Cadastre o secret CLOUDFLARE_API_TOKEN em Settings > Secrets and variables > Actions."
+            echo "::error::Não encontrei CLOUDFLARE_API_TOKEN nem API_TOKEN nos Secrets do GitHub."
             exit 1
           fi
           if [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "::error::Cadastre o secret CLOUDFLARE_ACCOUNT_ID em Settings > Secrets and variables > Actions."
+            echo "::error::Não encontrei CLOUDFLARE_ACCOUNT_ID nem ACCOUNT_ID nos Secrets ou Variables do GitHub."
             exit 1
           fi
 
