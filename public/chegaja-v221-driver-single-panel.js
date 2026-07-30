@@ -1,4 +1,4 @@
-/* ChegaJá 14.29.1 — painel único seguro e rota azul do cooperado */
+/* ChegaJá 14.29.2 — painel único seguro e rota azul persistente do cooperado */
 (()=>{
 'use strict';
 if(window.__CJ221_DRIVER_SINGLE_PANEL__)return;
@@ -16,13 +16,16 @@ const legacySelectors=[
 let contentObserver=null;
 let routeMain=null;
 let routeCasing=null;
+let lastRoute=null;
+let lastRouteKey='';
 
-function removeOwnRoute(){
+function removeOwnRoute(reset=true){
   for(const layer of [routeMain,routeCasing]){
     if(layer)try{layer.remove()}catch{}
   }
   routeMain=null;
   routeCasing=null;
+  if(reset){lastRoute=null;lastRouteKey=''}
 }
 
 function keepSinglePanel(){
@@ -62,13 +65,23 @@ function routePoints(route){
     .filter(point=>Number.isFinite(point?.[0])&&Number.isFinite(point?.[1]));
 }
 
+function keyFor(points){
+  if(points.length<2)return'';
+  const first=points[0],last=points[points.length-1];
+  return `${points.length}:${first[0].toFixed(5)}:${first[1].toFixed(5)}:${last[0].toFixed(5)}:${last[1].toFixed(5)}`;
+}
+
 function drawBlueRoute(route){
-  if(!isDriverDashboard())return;
+  if(route)lastRoute=route;
+  if(!isDriverDashboard()||!lastRoute)return;
   const map=window.ChegaJaDriverMap?.map;
   if(!map||typeof window.L==='undefined')return;
-  const points=routePoints(route);
-  removeOwnRoute();
-  if(points.length<2)return;
+  const points=routePoints(lastRoute);
+  const key=keyFor(points);
+  if(!key)return;
+  if(key===lastRouteKey&&routeMain&&routeCasing)return;
+  removeOwnRoute(false);
+  lastRouteKey=key;
   routeCasing=L.polyline(points,{color:'#ffffff',weight:12,opacity:.96,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map);
   routeMain=L.polyline(points,{color:'#1459ff',weight:7,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(map);
   routeCasing.bringToFront?.();
@@ -80,19 +93,24 @@ function onNavigation(event){
   keepSinglePanel();
   const detail=event.detail||null;
   if(detail?.route)drawBlueRoute(detail.route);
-  else if(!detail||!window.ChegaJaDriverActiveDelivery)removeOwnRoute();
+  else if(!detail||!window.ChegaJaDriverActiveDelivery)removeOwnRoute(true);
 }
 
 function bindContentObserver(){
   const content=$('#page-content');
   if(!content||contentObserver)return;
-  contentObserver=new MutationObserver(()=>queueMicrotask(keepSinglePanel));
+  contentObserver=new MutationObserver(()=>queueMicrotask(()=>{
+    keepSinglePanel();
+    drawBlueRoute();
+  }));
   contentObserver.observe(content,{childList:true,subtree:false});
 }
 
 function tick(){
   bindContentObserver();
   keepSinglePanel();
+  if(window.ChegaJaDriverActiveDelivery)drawBlueRoute();
+  else if(lastRoute)removeOwnRoute(true);
 }
 
 window.addEventListener('cj:driver-navigation',onNavigation);
