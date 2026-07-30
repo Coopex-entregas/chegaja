@@ -112,7 +112,7 @@ platformV28Routes.post('/v28/driver/auto-location',async c=>{
   const item=await c.env.DB.prepare(`SELECT id,display_code,status,pickup_lat,pickup_lng,establishment_id FROM deliveries WHERE cooperative_id=? AND assigned_driver_id=? AND accepted_at IS NOT NULL AND deleted_at IS NULL AND status IN ('accepted','to_pickup','at_pickup') ORDER BY created_at LIMIT 1`).bind(auth.cooperativeId,auth.driverId).first<Row>();
   if(!item||!validPoint(Number(item.pickup_lat),Number(item.pickup_lng)))return c.json({ok:true,status:item?.status||null});
   const distance=distanceMeters(lat,lng,Number(item.pickup_lat),Number(item.pickup_lng));let next:string|null=null;
-  if(['accepted','to_pickup'].includes(item.status)&&distance<=100)next='at_pickup';else if(item.status==='at_pickup'&&distance>=130)next='in_route';
+  if(['accepted','to_pickup'].includes(item.status)&&distance<=100)next='at_pickup';else if(item.status==='at_pickup'&&distance>=200)next='in_route';
   if(!next)return c.json({ok:true,status:item.status,distance_to_pickup_meters:distance});
   const message=customerMessage(next);
   await c.env.DB.batch([
