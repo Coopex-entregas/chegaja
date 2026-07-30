@@ -1,4 +1,4 @@
-/* ChegaJá 14.29.8 — acabamento do painel, seleção de cooperado e GPS */
+/* ChegaJá 14.29.8 — acabamento do painel, seleção de cooperado e navegação interna */
 (()=>{
 'use strict';
 if(window.__CJ225_DRIVER_POLISH_14298__)return;
@@ -6,6 +6,30 @@ window.__CJ225_DRIVER_POLISH_14298__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const isDriver=()=>window.state?.user?.role==='driver';
+const titles={schedules:'Escala, filtros e trocas',deliveries:'Minhas entregas',routes:'Rotas',financial:'Ganhos e descontos',advances:'Adiantamentos',ratings:'Avaliações',profile:'Perfil e configurações',account:'Alterar senha',attendance:'Check-in'};
+
+function goHome(){
+ try{window.navigate?.('dashboard')}catch{location.hash='dashboard'}
+}
+function ensureBackHeader(){
+ if(!isDriver()||window.state?.page==='dashboard')return;
+ const content=$('#page-content');if(!content)return;
+ document.body.classList.add('cj199-driver-page');
+ document.body.classList.remove('cj199-driver');
+ let header=$('#cj199-internal-header');
+ if(!header){
+  header=document.createElement('header');
+  header.id='cj199-internal-header';
+  header.innerHTML='<button type="button" aria-label="Voltar">←</button><div><small>MEU APLICATIVO</small><strong></strong></div><span aria-hidden="true"></span>';
+  content.prepend(header);
+ }
+ const back=header.querySelector('button');
+ if(back){back.type='button';back.setAttribute('aria-label','Voltar para o início');back.onclick=goHome}
+ const title=header.querySelector('strong');
+ if(title)title.textContent=titles[window.state?.page]||'Meu aplicativo';
+ $('#menu-button')?.classList.add('hidden');
+ $('#sidebar')?.classList.remove('open');
+}
 
 function fillDetected(detected,option){
  const small=document.createElement('small');
@@ -22,7 +46,6 @@ function fillDetected(detected,option){
   detected.replaceChildren(small,span);
  }
 }
-
 function polishSwapPicker(){
  if(!isDriver())return;
  const select=$('#cj223-target');
@@ -52,14 +75,14 @@ function polishSwapPicker(){
  select.addEventListener('change',update);
  update();
 }
-
 function health(){
  if(!isDriver())return;
+ ensureBackHeader();
  polishSwapPicker();
 }
 function boot(){
- const observer=new MutationObserver(health);
- observer.observe(document.documentElement,{childList:true,subtree:true});
+ clearInterval(window.__CJ225_HEALTH__);
+ window.__CJ225_HEALTH__=setInterval(health,900);
  health();
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)health()});
 }
