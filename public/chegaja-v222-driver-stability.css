@@ -5,6 +5,7 @@ body.cj199-driver .cj199-photo-marker img,body.cj199-driver .cj199-photo-marker 
 body.cj199-driver .cj199-photo-marker .cj199-heading{position:absolute!important;inset:3px!important;display:block!important;width:36px!important;height:36px!important;color:transparent!important;font-size:0!important;line-height:0!important;transform-origin:50% 50%!important;filter:drop-shadow(0 2px 0 #fff) drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 4px 5px #07183a66)!important}
 body.cj199-driver .cj199-photo-marker .cj199-heading::before{content:'';position:absolute;inset:0;background:#1459ff;clip-path:polygon(50% 0,88% 92%,50% 73%,12% 92%)}
 body.cj199-driver .cj199-photo-marker .cj199-heading::after{content:'';position:absolute;left:50%;top:41%;width:8px;height:8px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
+body.cj199-driver.cj218-navigation .cj199-photo-marker{opacity:0!important}
 body.cj199-driver #cj199-sheet{overscroll-behavior:contain!important}
 body.cj199-driver #cj199-schedules{touch-action:pan-y!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important}
 body.cj199-driver #cj199-sheet.open{transform:translate3d(0,0,0)!important}
