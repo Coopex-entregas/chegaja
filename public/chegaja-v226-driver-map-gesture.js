@@ -1,10 +1,10 @@
-/* ChegaJá 14.29.9 — mapa navegável, rotação com dois dedos e recentralização */
+/* ChegaJá 14.30.0 — mapa navegável, rotação com dois dedos e recentralização manual */
 (()=>{
 'use strict';
-if(window.__CJ226_DRIVER_MAP_GESTURE_14299__)return;
-window.__CJ226_DRIVER_MAP_GESTURE_14299__=true;
+if(window.__CJ226_DRIVER_MAP_GESTURE_14300__)return;
+window.__CJ226_DRIVER_MAP_GESTURE_14300__=true;
 
-const M={map:null,container:null,mapPane:null,observer:null,originalSetView:null,lastTransform:'',pointers:new Map(),gesture:null,bearing:0,manual:false,programmatic:false,applying:false,timer:null};
+const M={map:null,container:null,mapPane:null,observer:null,originalSetView:null,lastTransform:'',pointers:new Map(),gesture:null,bearing:0,manual:false,programmatic:false,applying:false,timer:null,lastDeliveryId:''};
 const isDriverHome=()=>window.state?.user?.role==='driver'&&document.body.classList.contains('cj199-driver');
 const activeNavigation=()=>Boolean(window.ChegaJaDriverActiveDelivery);
 const normalize=value=>((Number(value)||0)%360+360)%360;
@@ -57,7 +57,7 @@ function setManual(value){
  M.manual=Boolean(value);
  const button=document.querySelector('#cj199-center');
  button?.classList.toggle('manual',M.manual);
- if(button){button.title=M.manual?'Alinhar novamente e seguir sua posição':'Mapa alinhado com sua navegação'}
+ if(button)button.title=M.manual?'Alinhar novamente e seguir sua posição':'Mapa alinhado com sua navegação';
  if(M.manual)window.ChegaJaDriverMap?.follow?.(false);
 }
 function recenter(){
@@ -68,9 +68,9 @@ function recenter(){
  applyRotation();
  M.programmatic=true;
  try{
-  M.map.setView([point.lat,point.lng],18.25,{animate:true,duration:.35,cjUser:true});
+  M.map.setView([point.lat,point.lng],19.5,{animate:true,duration:.35,cjUser:true});
   requestAnimationFrame(()=>{
-   try{const size=M.map.getSize();M.map.panBy([0,-Math.round(size.y*.20)],{animate:true,duration:.28,noMoveStart:true})}catch{}
+   try{const size=M.map.getSize();M.map.panBy([0,-Math.round(size.y*.18)],{animate:true,duration:.28,noMoveStart:true})}catch{}
   });
   window.ChegaJaDriverMap?.follow?.(true);
  }finally{queueMicrotask(()=>{M.programmatic=false})}
@@ -90,7 +90,7 @@ function wrapSetView(){
  M.map.setView=function(center,zoom,options={}){
   if(M.manual&&activeNavigation()&&!options?.cjUser)return this;
   let adjusted=zoom;
-  if(activeNavigation()&&Number.isFinite(Number(zoom))&&!options?.cjUser)adjusted=Math.max(17.8,Math.min(18.35,Number(zoom)));
+  if(activeNavigation()&&Number.isFinite(Number(zoom))&&!options?.cjUser)adjusted=Math.max(19.25,Math.min(19.75,Number(zoom)));
   M.programmatic=true;
   try{return M.originalSetView(center,adjusted,options)}
   finally{queueMicrotask(()=>{M.programmatic=false;applyRotation()})}
@@ -143,14 +143,16 @@ function attach(){
  if(!map||!container)return;
  if(M.map!==map){
   M.observer?.disconnect();
-  M.map=map;M.container=container;M.mapPane=map._mapPane;M.observer=null;M.originalSetView=null;M.lastTransform='';
+  M.map=map;M.container=container;M.mapPane=map._mapPane;M.observer=null;M.originalSetView=null;M.lastTransform='';M.lastDeliveryId='';
   wrapSetView();bindMapEvents();bindGesture();observePane();applyRotation();
  }
  bindCenter();
 }
 function navigationEvent(){
  attach();
- if(activeNavigation()&&!M.manual)recenter();
+ const id=String(window.ChegaJaDriverActiveDelivery?.id||'');
+ if(!id){M.lastDeliveryId='';return}
+ if(id!==M.lastDeliveryId){M.lastDeliveryId=id;if(!M.manual)recenter()}
 }
 function health(){
  if(!isDriverHome())return;
@@ -161,7 +163,7 @@ function boot(){
  window.addEventListener('cj:driver-navigation',navigationEvent);
  clearInterval(M.timer);M.timer=setInterval(health,900);
  health();
- document.addEventListener('visibilitychange',()=>{if(!document.hidden){health();if(activeNavigation()&&!M.manual)recenter()}});
+ document.addEventListener('visibilitychange',()=>{if(!document.hidden)health()});
 }
 window.addEventListener('load',boot,{once:true});
 if(document.readyState==='complete')boot();
