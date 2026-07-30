@@ -1,8 +1,8 @@
-/* ChegaJá 14.30.2 — seta persistente com giroscópio, sem inversão ao mover o mapa */
+/* ChegaJá 14.30.3 — seta persistente com giroscópio e compensação correta da rotação do mapa */
 (()=>{
 'use strict';
-if(window.__CJ224_DRIVER_GPS_MARKERS_14302__)return;
-window.__CJ224_DRIVER_GPS_MARKERS_14302__=true;
+if(window.__CJ224_DRIVER_GPS_MARKERS_14303__)return;
+window.__CJ224_DRIVER_GPS_MARKERS_14303__=true;
 
 const G={
  map:null,arrow:null,position:null,last:null,gpsHeading:null,compassHeading:null,
@@ -14,6 +14,7 @@ const valid=(lat,lng)=>Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)
 const normalize=value=>((Number(value)||0)%360+360)%360;
 const signed=value=>{const n=normalize(value);return n>180?n-360:n};
 const shortestDelta=(from,to)=>signed(Number(to)-Number(from));
+
 function distance(a,b){
  if(!a||!b)return Infinity;
  const dLat=(b.lat-a.lat)*111320;
@@ -53,7 +54,8 @@ function ensure(){
  if(!G.last)return false;
  if(!G.arrow)G.arrow=L.marker([G.last.lat,G.last.lng],{icon:arrowIcon(),interactive:false,keyboard:false,zIndexOffset:1500}).addTo(map);
  if(!G.position)G.position=L.marker([G.last.lat,G.last.lng],{icon:positionIcon(),interactive:false,keyboard:false,zIndexOffset:1450}).addTo(map);
- G.arrow.bringToFront?.();G.position.bringToFront?.();
+ G.arrow.bringToFront?.();
+ G.position.bringToFront?.();
  return true;
 }
 function currentHeading(){
@@ -61,11 +63,14 @@ function currentHeading(){
  if(G.gpsHeading!=null)return G.gpsHeading;
  return 0;
 }
+function keepLabelsReadable(){
+ const label=G.position?.getElement?.()?.querySelector('b');
+ if(label)label.style.transform=`translateX(-50%) rotate(${-G.mapBearing}deg)`;
+}
 function setTarget(){
- /* O marcador já pertence ao painel rotacionado do Leaflet. Aplicar novamente
-    a rotação do mapa invertia a seta depois de arrastar ou girar o mapa. */
- const desired=normalize(currentHeading());
+ const desired=normalize(currentHeading()-G.mapBearing);
  G.targetAngle=G.displayAngle+shortestDelta(normalize(G.displayAngle),desired);
+ keepLabelsReadable();
  if(G.animation==null)G.animation=requestAnimationFrame(animateArrow);
 }
 function animateArrow(){
@@ -89,7 +94,10 @@ function update(raw){
  const next={lat,lng};
  const supplied=Number(raw?.heading),speed=Number(raw?.speed);
  if(Number.isFinite(supplied)&&supplied>=0&&(Number.isFinite(speed)?speed>.7:true))G.gpsHeading=normalize(supplied);
- else if(G.last&&distance(G.last,next)>4){const derived=bearing(G.last,next);if(Number.isFinite(derived))G.gpsHeading=derived}
+ else if(G.last&&distance(G.last,next)>4){
+  const derived=bearing(G.last,next);
+  if(Number.isFinite(derived))G.gpsHeading=derived;
+ }
  G.last=next;
  if(!ensure())return;
  G.arrow.setLatLng([lat,lng]);
@@ -131,7 +139,11 @@ function hook(){
  if(!api||typeof api.move!=='function'||api.__cj224GpsMarkers)return;
  api.__cj224GpsMarkers=true;
  const original=api.move.bind(api);
- api.move=function(position){const result=original(position);update(position);return result};
+ api.move=function(position){
+  const result=original(position);
+  update(position);
+  return result;
+ };
 }
 function bindPermission(){
  if(document.documentElement.dataset.cj224CompassBound==='1')return;
@@ -151,12 +163,14 @@ function health(){
  if(!isDriver()){clear();return}
  hook();
  const cached=window.ChegaJaLastDriverLocation;
- if(cached)update(cached);else if(G.last)ensure();
+ if(cached)update(cached);
+ else if(G.last)ensure();
  setTarget();
 }
 function boot(){
  bindPermission();
- clearInterval(G.timer);G.timer=setInterval(health,1000);
+ clearInterval(G.timer);
+ G.timer=setInterval(health,1000);
  health();
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)health()});
 }
