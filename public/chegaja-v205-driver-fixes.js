@@ -1,7 +1,7 @@
-/* ChegaJá 14.29.4 — SOS, sons e avisos sem disputar o botão online */
+/* ChegaJá 14.30.2 — SOS separado, sons e avisos sem disputar os controles do mapa */
 (()=>{
 'use strict';
-if(window.__CJ205_DRIVER_FIXES_14280__)return;window.__CJ205_DRIVER_FIXES_14280__=true;
+if(window.__CJ205_DRIVER_FIXES_14302__)return;window.__CJ205_DRIVER_FIXES_14302__=true;
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const token=()=>String(window.state?.token||localStorage.getItem('lg_token')||'').trim();
 const isDriver=()=>window.state?.user?.role==='driver';
@@ -25,7 +25,14 @@ function closeSos(){$('#cj205-sos-modal')?.remove()}
 function getPositionFast(){if(S.lastPosition&&Date.now()-S.lastPosition.at<60000)return Promise.resolve(S.lastPosition.value);const cached=window.ChegaJaLastDriverLocation;if(cached?.lat!=null&&cached?.lng!=null)return Promise.resolve({coords:{latitude:Number(cached.lat),longitude:Number(cached.lng),accuracy:cached.accuracy||null}});return new Promise((resolve,reject)=>navigator.geolocation?navigator.geolocation.getCurrentPosition(p=>{S.lastPosition={at:Date.now(),value:p};resolve(p)},reject,{enableHighAccuracy:false,maximumAge:60000,timeout:4500}):reject(new Error('GPS indisponível.')))}
 async function sendSos(){const button=$('#cj205-send-sos');if(!button||button.disabled)return;const reason=String($('#cj205-sos-reason')?.value||'').trim(),error=$('#cj205-sos-error');if(reason.length<3){if(error)error.textContent='Escreva o motivo do SOS antes de enviar.';return}button.disabled=true;button.querySelector('strong').textContent='Enviando SOS…';if(error)error.textContent='';try{const p=await getPositionFast();await api('/api/app/v15/driver/sos',{method:'POST',timeout:5000,body:{occurrence:reason,latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy}});sosSound();button.querySelector('strong').textContent='SOS enviado';setTimeout(closeSos,650)}catch(err){button.disabled=false;button.querySelector('strong').textContent='Enviar SOS para a cooperativa';if(error)error.textContent=err.message}}
 function openSos(){unlockAudio();closeSos();document.body.insertAdjacentHTML('beforeend',sosMarkup());$('#cj205-sos-modal .backdrop').onclick=$('#cj205-sos-modal .close').onclick=closeSos;$('#cj205-send-sos').onclick=sendSos;$$('#cj205-sos-modal [data-call]').forEach(link=>link.addEventListener('click',()=>{try{navigator.clipboard?.writeText(link.dataset.call)}catch{}},{passive:true}))}
-function installSosButton(){if(!isDriver())return;const button=$('#cj199-center');if(!button)return;button.classList.add('cj205-sos');button.innerHTML='<b>!</b><small>SOS</small>';button.setAttribute('aria-label','Pedir ajuda');button.onclick=openSos}
+function installSosButton(){
+ if(!isDriver())return;
+ const app=$('#cj199-app');if(!app)return;
+ const center=$('#cj199-center');if(center){center.classList.remove('cj205-sos');center.setAttribute('aria-label','Alinhar mapa com minha localização')}
+ let button=$('#cj205-sos-button');
+ if(!button){button=document.createElement('button');button.id='cj205-sos-button';button.type='button';button.innerHTML='<b>!</b><small>SOS</small>';app.appendChild(button)}
+ button.setAttribute('aria-label','Pedir ajuda');button.onclick=openSos;
+}
 async function pollSound(){if(!isDriver()||!token()||document.hidden||S.busy)return;S.busy=true;try{const d=await api('/api/app/driver/live',{timeout:3200}),online=Boolean(Number(d.driver?.online)),call=d.call?.id||null;if(S.lastOnline===null)S.lastOnline=online;else if(S.lastOnline!==online){S.lastOnline=online;statusSound(online)}if(call){if(String(call)!==String(S.lastCall)){S.lastCall=String(call);startRing(call,true)}else if(!S.ring)startRing(call,false)}else{S.lastCall=null;stopRing()}}catch{}finally{S.busy=false}}
 function apply(){patchToast();installSosButton();cleanInternalPage();removeRoutineBalloons()}
 function boot(){['pointerdown','touchstart','keydown'].forEach(event=>document.addEventListener(event,()=>unlockAudio(),{passive:true}));window.addEventListener('cj:driver-offer',event=>{const id=event.detail?.id;if(id){S.lastCall=String(id);startRing(id,true)}else{S.lastCall=null;stopRing()}});apply();clearInterval(S.poll);S.poll=setInterval(()=>{apply();pollSound()},3200);pollSound();document.addEventListener('visibilitychange',()=>{if(!document.hidden){apply();unlockAudio().then(()=>{if(S.pendingCall)startRing(S.pendingCall,true)});pollSound()}})}
