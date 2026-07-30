@@ -63,7 +63,7 @@ function configureMap(){
 function stableSetView(latlng,zoom,animate=false){
  if(!S.map||!S.originalSetView)return;
  const safeZoom=Math.max(18,Math.min(19.5,Number.isFinite(Number(zoom))?Number(zoom):navigationZoom()));
- try{S.originalSetView(latlng,safeZoom,{animate:Boolean(animate),duration:animate?.24:0,noMoveStart:true,cjStable:true})}catch{}
+ try{S.originalSetView(latlng,safeZoom,{animate:Boolean(animate),duration:animate?0.24:0,noMoveStart:true,cjStable:true})}catch{}
 }
 function recenter(){
  const current=valid(S.lastGps)?S.lastGps:point(window.ChegaJaLastDriverLocation);
