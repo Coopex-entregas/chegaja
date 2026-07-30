@@ -1,12 +1,14 @@
-/* ChegaJá 14.30.1 — mapa estável, sem piscadas e com seta proporcional */
+/* ChegaJá 14.30.2 — mapa estável, sem inversão e sem recarregar os blocos */
 body.cj199-driver #cj199-map{touch-action:none!important;overflow:hidden!important}
-body.cj199-driver #cj199-map .leaflet-map-pane{will-change:transform,rotate;transition:none!important}
-body.cj199-driver #cj199-map .leaflet-tile{transition:none!important;backface-visibility:hidden!important}
+body.cj199-driver #cj199-map .leaflet-map-pane{transition:none!important}
+body.cj199-driver #cj199-map .leaflet-tile-pane{transition:none!important}
+body.cj199-driver #cj199-map .leaflet-tile{transition:none!important;opacity:1!important;will-change:auto!important}
 body.cj199-driver #cj199-map .leaflet-zoom-animated{transition:none!important}
+body.cj199-driver #cj199-map.leaflet-fade-anim .leaflet-tile{transition:none!important}
 body.cj199-driver #cj199-center{top:auto!important;right:16px!important;bottom:198px!important;width:54px!important;height:54px!important;display:grid!important;place-items:center!important;border:2px solid #fff!important;border-radius:18px!important;background:#0d45d8!important;color:#fff!important;box-shadow:0 8px 24px #07183a42!important;font-size:27px!important;font-weight:950!important}
 body.cj199-driver #cj199-center.manual{background:#ff7a00!important;box-shadow:0 8px 24px #ff7a0047!important}
 body.cj199-driver #cj199-center span{display:block;line-height:1;transform:translateY(-1px)}
-body.cj199-driver .cj224-heading{width:46px!important;height:46px!important;margin:6px!important;transform-origin:50% 79%!important;transition:none!important;will-change:transform!important}
+body.cj199-driver .cj224-heading{width:46px!important;height:46px!important;margin:6px!important;transform-origin:50% 79%!important;transition:none!important}
 body.cj199-driver .cj224-heading svg{width:46px!important;height:46px!important}
 body.cj199-driver .cj224-heading path{stroke-width:3.5!important}
 body.cj199-driver .cj224-position-dot{left:28px!important;top:3px!important;width:14px!important;height:14px!important;border-width:3px!important;transform-origin:center!important}
