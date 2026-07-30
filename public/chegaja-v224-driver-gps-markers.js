@@ -1,14 +1,19 @@
-/* ChegaJá 14.30.0 — seta persistente, posição exata e bússola */
+/* ChegaJá 14.30.1 — seta persistente com bússola suave e sem giro completo */
 (()=>{
 'use strict';
-if(window.__CJ224_DRIVER_GPS_MARKERS_14300__)return;
-window.__CJ224_DRIVER_GPS_MARKERS_14300__=true;
+if(window.__CJ224_DRIVER_GPS_MARKERS_14301__)return;
+window.__CJ224_DRIVER_GPS_MARKERS_14301__=true;
 
-const G={map:null,arrow:null,position:null,last:null,heading:0,gpsHeading:null,compassHeading:null,compassAt:0,timer:null,permissionAsked:false};
+const G={
+ map:null,arrow:null,position:null,last:null,gpsHeading:null,compassHeading:null,
+ targetAngle:0,displayAngle:0,mapBearing:0,animation:null,timer:null,
+ permissionAsked:false,lastOrientationAt:0
+};
 const isDriver=()=>window.state?.user?.role==='driver';
 const valid=(lat,lng)=>Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180;
 const normalize=value=>((Number(value)||0)%360+360)%360;
-
+const signed=value=>{const n=normalize(value);return n>180?n-360:n};
+const shortestDelta=(from,to)=>signed(Number(to)-Number(from));
 function distance(a,b){
  if(!a||!b)return Infinity;
  const dLat=(b.lat-a.lat)*111320;
@@ -20,23 +25,21 @@ function bearing(a,b){
  const lat1=a.lat*Math.PI/180,lat2=b.lat*Math.PI/180,dLng=(b.lng-a.lng)*Math.PI/180;
  const y=Math.sin(dLng)*Math.cos(lat2);
  const x=Math.cos(lat1)*Math.sin(lat2)-Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLng);
- const value=(Math.atan2(y,x)*180/Math.PI+360)%360;
- return Number.isFinite(value)?value:null;
+ const result=(Math.atan2(y,x)*180/Math.PI+360)%360;
+ return Number.isFinite(result)?result:null;
 }
 function arrowIcon(){
  return L.divIcon({
   className:'cj224-nav-arrow-marker',
   html:'<span class="cj224-heading" aria-hidden="true"><svg viewBox="0 0 58 58"><path d="M29 2 L54 55 L29 43 L4 55 Z"/></svg></span>',
-  iconSize:[58,58],
-  iconAnchor:[29,46]
+  iconSize:[58,58],iconAnchor:[29,46]
  });
 }
 function positionIcon(){
  return L.divIcon({
   className:'cj224-position-marker',
   html:'<span class="cj224-position-dot" aria-hidden="true"><i></i></span><b>VOCÊ</b>',
-  iconSize:[72,42],
-  iconAnchor:[36,10]
+  iconSize:[72,42],iconAnchor:[36,10]
  });
 }
 function clear(){
@@ -54,44 +57,59 @@ function ensure(){
  return true;
 }
 function currentHeading(){
- if(G.compassHeading!=null&&Date.now()-G.compassAt<3500)return G.compassHeading;
+ if(G.compassHeading!=null)return G.compassHeading;
  if(G.gpsHeading!=null)return G.gpsHeading;
- return G.heading;
+ return 0;
 }
-function mapBearing(){
- const host=document.querySelector('#cj199-map');
- const value=Number.parseFloat(getComputedStyle(host||document.documentElement).getPropertyValue('--cj-map-bearing'));
- return Number.isFinite(value)?value:0;
+function setTarget(){
+ const desired=normalize(currentHeading()-G.mapBearing);
+ G.targetAngle=G.displayAngle+shortestDelta(normalize(G.displayAngle),desired);
+ if(G.animation==null)G.animation=requestAnimationFrame(animateArrow);
 }
-function rotate(){
+function animateArrow(){
+ G.animation=null;
  const node=G.arrow?.getElement?.()?.querySelector('.cj224-heading');
- if(node)node.style.transform=`rotate(${normalize(currentHeading()-mapBearing())}deg)`;
+ const diff=G.targetAngle-G.displayAngle;
+ if(Math.abs(diff)<.08)G.displayAngle=G.targetAngle;
+ else G.displayAngle+=diff*.24;
+ if(node)node.style.transform=`rotate(${G.displayAngle}deg)`;
+ if(Math.abs(G.targetAngle-G.displayAngle)>=.08)G.animation=requestAnimationFrame(animateArrow);
+}
+function smoothCompass(next){
+ const normalized=normalize(next);
+ if(G.compassHeading==null)G.compassHeading=normalized;
+ else G.compassHeading=normalize(G.compassHeading+shortestDelta(G.compassHeading,normalized)*.28);
+ setTarget();
 }
 function update(raw){
  const lat=Number(raw?.lat??raw?.latitude),lng=Number(raw?.lng??raw?.longitude);
  if(!valid(lat,lng))return;
  const next={lat,lng};
- const supplied=Number(raw?.heading);
- if(Number.isFinite(supplied)&&supplied>=0){G.gpsHeading=normalize(supplied);G.heading=G.gpsHeading}
- else if(G.last&&distance(G.last,next)>3){const derived=bearing(G.last,next);if(Number.isFinite(derived)){G.gpsHeading=derived;G.heading=derived}}
+ const supplied=Number(raw?.heading),speed=Number(raw?.speed);
+ if(Number.isFinite(supplied)&&supplied>=0&&(Number.isFinite(speed)?speed>.7:true))G.gpsHeading=normalize(supplied);
+ else if(G.last&&distance(G.last,next)>4){const derived=bearing(G.last,next);if(Number.isFinite(derived))G.gpsHeading=derived}
  G.last=next;
  if(!ensure())return;
  G.arrow.setLatLng([lat,lng]);
  G.position.setLatLng([lat,lng]);
  G.arrow.bringToFront?.();
- rotate();
+ setTarget();
+}
+function screenAngle(){
+ const value=Number(screen.orientation?.angle??window.orientation??0);
+ return Number.isFinite(value)?value:0;
 }
 function orientation(event){
+ const now=performance.now();
+ if(now-G.lastOrientationAt<12)return;
+ G.lastOrientationAt=now;
  let heading=Number(event.webkitCompassHeading);
  if(!Number.isFinite(heading)){
   const alpha=Number(event.alpha);
-  if(!Number.isFinite(alpha))return;
-  heading=event.absolute===true?360-alpha:360-alpha;
+  if(!Number.isFinite(alpha)||event.absolute!==true)return;
+  heading=normalize(360-alpha+screenAngle());
  }
- G.compassHeading=normalize(heading);
- G.compassAt=Date.now();
- G.heading=G.compassHeading;
- rotate();
+ smoothCompass(heading);
 }
 async function requestCompassPermission(){
  if(G.permissionAsked)return;
@@ -121,18 +139,22 @@ function bindPermission(){
  document.addEventListener('click',event=>{
   if(event.target?.closest?.('#cj199-start,#cj199-center,#cj199-map'))requestCompassPermission();
  },{capture:true,passive:true});
+ window.addEventListener('cj:driver-map-bearing',event=>{
+  G.mapBearing=Number(event.detail?.bearing)||0;
+  setTarget();
+ });
+ screen.orientation?.addEventListener?.('change',setTarget);
 }
 function health(){
  if(!isDriver()){clear();return}
  hook();
  const cached=window.ChegaJaLastDriverLocation;
  if(cached)update(cached);else if(G.last)ensure();
- rotate();
+ setTarget();
 }
 function boot(){
  bindPermission();
- clearInterval(G.timer);
- G.timer=setInterval(health,450);
+ clearInterval(G.timer);G.timer=setInterval(health,800);
  health();
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)health()});
 }
