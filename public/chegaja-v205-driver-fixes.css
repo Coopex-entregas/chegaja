@@ -1,6 +1,6 @@
-/* ChegaJá 14.26.0 — SOS e navegação interna única */
-#cj199-center.cj205-sos{display:grid!important;place-content:center!important;gap:0!important;background:#fff!important;color:#d32632!important;border:3px solid #fff!important;box-shadow:0 8px 24px #0d214f30,0 0 0 3px #d32632!important;font-size:inherit!important}
-#cj199-center.cj205-sos b{font-size:27px;line-height:.9;font-weight:950}#cj199-center.cj205-sos small{font-size:8px;line-height:1;font-weight:950;letter-spacing:.08em}
+/* ChegaJá 14.30.2 — SOS separado do botão de centralizar */
+#cj205-sos-button{position:absolute;z-index:22;left:16px;bottom:198px;width:54px;height:54px;border:3px solid #fff;border-radius:18px;background:#fff;color:#d32632;box-shadow:0 8px 24px #0d214f30,0 0 0 3px #d32632;display:grid;place-content:center;gap:0;text-align:center;font:inherit;pointer-events:auto!important}
+#cj205-sos-button b{font-size:27px;line-height:.9;font-weight:950}#cj205-sos-button small{font-size:8px;line-height:1;font-weight:950;letter-spacing:.08em}
 body.cj199-driver-page #cj143-driver-nav,body.cj199-driver-page #cj42-driver-nav,body.cj199-driver-page .v31-driver-bottom,body.cj199-driver-page .driver-bottom-nav,body.cj199-driver-page .mobile-bottom-nav,body.cj199-driver-page .bottom-navigation{display:none!important}
 body.cj199-driver-page #page-content{padding-bottom:24px!important}#cj199-internal-header{grid-template-columns:46px 1fr!important}#cj199-internal-header .menu{display:none!important}
 #cj205-sos-modal{position:fixed;z-index:1000;inset:0;display:flex;align-items:flex-end;padding:12px 12px max(12px,env(safe-area-inset-bottom))}
@@ -13,3 +13,4 @@ body.cj199-driver-page #page-content{padding-bottom:24px!important}#cj199-intern
 #cj205-sos-modal .public{margin-top:16px;display:grid;gap:10px;color:#0d214f}#cj205-sos-modal .public>div{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
 #cj205-sos-modal .public a{min-height:70px;border:1px solid #dfe6ef;border-radius:16px;color:#0d214f;display:grid;place-content:center;text-align:center;background:#f8fafc;text-decoration:none}#cj205-sos-modal .public a b{font-size:21px;color:#d32632}#cj205-sos-modal .public a span{font-size:10px;font-weight:850}
 #cj205-sos-error{min-height:16px;margin:8px 0 0;color:#b4232d;text-align:center;font-size:11px;font-weight:800}
+@media(max-width:390px){#cj205-sos-button{left:10px;bottom:186px;width:50px;height:50px;border-radius:16px}#cj205-sos-button b{font-size:25px}}
