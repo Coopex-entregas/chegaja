@@ -1,2 +1,46 @@
-/* ChegaJá 14.26.1 — navegação compacta sem painel duplicado */
-#cj212-call,#cj217-offer,#cj214-internal{display:none!important}#cj217-nav{display:none;position:absolute;z-index:23;left:12px;right:12px;bottom:108px;background:#0b1f59;color:#fff;border-radius:20px;padding:12px 15px;box-shadow:0 10px 30px #0005;pointer-events:none}#cj217-nav.show{display:block}#cj217-nav div{display:grid;gap:2px}#cj217-nav small{font-size:9px;font-weight:950;letter-spacing:.1em;color:#ffad64}#cj217-nav strong{font-size:17px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#cj217-nav span{font-size:11px;color:#d4dbea}.cj217-sheet{display:grid;gap:11px}.cj217-sheet .receive{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-radius:17px;background:#0a2f96;color:#fff}.cj217-sheet .receive small{font-size:9px;letter-spacing:.1em;font-weight:950}.cj217-sheet .receive strong{font-size:24px}.cj217-sheet article{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;padding:11px;border:1px solid #dfe6f1;border-radius:15px;background:#fff}.cj217-sheet article>b{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ff6b35;color:#fff}.cj217-sheet article>div{display:grid;gap:2px}.cj217-sheet article small,.cj217-sheet .values small{font-size:9px;font-weight:950;letter-spacing:.09em;color:#71809a}.cj217-sheet article strong{font-size:14px;line-height:1.3;color:#13264f}.cj217-sheet article span{font-size:11px;color:#66748a}.cj217-sheet .values{display:grid;grid-template-columns:1fr 1fr;gap:7px}.cj217-sheet .values span{display:grid;padding:9px;border-radius:12px;background:#f2f6fc}.cj217-sheet .values b{color:#0d327f}.cj217-sheet>p{margin:0;padding:10px;border-radius:12px;background:#fff4eb;color:#67391f;font-size:12px}.cj217-sheet .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}.cj217-sheet .actions button,#cj217-confirm-reason{height:49px;border:0;border-radius:13px;background:#0d45d8;color:#fff;font-weight:950}.cj217-sheet .actions .secondary{background:#fff0f0;color:#b4232d}.cj217-sheet .actions button:only-child{grid-column:1/-1}#cj217-reason-box{display:none;gap:8px}#cj217-reason-box.open{display:grid}#cj217-reason{min-height:72px;border:1px solid #ccd6e5;border-radius:12px;padding:10px;font:inherit}#cj217-msg{min-height:14px;margin:0;color:#b4232d;font-size:11px}body.cj199-driver #sidebar,body.cj199-driver .topbar,body.cj199-driver-page #sidebar,body.cj199-driver-page .topbar{display:none!important}body.cj217-active-delivery #cj199-start,body.cj217-active-delivery #cj199-checkin{display:none!important}body.cj217-active-delivery #cj199-sheet header small{color:#ff6b35}body.cj217-active-delivery #cj199-map .leaflet-control-zoom{display:none!important}.cj199-heading{position:absolute;left:50%;top:-12px;width:18px;height:18px;margin-left:-9px;display:grid;place-items:center;color:#0d45d8;font:950 17px/1 Arial;transform-origin:50% 100%;text-shadow:0 1px 2px #fff,0 0 3px #fff}.cj199-photo-marker>span{position:relative;overflow:visible!important}.cj199-photo-marker>span>img,.cj199-photo-marker>span>b{border-radius:50%}.cj199-photo-marker>span>img{overflow:hidden}body.cj217-active-delivery #cj199-bottom{height:calc(88px + env(safe-area-inset-bottom))}body.cj217-active-delivery #cj199-queue-text{display:none}body.cj217-active-delivery #cj199-online{font-size:16px}body.cj217-active-delivery #cj199-online:after{content:' • entrega em andamento';color:#ff6b35;font-size:12px} @media(max-width:390px){#cj217-nav{left:8px;right:8px;bottom:96px;padding:10px 12px}#cj217-nav strong{font-size:15px}}
+/* ChegaJá 14.29.0 — entrega e navegação compactas */
+#cj212-call,#cj217-offer,#cj214-internal{display:none!important}
+#cj217-nav{display:none;position:absolute;z-index:23;left:12px;right:12px;bottom:108px;background:#0b1f59;color:#fff;border-radius:20px;padding:12px 15px;box-shadow:0 10px 30px #0005;pointer-events:none}
+#cj217-nav.show{display:block}
+#cj217-nav div{display:grid;gap:2px}
+#cj217-nav small{font-size:9px;font-weight:950;letter-spacing:.1em;color:#ffad64}
+#cj217-nav strong{font-size:17px;line-height:1.15;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#cj217-nav span{font-size:11px;color:#d4dbea}
+.cj217-sheet{display:grid;gap:11px}
+.cj217-sheet .receive{display:flex;align-items:center;justify-content:space-between;padding:13px 15px;border-radius:17px;background:#0a2f96;color:#fff}
+.cj217-sheet .receive small{font-size:9px;letter-spacing:.1em;font-weight:950}
+.cj217-sheet .receive strong{font-size:24px}
+.cj217-sheet article{display:grid;grid-template-columns:40px minmax(0,1fr);gap:10px;padding:11px;border:1px solid #dfe6f1;border-radius:15px;background:#fff}
+.cj217-sheet article>b{width:38px;height:38px;border-radius:50%;display:grid;place-items:center;background:#ff6b35;color:#fff}
+.cj217-sheet article>div{display:grid;gap:2px}
+.cj217-sheet article small,.cj217-sheet .values small{font-size:9px;font-weight:950;letter-spacing:.09em;color:#71809a}
+.cj217-sheet article strong{font-size:14px;line-height:1.3;color:#13264f}
+.cj217-sheet article span{font-size:11px;color:#66748a}
+.cj217-sheet .values{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.cj217-sheet .values span{display:grid;padding:9px;border-radius:12px;background:#f2f6fc}
+.cj217-sheet .values b{color:#0d327f}
+.cj217-sheet>p{margin:0;padding:10px;border-radius:12px;background:#fff4eb;color:#67391f;font-size:12px}
+.cj217-sheet>p.arrived{background:#e9fff2;color:#12633a;border:1px solid #9de1b8}
+.cj217-sheet .actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.cj217-sheet .actions button,#cj217-confirm-reason{height:49px;border:0;border-radius:13px;background:#0d45d8;color:#fff;font-weight:950}
+.cj217-sheet .actions .secondary{background:#fff0f0;color:#b4232d}
+.cj217-sheet .actions button:only-child{grid-column:1/-1}
+#cj217-open-maps{height:46px;border:1px solid #c9d4e7;border-radius:13px;background:#fff;color:#173a78;font-weight:900;letter-spacing:.02em}
+#cj217-open-maps:before{content:'↗';display:inline-block;margin-right:7px;font-size:16px}
+#cj217-reason-box{display:none;gap:8px}
+#cj217-reason-box.open{display:grid}
+#cj217-reason{min-height:72px;border:1px solid #ccd6e5;border-radius:12px;padding:10px;font:inherit}
+#cj217-msg{min-height:14px;margin:0;color:#b4232d;font-size:11px}
+body.cj199-driver #sidebar,body.cj199-driver .topbar,body.cj199-driver-page #sidebar,body.cj199-driver-page .topbar{display:none!important}
+body.cj217-active-delivery #cj199-start,body.cj217-active-delivery #cj199-checkin{display:none!important}
+body.cj217-active-delivery #cj199-sheet header small{color:#ff6b35}
+body.cj217-active-delivery #cj199-map .leaflet-control-zoom{display:none!important}
+.cj199-heading{position:absolute;left:50%;top:-12px;width:18px;height:18px;margin-left:-9px;display:grid;place-items:center;color:#0d45d8;font:950 17px/1 Arial;transform-origin:50% 100%;text-shadow:0 1px 2px #fff,0 0 3px #fff}
+.cj199-photo-marker>span{position:relative;overflow:visible!important}
+.cj199-photo-marker>span>img,.cj199-photo-marker>span>b{border-radius:50%}
+.cj199-photo-marker>span>img{overflow:hidden}
+body.cj217-active-delivery #cj199-bottom{height:calc(88px + env(safe-area-inset-bottom))}
+body.cj217-active-delivery #cj199-queue-text{display:none}
+body.cj217-active-delivery #cj199-online{font-size:16px}
+body.cj217-active-delivery #cj199-online:after{content:' • entrega em andamento';color:#ff6b35;font-size:12px}
+@media(max-width:390px){#cj217-nav{left:8px;right:8px;bottom:96px;padding:10px 12px}#cj217-nav strong{font-size:15px}}
