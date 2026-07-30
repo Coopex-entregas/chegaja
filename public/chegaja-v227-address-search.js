@@ -13,13 +13,21 @@ function enhanceBlock(block){
  const grid=block.querySelector('.address-grid');
  const button=block.querySelector('[data-address-search]');
  const result=block.querySelector('.address-confirm-result');
+ const legend=String(block.querySelector('legend')?.textContent||'').toLocaleLowerCase('pt-BR');
+ const optional=legend.includes('opcional');
+ block.dataset.cj227Optional=optional?'1':'0';
  if(label){
-  label.childNodes.forEach(node=>{if(node.nodeType===Node.TEXT_NODE&&String(node.textContent||'').trim())node.textContent='Endereço completo '});
+  label.childNodes.forEach(node=>{if(node.nodeType===Node.TEXT_NODE&&String(node.textContent||'').trim())node.textContent=optional?'Novo endereço completo ':'Endereço completo '});
   let help=label.querySelector('.cj227-address-help');
-  if(!help){help=document.createElement('small');help.className='cj227-address-help';help.textContent='Digite rua e número ou o nome do local. Depois clique no endereço correto.';label.appendChild(help)}
+  if(!help){
+   help=document.createElement('small');
+   help.className='cj227-address-help';
+   help.textContent=optional?'Digite somente para trocar o endereço atual. Depois clique na opção correta.':'Digite rua e número ou o nome do local. Depois clique no endereço correto.';
+   label.appendChild(help);
+  }
  }
  if(input){
-  input.required=true;
+  input.required=!optional;
   input.autocomplete='off';
   input.placeholder='Ex.: Rua José Freire de Souza, 22, Natal ou Natal Shopping';
   input.setAttribute('aria-label','Buscar endereço completo');
@@ -31,7 +39,7 @@ function enhanceBlock(block){
  if(button){button.hidden=true;button.tabIndex=-1}
  if(result){
   result.classList.add('cj227-address-result');
-  if(!result.querySelector('.confirmed-address'))result.innerHTML='<span class="muted">Digite acima e selecione uma opção para confirmar e calcular a rota.</span>';
+  if(!result.querySelector('.confirmed-address'))result.innerHTML=`<span class="muted">${optional?'Deixe vazio para manter o endereço atual ou pesquise um novo endereço.':'Digite acima e selecione uma opção para confirmar e calcular a rota.'}</span>`;
  }
  const live=block.querySelector('[data-address-live-results]');
  live?.addEventListener('click',()=>setTimeout(()=>{
@@ -50,7 +58,9 @@ function validateForm(form){
   const prefix=block.dataset.addressBlock||'';
   const input=block.querySelector('[data-address-autocomplete]');
   const token=block.querySelector(`input[name="${CSS.escape(prefix)}_confirmation_token"]`);
-  if(token&&!token.value){
+  const optional=block.dataset.cj227Optional==='1';
+  const typed=Boolean(String(input?.value||'').trim());
+  if(token&&!token.value&&(!optional||typed)){
    input?.setCustomValidity('Selecione um endereço na lista para confirmar e calcular a rota.');
    input?.reportValidity();
    return false;
