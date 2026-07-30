@@ -1,10 +1,10 @@
-/* ChegaJá 14.29.6 — estabilidade visual, controles proporcionais e navegação imersiva */
+/* ChegaJá 14.29.7 — estabilidade visual, controles proporcionais e seta de navegação */
 body.cj199-driver .cj199-photo-marker,body.cj199-driver .cj199-photo-marker.cj222-navigation-marker{background:transparent!important;border:0!important}
-body.cj199-driver .cj199-photo-marker>span{position:relative!important;width:42px!important;height:42px!important;display:block!important;overflow:visible!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
+body.cj199-driver .cj199-photo-marker>span{position:relative!important;width:46px!important;height:46px!important;display:block!important;overflow:visible!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
 body.cj199-driver .cj199-photo-marker img,body.cj199-driver .cj199-photo-marker b{display:none!important}
-body.cj199-driver .cj199-photo-marker .cj199-heading{position:absolute!important;inset:3px!important;display:block!important;width:36px!important;height:36px!important;color:transparent!important;font-size:0!important;line-height:0!important;transform-origin:50% 50%!important;filter:drop-shadow(0 2px 0 #fff) drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 4px 5px #07183a66)!important}
-body.cj199-driver .cj199-photo-marker .cj199-heading::before{content:'';position:absolute;inset:0;background:#1459ff;clip-path:polygon(50% 0,88% 92%,50% 73%,12% 92%)}
-body.cj199-driver .cj199-photo-marker .cj199-heading::after{content:'';position:absolute;left:50%;top:41%;width:8px;height:8px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
+body.cj199-driver .cj199-photo-marker .cj199-heading{position:absolute!important;inset:2px!important;display:block!important;width:42px!important;height:42px!important;color:transparent!important;font-size:0!important;line-height:0!important;border:0!important;border-radius:0!important;background:transparent!important;transform-origin:50% 50%!important;filter:drop-shadow(0 2px 0 #fff) drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 5px 6px #07183a66)!important}
+body.cj199-driver .cj199-photo-marker .cj199-heading::before{content:'';position:absolute;inset:0;background:#1459ff;clip-path:polygon(50% 0,91% 94%,50% 73%,9% 94%)}
+body.cj199-driver .cj199-photo-marker .cj199-heading::after{content:none!important;display:none!important}
 body.cj199-driver #cj199-sheet{overscroll-behavior:contain!important}
 body.cj199-driver #cj199-schedules{touch-action:pan-y!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important}
 body.cj199-driver #cj199-sheet.open{transform:translate3d(0,0,0)!important}
