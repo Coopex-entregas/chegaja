@@ -1,0 +1,22 @@
+/* ChegaJá 14.27.0 — nenhum quadro do painel antigo e navegação em terceira pessoa */
+.v31-driver-app,.v31-driver-shell,.v31-driver-header,.v31-driver-strip,.v31-current-card,.v31-driver-map-card,.v31-day-summary,.v31-driver-bottom,#v31-driver-app,#cj190-driver-app,#cj196-driver-app,#cj24-driver-app,#cj212-call,#cj214-internal{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+body.v31-driver-mode #page-content>*:not(#cj199-app),body.v36-driver-navigation #page-content>*:not(#cj199-app){display:none!important}
+#cj218-nav-arrow{display:none;position:absolute;z-index:22;left:50%;top:68%;width:84px;height:84px;transform:translate(-50%,-50%);transform-origin:50% 50%;pointer-events:none;filter:drop-shadow(0 9px 9px #00133d55)}
+#cj218-nav-arrow>span{width:84px;height:84px;border-radius:50%;display:grid;place-items:center;background:#fff;border:5px solid #fff;box-shadow:0 0 0 2px #dbe6ff,0 8px 24px #00133d55}
+#cj218-nav-arrow svg{width:66px;height:66px;overflow:visible}#cj218-nav-arrow path{fill:#1459ff;stroke:#fff;stroke-width:2;stroke-linejoin:round}
+body.cj218-navigation #cj218-nav-arrow{display:block}
+body.cj218-navigation .cj199-photo-marker{opacity:0!important}
+body.cj218-navigation #cj199-metric,body.cj218-navigation #cj199-queue{opacity:0!important;visibility:hidden!important;pointer-events:none!important}
+body.cj218-navigation #cj199-center.cj205-sos{top:auto!important;right:14px!important;bottom:calc(112px + env(safe-area-inset-bottom))!important;width:62px!important;height:62px!important}
+body.cj218-navigation #cj217-nav{display:grid!important;position:absolute!important;z-index:35!important;top:max(12px,env(safe-area-inset-top))!important;bottom:auto!important;left:10px!important;right:10px!important;background:#006c69!important;border-radius:22px!important;padding:16px 18px!important;box-shadow:0 12px 34px #001a304d!important;pointer-events:none!important;grid-template-columns:minmax(0,1fr)!important;gap:8px!important}
+body.cj218-navigation #cj217-nav .turn-main{display:grid;grid-template-columns:58px minmax(0,1fr);gap:12px;align-items:center}
+body.cj218-navigation #cj217-nav .turn-icon{width:58px;height:58px;display:grid;place-items:center;font-size:42px;font-weight:950;color:#fff}
+body.cj218-navigation #cj217-nav .turn-copy{display:grid;gap:2px;min-width:0}
+body.cj218-navigation #cj217-nav small{font-size:10px!important;color:#c9fffb!important;letter-spacing:.1em;font-weight:950}
+body.cj218-navigation #cj217-nav strong{font-size:23px!important;line-height:1.1!important;white-space:normal!important;overflow:hidden!important;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2}
+body.cj218-navigation #cj217-nav span{font-size:13px!important;color:#e4fffd!important}
+body.cj218-navigation #cj217-nav .turn-next{width:max-content;max-width:78%;margin-left:-18px;margin-bottom:-16px;padding:9px 15px 11px 18px;border-radius:0 16px 0 22px;background:#005553;display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:center}
+body.cj218-navigation #cj217-nav .turn-next small{font-size:11px!important}body.cj218-navigation #cj217-nav .turn-next strong{font-size:14px!important;display:block!important;white-space:nowrap!important;text-overflow:ellipsis}
+body.cj218-navigation #cj199-bottom{z-index:40!important;background:#fff!important}
+body.cj218-navigation #cj199-sheet{z-index:60!important}
+@media(max-width:390px){#cj218-nav-arrow{top:66%;width:76px;height:76px}#cj218-nav-arrow>span{width:76px;height:76px}#cj218-nav-arrow svg{width:60px;height:60px}body.cj218-navigation #cj217-nav{padding:13px 14px!important}body.cj218-navigation #cj217-nav strong{font-size:20px!important}}
