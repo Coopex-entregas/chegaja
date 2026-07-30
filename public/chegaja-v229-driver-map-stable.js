@@ -7,7 +7,7 @@ window.__CJ229_DRIVER_MAP_STABLE_14301__=true;
 const S={
  map:null,host:null,pane:null,originalSetView:null,originalPanBy:null,originalMove:null,
  pointers:new Map(),gesture:null,bearing:0,manual:false,following:true,lastGps:null,
- lastFollowAt:0,lastDeliveryId:'',timer:null,boundCenter:null,boundMap:null
+ lastFollowAt:0,lastDeliveryId:'',timer:null,boundCenter:null,boundMap:null,userUntil:0
 };
 const isDriverHome=()=>window.state?.user?.role==='driver'&&document.body.classList.contains('cj199-driver');
 const active=()=>window.ChegaJaDriverActiveDelivery||null;
@@ -33,6 +33,9 @@ function setManual(value){
  const button=document.querySelector('#cj199-center');
  button?.classList.toggle('manual',S.manual);
  if(button)button.title=S.manual?'Alinhar novamente e acompanhar sua posição':'Mapa alinhado e acompanhando sua posição';
+}
+function markUserGesture(){
+ S.userUntil=Date.now()+2200;
 }
 function applyBearing(){
  if(!S.pane||!S.host)return;
@@ -68,6 +71,7 @@ function stableSetView(latlng,zoom,animate=false){
 function recenter(){
  const current=valid(S.lastGps)?S.lastGps:point(window.ChegaJaLastDriverLocation);
  if(!S.map||!valid(current))return;
+ S.userUntil=0;
  setManual(false);
  S.bearing=0;
  applyBearing();
@@ -89,11 +93,13 @@ function patchMapMethods(){
  S.originalSetView=S.map.setView.bind(S.map);
  S.originalPanBy=S.map.panBy.bind(S.map);
  S.map.setView=function(center,zoom,options={}){
-  if(active()&&!options?.cjStable&&!options?.cjUser)return this;
+  const allowed=Boolean(options?.cjStable||options?.cjUser||Date.now()<S.userUntil);
+  if(active()&&!allowed)return this;
   return S.originalSetView(center,zoom,options);
  };
  S.map.panBy=function(offset,options={}){
-  if(active()&&!options?.cjStable&&!options?.cjUser)return this;
+  const allowed=Boolean(options?.cjStable||options?.cjUser||Date.now()<S.userUntil);
+  if(active()&&!allowed)return this;
   return S.originalPanBy(offset,options);
  };
 }
@@ -125,6 +131,8 @@ function bindGestures(){
  S.boundMap=S.host;
  S.host.style.touchAction='none';
  const down=event=>{
+  if(event.pointerType!=='touch'&&event.pointerType!=='pen'&&event.pointerType!=='mouse')return;
+  markUserGesture();
   if(event.pointerType!=='touch')return;
   S.pointers.set(event.pointerId,{x:event.clientX,y:event.clientY});
   if(S.pointers.size===2)beginGesture();
@@ -139,11 +147,12 @@ function bindGestures(){
   if(Math.abs(delta)>.05&&Math.abs(delta)<25){S.bearing+=delta;applyBearing()}
  };
  const end=event=>{S.pointers.delete(event.pointerId);if(S.pointers.size===2)beginGesture();else S.gesture=null};
- S.host.addEventListener('pointerdown',down,{passive:true});
+ S.host.addEventListener('pointerdown',down,{passive:true,capture:true});
  S.host.addEventListener('pointermove',move,{passive:true});
  S.host.addEventListener('pointerup',end,{passive:true});
  S.host.addEventListener('pointercancel',end,{passive:true});
- S.map.on('dragstart zoomstart',()=>{if(S.pointers.size<2)setManual(true)});
+ S.host.addEventListener('wheel',()=>{markUserGesture();setManual(true)},{passive:true});
+ S.map.on('dragstart zoomstart',()=>{markUserGesture();setManual(true)});
  S.map.touchZoom?.enable?.();
  S.map.dragging?.enable?.();
 }
@@ -157,7 +166,7 @@ function attach(){
  if(!map||!host)return;
  if(S.map!==map){
   S.map=map;S.host=host;S.pane=map._mapPane||host.querySelector('.leaflet-map-pane');
-  S.boundMap=null;S.boundCenter=null;S.originalSetView=null;S.originalPanBy=null;S.originalMove=null;
+  S.boundMap=null;S.boundCenter=null;S.originalSetView=null;S.originalPanBy=null;
   configureMap();patchMapMethods();bindGestures();applyBearing();
  }
  patchDriverMove();bindCenter();syncDelivery();
