@@ -1,10 +1,34 @@
 import { Hono } from 'hono';
 import type { AppBindings } from '../types';
-import { assertRole, cleanText } from '../lib/util';
+import { assertRole, bodyJson, cleanText, toCents } from '../lib/util';
 
 export const platformV29Routes = new Hono<AppBindings>();
 export const publicV29Routes = new Hono<AppBindings>();
 type Row = Record<string, any>;
+
+platformV29Routes.get('/v29/cooperative/operational-costs',async c=>{
+  const auth=c.get('auth');assertRole(auth,['cooperative_admin','dispatcher']);
+  if(!auth.cooperativeId)return c.json({ok:false,error:'Cooperativa não vinculada.'},403);
+  const item=await c.env.DB.prepare(`SELECT id,name,
+      COALESCE(NULLIF(fuel_km_per_liter,0),(SELECT NULLIF(b.fuel_km_per_liter,0) FROM bases b WHERE b.cooperative_id=cooperatives.id AND b.active=1 AND b.deleted_at IS NULL ORDER BY b.name LIMIT 1),35) fuel_km_per_liter,
+      COALESCE(NULLIF(fuel_price_cents,0),(SELECT NULLIF(b.fuel_price_cents,0) FROM bases b WHERE b.cooperative_id=cooperatives.id AND b.active=1 AND b.deleted_at IS NULL ORDER BY b.name LIMIT 1),0) fuel_price_cents,
+      COALESCE(NULLIF(displacement_rate_cents_per_km,0),(SELECT NULLIF(b.displacement_rate_cents_per_km,0) FROM bases b WHERE b.cooperative_id=cooperatives.id AND b.active=1 AND b.deleted_at IS NULL ORDER BY b.name LIMIT 1),0) displacement_rate_cents_per_km
+    FROM cooperatives WHERE id=? AND deleted_at IS NULL LIMIT 1`).bind(auth.cooperativeId).first<Row>();
+  if(!item)return c.json({ok:false,error:'Cooperativa não encontrada.'},404);
+  return c.json({ok:true,item});
+});
+
+platformV29Routes.put('/v29/cooperative/operational-costs',async c=>{
+  const auth=c.get('auth');assertRole(auth,['cooperative_admin']);
+  if(!auth.cooperativeId)return c.json({ok:false,error:'Cooperativa não vinculada.'},403);
+  const body=await bodyJson<Row>(c);
+  const consumption=Math.max(.1,Number(body.fuel_km_per_liter||35));
+  const fuelPrice=Math.max(0,toCents(body.fuel_price));
+  const displacementRate=Math.max(0,toCents(body.displacement_rate_per_km));
+  await c.env.DB.prepare(`UPDATE cooperatives SET fuel_km_per_liter=?,fuel_price_cents=?,displacement_rate_cents_per_km=?,updated_at=CURRENT_TIMESTAMP WHERE id=? AND deleted_at IS NULL`)
+    .bind(consumption,fuelPrice,displacementRate,auth.cooperativeId).run();
+  return c.json({ok:true,item:{fuel_km_per_liter:consumption,fuel_price_cents:fuelPrice,displacement_rate_cents_per_km:displacementRate}});
+});
 
 platformV29Routes.get('/v29/base/form-fixes', async c => {
   const auth=c.get('auth');
