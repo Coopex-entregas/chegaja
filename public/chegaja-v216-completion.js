@@ -1,0 +1,26 @@
+/* ChegaJá 14.24.3 — conclusão automática por GPS */
+(()=>{
+'use strict';
+if(window.__CJ216_COMPLETION__)return;window.__CJ216_COMPLETION__=true;
+const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
+const token=()=>String(window.state?.token||localStorage.getItem('lg_token')||'').trim();
+const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0)/100);
+const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+let currentId='',opening=false;
+async function api(path,opt={}){const r=await fetch(path,{method:opt.method||'GET',headers:{...(opt.body?{'Content-Type':'application/json'}:{}),...(token()?{Authorization:`Bearer ${token()}`}:{})},body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store'});const d=await r.json().catch(()=>({}));if(!r.ok||d.ok===false)throw new Error(d.error||`Erro ${r.status}`);return d}
+function close(){currentId='';$('#cj216-complete')?.remove()}
+async function openCompletion(payload){
+ if(opening||!payload?.delivery_id||currentId===payload.delivery_id)return;opening=true;
+ try{
+  const detail=await api(`/api/app/v28/driver/calls/${encodeURIComponent(payload.delivery_id)}`),x=detail.item||payload.item||{};currentId=payload.delivery_id;
+  $('#cj216-complete')?.remove();document.body.insertAdjacentHTML('beforeend',`<section id="cj216-complete"><article><header><small>VOCÊ CHEGOU AO DESTINO</small><h2>Finalize a entrega</h2><p>${esc(x.delivery_address||'Destino da entrega')}</p></header><div class="values"><span><small>Valor da corrida</small><b>${money(x.charge_cents)}</b></span><span><small>Espera</small><b>${money(x.wait_charge_cents)}</b></span><span><small>Serviços</small><b>${money(x.service_charge_cents||x.services_cents)}</b></span><span><small>Retorno</small><b>${money(x.return_cents)}</b></span><span><small>Deslocamento</small><b>${money(x.displacement_cents)}</b></span><span class="total"><small>Total final</small><b>${money(Number(x.charge_cents||0)+Number(x.wait_charge_cents||0))}</b></span></div><form id="cj216-form"><label>Quem recebeu?<input name="received_by_name" required maxlength="150" placeholder="Digite o nome de quem recebeu"></label>${x.requires_acceptance===false&&Number(x.confirmation_required??1)===1&&!Number(x.finish_without_code_authorized||0)&&Number(x.base_confirmation_required??1)!==0?'<label>Código de confirmação<input name="confirmation_code" required inputmode="numeric" maxlength="10" placeholder="Digite o código informado pelo cliente"></label>':''}<button type="submit">FINALIZAR ENTREGA</button><p id="cj216-error"></p></form></article></section>`);
+  $('#cj216-form').onsubmit=async e=>{e.preventDefault();const form=e.currentTarget,button=form.querySelector('button'),error=$('#cj216-error');button.disabled=true;button.textContent='FINALIZANDO…';error.textContent='';try{const body=Object.fromEntries(new FormData(form));await api(`/api/app/v16/driver/deliveries/${encodeURIComponent(currentId)}/complete`,{method:'POST',body});button.textContent='ENTREGA FINALIZADA';setTimeout(()=>{close();window.location.hash='dashboard';window.pages?.dashboard?.()},650)}catch(err){button.disabled=false;button.textContent='FINALIZAR ENTREGA';error.textContent=err.message}}
+ }catch(e){}finally{opening=false}
+}
+window.addEventListener('chegaja:destination-arrived',e=>openCompletion(e.detail));
+async function baseSettings(baseId,name){
+ try{const data=await api(`/api/app/v30/base/${encodeURIComponent(baseId)}/completion-settings`),x=data.item||{};window.openModal?.(`Conclusão das entregas — ${name||x.name||'Base'}`,`<form id="cj216-base-settings" class="form-grid"><div class="full notice">Defina se as entregas desta Base exigirão código para finalizar. O nome de quem recebeu continuará obrigatório.</div><label class="full"><input type="checkbox" name="delivery_confirmation_required" ${Number(x.delivery_confirmation_required??1)===1?'checked':''}> Exigir código de confirmação na entrega</label><div class="form-actions full"><button type="button" class="btn" data-close-modal>Cancelar</button><button class="btn primary" type="submit">Salvar configuração</button></div></form>`);const form=$('#cj216-base-settings');form.onsubmit=async e=>{e.preventDefault();await api(`/api/app/v30/base/${encodeURIComponent(baseId)}/completion-settings`,{method:'PUT',body:{delivery_confirmation_required:form.delivery_confirmation_required.checked}});window.closeModal?.();window.toast?.('Configuração de conclusão salva.')}}catch(e){window.toast?.(e.message,'error')}
+}
+function addBaseButtons(){if(!['cooperative_admin','dispatcher'].includes(window.state?.user?.role||'')||window.state?.page!=='bases')return;$$('[data-edit-base]').forEach(edit=>{const id=edit.dataset.editBase,parent=edit.parentElement;if(!id||parent.querySelector(`[data-cj216-base="${id}"]`))return;const b=document.createElement('button');b.type='button';b.className='table-action';b.dataset.cj216Base=id;b.textContent='Conclusão';b.onclick=()=>baseSettings(id,edit.closest('tr')?.querySelector('td')?.textContent?.trim());parent.insertBefore(b,edit.nextSibling)})}
+setInterval(addBaseButtons,1800);window.addEventListener('load',addBaseButtons,{once:true});if(document.readyState==='complete')addBaseButtons();
+})();
