@@ -1,0 +1,26 @@
+/* ChegaJá 14.24.2 — oferta compacta, detalhes na gaveta */
+#cj212-call.offer{position:absolute!important;inset:auto 10px 104px 10px!important;z-index:95!important;max-height:none!important;height:auto!important;border-radius:20px!important;padding:12px!important;overflow:visible!important;transform:none!important;width:auto!important}
+#cj212-call.offer #cj212-body{min-height:0!important;display:block!important}
+#cj212-call.offer .cj212-route,#cj212-call.offer .cj212-grid,#cj212-call.offer .cj212-note,#cj212-call.offer .cj212-progress{display:none!important}
+#cj212-call.offer header{padding-bottom:8px!important}
+#cj212-call.offer header small{font-size:10px!important}
+#cj212-call.offer header strong{font-size:17px!important}
+#cj212-call.offer header>b{font-size:20px!important}
+#cj212-call.offer .cj212-actions{position:static!important;margin:10px 0 0!important;padding:0!important;border:0!important;background:transparent!important;display:grid!important;grid-template-columns:1fr 1fr!important;gap:9px!important}
+#cj212-call.offer .cj212-actions button{height:52px!important;font-size:15px!important;border-radius:14px!important}
+#cj212-call.offer #cj212-decline-box{margin-top:8px!important}
+#cj212-call.offer #cj212-decline-box.open{display:grid!important;gap:8px!important}
+#cj212-call.offer #cj212-reason{min-height:66px!important}
+body.cj210-scale-open #cj212-call.offer{display:none!important}
+#cj199-sheet.open{z-index:180!important}
+#cj199-sheet .cj215-offer-detail{display:grid;gap:10px;padding:4px 2px 18px}
+#cj199-sheet .cj215-offer-detail h3{margin:0;color:#0a2f96}
+#cj199-sheet .cj215-offer-detail .route,#cj199-sheet .cj215-offer-detail .values{display:grid;gap:8px}
+#cj199-sheet .cj215-offer-detail article,#cj199-sheet .cj215-offer-detail span{padding:10px;border-radius:12px;background:#f2f6fc}
+#cj199-sheet .cj215-offer-detail small{display:block;font-size:9px;font-weight:900;letter-spacing:.08em;color:#748096}
+#cj199-sheet .cj215-offer-detail strong{display:block;margin-top:3px;font-size:13px;color:#10265a}
+#cj199-sheet .cj215-offer-detail .values{grid-template-columns:repeat(2,minmax(0,1fr))}
+body.cj199-driver #sidebar,body.cj199-driver .topbar,body.cj199-driver .v31-driver-bottom,body.cj199-driver .driver-bottom-nav,body.cj199-driver .mobile-bottom-nav,body.cj199-driver .bottom-navigation{display:none!important}
+body.cj199-driver .app-body{margin:0!important;width:100%!important}
+body.cj199-driver #page-content{padding:0!important;max-width:none!important;width:100%!important}
+@media(max-width:380px){#cj212-call.offer{left:8px!important;right:8px!important;bottom:96px!important;padding:10px!important}#cj212-call.offer .cj212-actions button{height:48px!important;font-size:14px!important}}
