@@ -1,17 +1,35 @@
-/* ChegaJá 14.30.2 — mapa estável, sem inversão e sem recarregar os blocos */
-body.cj199-driver #cj199-map{touch-action:none!important;overflow:hidden!important}
-body.cj199-driver #cj199-map .leaflet-map-pane{transition:none!important}
-body.cj199-driver #cj199-map .leaflet-tile-pane{transition:none!important}
-body.cj199-driver #cj199-map .leaflet-tile{transition:none!important;opacity:1!important;will-change:auto!important}
+/* ChegaJá 14.30.3 — mapa rotativo ancorado no cooperado, sem cortes nem controles sobrepostos */
+body.cj199-driver #cj199-map{touch-action:none!important;overflow:visible!important;background:#e6ebf1!important}
+body.cj199-driver #cj199-map.leaflet-container{background:#e6ebf1!important}
+body.cj199-driver #cj199-map .leaflet-map-pane,
+body.cj199-driver #cj199-map .leaflet-tile-pane,
+body.cj199-driver #cj199-map .leaflet-marker-pane,
+body.cj199-driver #cj199-map .leaflet-overlay-pane{transition:none!important;backface-visibility:hidden!important}
+body.cj199-driver #cj199-map .leaflet-tile{transition:none!important;backface-visibility:hidden!important}
 body.cj199-driver #cj199-map .leaflet-zoom-animated{transition:none!important}
 body.cj199-driver #cj199-map.leaflet-fade-anim .leaflet-tile{transition:none!important}
+body.cj199-driver #cj199-map .leaflet-control-zoom,
+body.cj199-driver #cj199-map .leaflet-control-attribution{display:none!important}
+
 body.cj199-driver #cj199-center{top:auto!important;right:16px!important;bottom:198px!important;width:54px!important;height:54px!important;display:grid!important;place-items:center!important;border:2px solid #fff!important;border-radius:18px!important;background:#0d45d8!important;color:#fff!important;box-shadow:0 8px 24px #07183a42!important;font-size:27px!important;font-weight:950!important}
 body.cj199-driver #cj199-center.manual{background:#ff7a00!important;box-shadow:0 8px 24px #ff7a0047!important}
 body.cj199-driver #cj199-center span{display:block;line-height:1;transform:translateY(-1px)}
+
+#cj229-zoom{position:absolute;z-index:23;left:16px;bottom:112px;display:grid;overflow:hidden;border:1px solid #cbd6e5;border-radius:12px;background:#fff;box-shadow:0 7px 20px #07183a30}
+#cj229-zoom button{width:38px;height:36px;border:0;background:#fff;color:#0d45d8;font:900 22px/1 system-ui,-apple-system,"Segoe UI",sans-serif}
+#cj229-zoom button+button{border-top:1px solid #d8e1ec}
+#cj229-zoom button:active{background:#edf3ff}
+#cj229-attribution{position:absolute;z-index:18;right:4px;bottom:97px;padding:2px 5px;border-radius:5px 0 0 0;background:#ffffffd9;color:#52627a;font:500 8px/1.2 system-ui,-apple-system,"Segoe UI",sans-serif;pointer-events:none}
+
 body.cj199-driver .cj224-heading{width:46px!important;height:46px!important;margin:6px!important;transform-origin:50% 79%!important;transition:none!important}
 body.cj199-driver .cj224-heading svg{width:46px!important;height:46px!important}
 body.cj199-driver .cj224-heading path{stroke-width:3.5!important}
 body.cj199-driver .cj224-position-dot{left:28px!important;top:3px!important;width:14px!important;height:14px!important;border-width:3px!important;transform-origin:center!important}
-body.cj199-driver .cj224-position-marker b{top:23px!important;font-size:8px!important;transform-origin:center!important}
+body.cj199-driver .cj224-position-marker b{top:23px!important;font-size:8px!important;transform-origin:50% 50%!important;transition:none!important}
 body.cj199-driver .cj199-stop{width:30px!important;height:30px!important;font-size:10px!important}
-@media(max-width:390px){body.cj199-driver #cj199-center{right:10px!important;bottom:186px!important;width:50px!important;height:50px!important;border-radius:16px!important;font-size:25px!important}}
+
+@media(max-width:390px){
+ body.cj199-driver #cj199-center{right:10px!important;bottom:186px!important;width:50px!important;height:50px!important;border-radius:16px!important;font-size:25px!important}
+ #cj229-zoom{left:10px;bottom:106px}
+ #cj229-attribution{bottom:94px}
+}
