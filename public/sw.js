@@ -1,10 +1,10 @@
-const CACHE='chegaja-static-14-29-6';
+const CACHE='chegaja-static-14-29-7';
 const CORE=[
   '/','/index.html','/manifest.webmanifest',
   '/icons/icon-official.png','/icons/logo-official.png',
   '/vendor/leaflet/leaflet.css','/vendor/leaflet/leaflet.js','/vendor/qrcode.js',
   '/chegaja-final.css?v=14.15.9','/chegaja-v144.css?v=14.15.9','/chegaja-v145.css?v=14.15.9','/chegaja-v148.css?v=14.15.9','/chegaja-v149.css?v=14.15.9','/chegaja-mobile-app.css?v=14.16.0',
-  '/chegaja-map-fallback.css?v=14.22.0','/chegaja-v201-operational.css?v=14.28.0','/chegaja-v203-client-rebuild.css?v=14.22.3','/chegaja-v199-driver.css?v=14.29.6','/chegaja-v205-driver-fixes.css?v=14.28.0','/chegaja-v206-admin-fixes.css?v=14.22.3','/chegaja-v207-client-uber.css?v=14.22.2','/chegaja-v208-base-photo.css?v=14.22.6','/chegaja-v217-driver-navigation.css?v=14.29.6','/chegaja-v222-driver-stability.css?v=14.29.6','/chegaja-v223-driver-final.css?v=14.29.6',
+  '/chegaja-map-fallback.css?v=14.22.0','/chegaja-v201-operational.css?v=14.28.0','/chegaja-v203-client-rebuild.css?v=14.22.3','/chegaja-v199-driver.css?v=14.29.6','/chegaja-v205-driver-fixes.css?v=14.28.0','/chegaja-v206-admin-fixes.css?v=14.22.3','/chegaja-v207-client-uber.css?v=14.22.2','/chegaja-v208-base-photo.css?v=14.22.6','/chegaja-v217-driver-navigation.css?v=14.29.6','/chegaja-v222-driver-stability.css?v=14.29.7','/chegaja-v223-driver-final.css?v=14.29.6',
   '/chegaja-maps-leaflet.js?v=14.22.0','/app.js?v=14.15.9','/chegaja-v198-auth.js?v=14.22.0','/chegaja-v208-base-photo.js?v=14.22.6','/chegaja-final.js?v=14.15.9','/chegaja-v144.js?v=14.15.9','/chegaja-v145.js?v=14.15.9','/chegaja-v148.js?v=14.15.9','/chegaja-v149.js?v=14.15.9','/chegaja-v201-operational.js?v=14.28.0','/chegaja-v203-client-rebuild.js?v=14.22.3','/chegaja-v199-driver.js?v=14.29.6','/chegaja-v205-driver-fixes.js?v=14.29.6','/chegaja-v206-admin-fixes.js?v=14.22.3','/chegaja-v207-client-uber.js?v=14.22.2','/chegaja-v217-driver-navigation.js?v=14.29.6','/chegaja-v223-driver-final.js?v=14.29.6'
 ];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).catch(()=>{}))});
