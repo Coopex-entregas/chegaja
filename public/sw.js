@@ -1,25 +1,12 @@
-const CACHE='chegaja-static-14-23-3';
+const CACHE='chegaja-static-14-24-2';
 const CORE=[
   '/','/index.html','/manifest.webmanifest',
   '/icons/icon-official.png','/icons/logo-official.png',
   '/vendor/leaflet/leaflet.css','/vendor/leaflet/leaflet.js','/vendor/qrcode.js',
-  '/chegaja-final.css?v=14.15.9','/chegaja-v144.css?v=14.15.9','/chegaja-v145.css?v=14.15.9',
-  '/chegaja-v148.css?v=14.15.9','/chegaja-v149.css?v=14.15.9','/chegaja-mobile-app.css?v=14.16.0',
-  '/chegaja-map-fallback.css?v=14.22.0','/chegaja-v201-operational.css?v=14.22.6','/chegaja-v203-client-rebuild.css?v=14.22.3',
-  '/chegaja-v199-driver.css?v=14.22.0','/chegaja-v205-driver-fixes.css?v=14.23.0','/chegaja-v206-admin-fixes.css?v=14.22.3','/chegaja-v207-client-uber.css?v=14.22.2','/chegaja-v208-base-photo.css?v=14.22.6','/chegaja-v210-driver-call.css?v=14.23.3',
-  '/chegaja-maps-leaflet.js?v=14.22.0','/app.js?v=14.15.9','/chegaja-v198-auth.js?v=14.22.0','/chegaja-v208-base-photo.js?v=14.22.6','/chegaja-final.js?v=14.15.9',
-  '/chegaja-v144.js?v=14.15.9','/chegaja-v145.js?v=14.15.9','/chegaja-v148.js?v=14.15.9','/chegaja-v149.js?v=14.15.9',
-  '/chegaja-v201-operational.js?v=14.22.6','/chegaja-v203-client-rebuild.js?v=14.22.3','/chegaja-v199-driver.js?v=14.22.0',
-  '/chegaja-v205-driver-fixes.js?v=14.23.0','/chegaja-v206-admin-fixes.js?v=14.22.3','/chegaja-v207-client-uber.js?v=14.22.2','/chegaja-v209-driver-single.js?v=14.22.5','/chegaja-v210-driver-call.js?v=14.23.3','/chegaja-v211-stability.js?v=14.23.3'
+  '/chegaja-final.css?v=14.15.9','/chegaja-v144.css?v=14.15.9','/chegaja-v145.css?v=14.15.9','/chegaja-v148.css?v=14.15.9','/chegaja-v149.css?v=14.15.9','/chegaja-mobile-app.css?v=14.16.0',
+  '/chegaja-map-fallback.css?v=14.22.0','/chegaja-v201-operational.css?v=14.22.6','/chegaja-v203-client-rebuild.css?v=14.22.3','/chegaja-v199-driver.css?v=14.22.0','/chegaja-v206-admin-fixes.css?v=14.22.3','/chegaja-v207-client-uber.css?v=14.22.2','/chegaja-v208-base-photo.css?v=14.22.6','/chegaja-v212-fast-operations.css?v=14.24.0','/chegaja-v214-driver-single-shell.css?v=14.24.2','/chegaja-v215-driver-offer-fix.css?v=14.24.2',
+  '/chegaja-maps-leaflet.js?v=14.22.0','/app.js?v=14.15.9','/chegaja-v198-auth.js?v=14.22.0','/chegaja-v208-base-photo.js?v=14.22.6','/chegaja-final.js?v=14.15.9','/chegaja-v144.js?v=14.15.9','/chegaja-v145.js?v=14.15.9','/chegaja-v148.js?v=14.15.9','/chegaja-v149.js?v=14.15.9','/chegaja-v201-operational.js?v=14.22.6','/chegaja-v203-client-rebuild.js?v=14.22.3','/chegaja-v199-driver.js?v=14.22.0','/chegaja-v206-admin-fixes.js?v=14.22.3','/chegaja-v207-client-uber.js?v=14.22.2','/chegaja-v212-fast-operations.js?v=14.24.0','/chegaja-v213-fast-state.js?v=14.24.0','/chegaja-v214-driver-single-shell.js?v=14.24.2','/chegaja-v215-driver-offer-fix.js?v=14.24.2'
 ];
 self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).catch(()=>{}))});
 self.addEventListener('activate',event=>{event.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))]))});
-self.addEventListener('fetch',event=>{
-  const request=event.request,url=new URL(request.url);
-  if(request.method!=='GET'||url.pathname.startsWith('/api/'))return;
-  if(request.mode==='navigate'){
-    event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok)caches.open(CACHE).then(cache=>cache.put('/index.html',response.clone())).catch(()=>{});return response}).catch(()=>caches.match('/index.html')));
-    return;
-  }
-  event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok)caches.open(CACHE).then(cache=>cache.put(request,response.clone())).catch(()=>{});return response}).catch(()=>caches.match(request)));
-});
+self.addEventListener('fetch',event=>{const request=event.request,url=new URL(request.url);if(request.method!=='GET'||url.pathname.startsWith('/api/'))return;if(request.mode==='navigate'){event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok)caches.open(CACHE).then(cache=>cache.put('/index.html',response.clone())).catch(()=>{});return response}).catch(()=>caches.match('/index.html')));return}event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok)caches.open(CACHE).then(cache=>cache.put(request,response.clone())).catch(()=>{});return response}).catch(()=>caches.match(request))) });
