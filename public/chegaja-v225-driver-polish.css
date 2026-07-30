@@ -1,0 +1,18 @@
+/* ChegaJá 14.29.8 — card compacto, seta e posição exata do GPS */
+body.cj199-driver #cj199-metric{top:max(12px,env(safe-area-inset-top))!important;left:12px!important;width:min(248px,calc(100vw - 104px))!important;min-height:64px!important;padding:9px 13px!important;border-radius:20px!important;gap:0!important}
+body.cj199-driver #cj199-metric small{font-size:9px!important;letter-spacing:.14em!important}
+body.cj199-driver #cj199-metric strong{font-size:clamp(23px,6.7vw,29px)!important;line-height:1!important}
+body.cj199-driver #cj199-metric span{font-size:10px!important;line-height:1.2!important;margin-top:3px!important}
+body.cj199-driver .cj199-photo-marker{display:none!important}
+body.cj199-driver .cj224-nav-arrow-marker,body.cj199-driver .cj224-position-marker{background:transparent!important;border:0!important;pointer-events:none!important;overflow:visible!important}
+body.cj199-driver .cj224-heading{display:block;width:58px;height:58px;transform-origin:50% 79%;transition:transform .22s linear;filter:drop-shadow(0 4px 6px #07183a70)}
+body.cj199-driver .cj224-heading svg{display:block;width:58px;height:58px;overflow:visible}
+body.cj199-driver .cj224-heading path{fill:#1459ff;stroke:#fff;stroke-width:4;stroke-linejoin:round}
+body.cj199-driver .cj224-position-dot{position:absolute;left:27px;top:1px;width:18px;height:18px;border:3px solid #fff;border-radius:50%;background:#1459ff;box-shadow:0 0 0 8px #1459ff2b,0 3px 8px #07183a70}
+body.cj199-driver .cj224-position-dot i{display:block;width:100%;height:100%;border-radius:50%;background:#1459ff}
+body.cj199-driver .cj224-position-marker b{position:absolute;top:25px;left:50%;transform:translateX(-50%);padding:3px 7px;border:2px solid #fff;border-radius:999px;background:#0d214f;color:#fff;box-shadow:0 3px 9px #07183a55;white-space:nowrap;font:900 9px/1 Inter,system-ui,sans-serif;letter-spacing:.08em}
+.cj225-detected-schedule{display:grid;gap:4px;padding:11px 12px;border:1px solid #cfdced;border-radius:13px;background:#f5f8ff;color:#243d68}
+.cj225-detected-schedule small{font-size:9px;letter-spacing:.1em;color:#0d45d8;font-weight:950}
+.cj225-detected-schedule strong{font-size:13px;line-height:1.35;color:#0a2f96}
+.cj225-detected-schedule span{font-size:11px;line-height:1.35;color:#5a6d88}
+@media(max-width:390px){body.cj199-driver #cj199-metric{left:10px!important;width:calc(100vw - 100px)!important;min-height:60px!important;padding:8px 11px!important;border-radius:18px!important}body.cj199-driver #cj199-metric strong{font-size:23px!important}}
