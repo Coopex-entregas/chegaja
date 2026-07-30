@@ -1,99 +1,26 @@
-/* ChegaJá 14.27.0 — bloqueio definitivo do painel legado e navegação aproximada */
+/* ChegaJá 14.28.0 — bloqueio legado, navegação após aceite e centralização manual */
 (()=>{
 'use strict';
-if(window.__CJ218_DRIVER_GUARD__)return;window.__CJ218_DRIVER_GUARD__=true;
+if(window.__CJ218_DRIVER_GUARD_14280__)return;window.__CJ218_DRIVER_GUARD_14280__=true;
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const isDriver=()=>window.state?.user?.role==='driver';
-const G={restoring:false,lastPoint:'',routeLayer:null,nav:null,timer:null};
+const G={restoring:false,lastPoint:'',routeLayer:null,nav:null,timer:null,following:true,mapBound:null,previousLocation:null,derivedHeading:null};
 const legacySelectors=['.v31-driver-app','.v31-driver-shell','.v31-driver-header','.v31-driver-strip','.v31-current-card','.v31-driver-map-card','.v31-day-summary','.v31-driver-bottom','#v31-driver-app','#cj190-driver-app','#cj196-driver-app','#cj24-driver-app','#cj212-call','#cj214-internal'];
-
-function purgeLegacy(){
- if(!isDriver())return;
- for(const selector of legacySelectors)$$(selector).forEach(node=>node.remove());
- document.body.classList.remove('v31-driver-mode','v32-driver-single-menu','v36-driver-navigation','cj14-driver','cj143-driver','cj190-driver-home','cj24-driver-mode','cj196-driver-mode','driver-app-mode');
- const content=$('#page-content');
- if(window.state?.page==='dashboard'&&content&&!$('#cj199-app',content)&&!G.restoring){
-  G.restoring=true;
-  queueMicrotask(async()=>{try{await window.pages?.dashboard?.()}catch{}finally{G.restoring=false}});
- }
-}
-function disableLegacyController(){
- if(window.__CJ_DRIVER_14261__)return;
- const legacy=window.ChegaJaV31;
- if(!legacy||legacy.__cj218Disabled)return;
- try{legacy.stopDriver?.()}catch{}
- legacy.installDriver=async()=>{};
- legacy.loadDriverDashboard=async()=>{};
- legacy.__cj218Disabled=true;
- const previous=window.pages?.dashboard;
- if(previous&&!previous.__cj218Guard){
-  const guarded=async function(...args){if(isDriver()){purgeLegacy();return}return previous.apply(this,args)};
-  guarded.__cj218Guard=true;window.pages.dashboard=guarded;
- }
-}
-function ensureArrow(){
- let arrow=$('#cj218-nav-arrow');
- if(!arrow){
-  arrow=document.createElement('div');arrow.id='cj218-nav-arrow';arrow.setAttribute('aria-hidden','true');
-  arrow.innerHTML='<span><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 L57 57 L32 46 L7 57 Z"/></svg></span>';
-  $('#cj199-app')?.appendChild(arrow);
- }
- return arrow;
-}
-function clearNavigation(){
- document.body.classList.remove('cj218-navigation');$('#cj218-nav-arrow')?.remove();
- if(G.routeLayer){try{G.routeLayer.remove()}catch{}G.routeLayer=null}
- G.nav=null;G.lastPoint='';
-}
-function drawDynamicRoute(route){
- const map=window.ChegaJaDriverMap?.map;if(!map||typeof L==='undefined')return;
- if(G.routeLayer){try{G.routeLayer.remove()}catch{}G.routeLayer=null}
- const points=(route?.geometry||[]).map(p=>Array.isArray(p)&&p.length>1?[Number(p[0]),Number(p[1])]:null).filter(p=>Number.isFinite(p?.[0])&&Number.isFinite(p?.[1]));
- if(points.length>1)G.routeLayer=L.polyline(points,{color:'#3214d9',weight:9,opacity:.95,lineCap:'round',lineJoin:'round'}).addTo(map);
-}
-function navigationEvent(event){
- if(!isDriver())return;
- G.nav=event.detail||null;
- if(!G.nav){clearNavigation();return}
- document.body.classList.add('cj218-navigation');ensureArrow();drawDynamicRoute(G.nav.route);
- followNow(true);
-}
-function followNow(force=false){
- if(!isDriver()||!window.ChegaJaDriverActiveDelivery){clearNavigation();return}
- const location=window.ChegaJaLastDriverLocation,map=window.ChegaJaDriverMap?.map;
- if(!location||!map)return;
- document.body.classList.add('cj218-navigation');const arrow=ensureArrow();
- const lat=Number(location.lat),lng=Number(location.lng),heading=Number(location.heading);
- if(!Number.isFinite(lat)||!Number.isFinite(lng))return;
- const key=`${lat.toFixed(6)}:${lng.toFixed(6)}:${Number.isFinite(heading)?Math.round(heading):0}`;
- if(!force&&key===G.lastPoint)return;G.lastPoint=key;
- const zoom=Math.max(18,Number(map.getZoom?.()||18));
- map.setView([lat,lng],zoom,{animate:true,duration:.28,noMoveStart:true});
- requestAnimationFrame(()=>{
-  try{const size=map.getSize();map.panBy([0,-Math.round(size.y*.18)],{animate:true,duration:.22,noMoveStart:true})}catch{}
- });
- arrow.style.transform=`translate(-50%,-50%) rotate(${Number.isFinite(heading)?heading:0}deg)`;
-}
-function keepDeliveryLocked(){
- if(!isDriver())return;
- purgeLegacy();
- const active=window.ChegaJaDriverActiveDelivery;
- if(!active){clearNavigation();return}
- document.body.classList.add('cj217-active-delivery');
- const start=$('#cj199-start'),checkin=$('#cj199-checkin'),scale=$('#cj199-drawer [data-scale]');
- if(start)start.hidden=true;if(checkin)checkin.hidden=true;if(scale)scale.hidden=true;
- const sheet=$('#cj199-schedules');
- if(sheet&&!sheet.querySelector('.cj217-sheet'))window.dispatchEvent(new CustomEvent('cj:driver-open-delivery'));
- followNow(false);
-}
-function boot(){
- disableLegacyController();purgeLegacy();
- window.addEventListener('cj:driver-navigation',navigationEvent);
- new MutationObserver(()=>{disableLegacyController();purgeLegacy();keepDeliveryLocked()}).observe(document.documentElement,{childList:true,subtree:true});
- clearInterval(G.timer);G.timer=setInterval(()=>{disableLegacyController();keepDeliveryLocked()},500);
- document.addEventListener('visibilitychange',()=>{if(!document.hidden){purgeLegacy();keepDeliveryLocked();followNow(true)}});
-}
-disableLegacyController();
-if(document.documentElement)new MutationObserver(()=>{disableLegacyController();purgeLegacy()}).observe(document.documentElement,{childList:true,subtree:true});
-window.addEventListener('load',boot,{once:true});if(document.readyState==='complete')boot();
+function purgeLegacy(){if(!isDriver())return;for(const selector of legacySelectors)$$(selector).forEach(node=>node.remove());document.body.classList.remove('v31-driver-mode','v32-driver-single-menu','v36-driver-navigation','cj14-driver','cj143-driver','cj190-driver-home','cj24-driver-mode','cj196-driver-mode','driver-app-mode');const content=$('#page-content');if(window.state?.page==='dashboard'&&content&&!$('#cj199-app',content)&&!G.restoring){G.restoring=true;queueMicrotask(async()=>{try{await window.pages?.dashboard?.()}catch{}finally{G.restoring=false}})}}
+function disableLegacyController(){const legacy=window.ChegaJaV31;if(!legacy||legacy.__cj218Disabled)return;try{legacy.stopDriver?.()}catch{}legacy.installDriver=async()=>{};legacy.loadDriverDashboard=async()=>{};legacy.__cj218Disabled=true}
+function ensureArrow(){let arrow=$('#cj218-nav-arrow');if(!arrow){arrow=document.createElement('div');arrow.id='cj218-nav-arrow';arrow.setAttribute('aria-hidden','true');arrow.innerHTML='<span><svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 3 L57 57 L32 46 L7 57 Z"/></svg></span>';$('#cj199-app')?.appendChild(arrow)}return arrow}
+function ensureRecenter(){let button=$('#cj218-recenter');if(!button){button=document.createElement('button');button.id='cj218-recenter';button.type='button';button.setAttribute('aria-label','Centralizar navegação');button.innerHTML='<b>⌖</b><small>CENTRALIZAR</small>';button.onclick=()=>{G.following=true;document.body.classList.remove('cj218-map-manual');window.ChegaJaDriverMap?.follow?.(true);followNow(true)};$('#cj199-app')?.appendChild(button)}return button}
+function clearNavigation(){document.body.classList.remove('cj218-navigation','cj218-map-manual');$('#cj218-nav-arrow')?.remove();$('#cj218-recenter')?.remove();if(G.routeLayer){try{G.routeLayer.remove()}catch{}G.routeLayer=null}G.nav=null;G.lastPoint='';G.following=true;window.ChegaJaDriverMap?.follow?.(false)}
+function routePoints(route){return(route?.geometry||[]).map(p=>Array.isArray(p)&&p.length>1?[Number(p[0]),Number(p[1])]:null).filter(p=>Number.isFinite(p?.[0])&&Number.isFinite(p?.[1]))}
+function drawDynamicRoute(route){const map=window.ChegaJaDriverMap?.map;if(!map||typeof L==='undefined')return;if(G.routeLayer){try{G.routeLayer.remove()}catch{}G.routeLayer=null}const points=routePoints(route);if(points.length>1)G.routeLayer=L.polyline(points,{color:'#3214d9',weight:9,opacity:.96,lineCap:'round',lineJoin:'round'}).addTo(map)}
+function bearing(a,b){if(!a||!b)return null;const lat1=Number(a.lat)*Math.PI/180,lat2=Number(b.lat)*Math.PI/180,dLng=(Number(b.lng)-Number(a.lng))*Math.PI/180;if(![lat1,lat2,dLng].every(Number.isFinite))return null;const y=Math.sin(dLng)*Math.cos(lat2),x=Math.cos(lat1)*Math.sin(lat2)-Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLng);return(Math.atan2(y,x)*180/Math.PI+360)%360}
+function distanceApprox(a,b){if(!a||!b)return Infinity;const dLat=(Number(b.lat)-Number(a.lat))*111320,dLng=(Number(b.lng)-Number(a.lng))*111320*Math.cos(Number(a.lat)*Math.PI/180);return Math.hypot(dLat,dLng)}
+function routeHeading(location){const points=routePoints(G.nav?.route);if(!points.length)return null;let best=null,bestDistance=Infinity,bestIndex=0;points.forEach((p,index)=>{const d=distanceApprox(location,{lat:p[0],lng:p[1]});if(d<bestDistance){bestDistance=d;best=p;bestIndex=index}});const next=points[Math.min(points.length-1,bestIndex+Math.max(2,Math.round(points.length*.015)))];return best&&next?bearing({lat:best[0],lng:best[1]},{lat:next[0],lng:next[1]}):null}
+function resolveHeading(location){const supplied=Number(location.heading);if(Number.isFinite(supplied)&&supplied>=0)return supplied;if(G.previousLocation&&distanceApprox(G.previousLocation,location)>3){const movement=bearing(G.previousLocation,location);if(Number.isFinite(movement))G.derivedHeading=movement}G.previousLocation={lat:Number(location.lat),lng:Number(location.lng)};return Number.isFinite(G.derivedHeading)?G.derivedHeading:routeHeading(location)||0}
+function bindMapInteractions(){const map=window.ChegaJaDriverMap?.map;if(!map||G.mapBound===map)return;G.mapBound=map;const manual=()=>{if(!window.ChegaJaDriverActiveDelivery)return;G.following=false;document.body.classList.add('cj218-map-manual');window.ChegaJaDriverMap?.follow?.(false);ensureRecenter()};map.on('dragstart',manual);map.on('zoomstart',()=>{if(map._animatingZoom)return;manual()})}
+function navigationEvent(event){if(!isDriver())return;G.nav=event.detail||null;if(!G.nav||!window.ChegaJaDriverActiveDelivery){clearNavigation();return}G.following=true;document.body.classList.remove('cj218-map-manual');document.body.classList.add('cj218-navigation');ensureArrow();ensureRecenter();bindMapInteractions();drawDynamicRoute(G.nav.route);window.ChegaJaDriverMap?.follow?.(true);followNow(true)}
+function followNow(force=false){if(!isDriver()||!window.ChegaJaDriverActiveDelivery||!G.nav){clearNavigation();return}bindMapInteractions();if(!G.following&&!force)return;const location=window.ChegaJaLastDriverLocation,map=window.ChegaJaDriverMap?.map;if(!location||!map)return;document.body.classList.add('cj218-navigation');const arrow=ensureArrow();ensureRecenter();const lat=Number(location.lat),lng=Number(location.lng);if(!Number.isFinite(lat)||!Number.isFinite(lng))return;const heading=resolveHeading({lat,lng,heading:location.heading}),key=`${lat.toFixed(6)}:${lng.toFixed(6)}:${Math.round(heading)}`;if(!force&&key===G.lastPoint)return;G.lastPoint=key;const zoom=18.5;map.setView([lat,lng],zoom,{animate:true,duration:.25,noMoveStart:true});requestAnimationFrame(()=>{try{const size=map.getSize();map.panBy([0,-Math.round(size.y*.2)],{animate:true,duration:.2,noMoveStart:true})}catch{}});arrow.style.transform=`translate(-50%,-50%) rotate(${heading}deg)`}
+function keepDeliveryLocked(){if(!isDriver())return;purgeLegacy();const work=window.ChegaJaDriverCurrentDelivery,offer=window.ChegaJaDriverPendingOffer,active=window.ChegaJaDriverActiveDelivery;if(!work){clearNavigation();return}document.body.classList.add('cj217-active-delivery');const start=$('#cj199-start'),checkin=$('#cj199-checkin'),scale=$('#cj199-drawer [data-scale]');if(start)start.hidden=true;if(checkin)checkin.hidden=true;if(scale)scale.hidden=true;const sheet=$('#cj199-schedules');if(sheet&&!sheet.querySelector('.cj217-sheet'))window.dispatchEvent(new CustomEvent('cj:driver-open-delivery'));if(offer||!active){clearNavigation();return}if(G.nav)followNow(false)}
+function boot(){disableLegacyController();purgeLegacy();window.addEventListener('cj:driver-navigation',navigationEvent);new MutationObserver(()=>{disableLegacyController();purgeLegacy();keepDeliveryLocked()}).observe(document.documentElement,{childList:true,subtree:true});clearInterval(G.timer);G.timer=setInterval(()=>{disableLegacyController();keepDeliveryLocked()},500);document.addEventListener('visibilitychange',()=>{if(!document.hidden){purgeLegacy();keepDeliveryLocked();if(G.following)followNow(true)}})}
+disableLegacyController();if(document.documentElement)new MutationObserver(()=>{disableLegacyController();purgeLegacy()}).observe(document.documentElement,{childList:true,subtree:true});window.addEventListener('load',boot,{once:true});if(document.readyState==='complete')boot();
 })();
