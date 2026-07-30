@@ -1,11 +1,10 @@
-/* ChegaJá 14.29.3 — estabilidade visual do painel do cooperado */
+/* ChegaJá 14.29.6 — estabilidade visual, controles proporcionais e navegação imersiva */
 body.cj199-driver .cj199-photo-marker,body.cj199-driver .cj199-photo-marker.cj222-navigation-marker{background:transparent!important;border:0!important}
 body.cj199-driver .cj199-photo-marker>span{position:relative!important;width:42px!important;height:42px!important;display:block!important;overflow:visible!important;border:0!important;border-radius:0!important;background:transparent!important;box-shadow:none!important}
 body.cj199-driver .cj199-photo-marker img,body.cj199-driver .cj199-photo-marker b{display:none!important}
 body.cj199-driver .cj199-photo-marker .cj199-heading{position:absolute!important;inset:3px!important;display:block!important;width:36px!important;height:36px!important;color:transparent!important;font-size:0!important;line-height:0!important;transform-origin:50% 50%!important;filter:drop-shadow(0 2px 0 #fff) drop-shadow(2px 0 0 #fff) drop-shadow(-2px 0 0 #fff) drop-shadow(0 -2px 0 #fff) drop-shadow(0 4px 5px #07183a66)!important}
 body.cj199-driver .cj199-photo-marker .cj199-heading::before{content:'';position:absolute;inset:0;background:#1459ff;clip-path:polygon(50% 0,88% 92%,50% 73%,12% 92%)}
 body.cj199-driver .cj199-photo-marker .cj199-heading::after{content:'';position:absolute;left:50%;top:41%;width:8px;height:8px;transform:translate(-50%,-50%);border-radius:50%;background:#fff}
-body.cj199-driver.cj218-navigation .cj199-photo-marker{opacity:0!important}
 body.cj199-driver #cj199-sheet{overscroll-behavior:contain!important}
 body.cj199-driver #cj199-schedules{touch-action:pan-y!important;overscroll-behavior-y:contain!important;-webkit-overflow-scrolling:touch!important}
 body.cj199-driver #cj199-sheet.open{transform:translate3d(0,0,0)!important}
@@ -16,3 +15,8 @@ body.cj199-driver #cj199-notice,body.cj199-driver #cj222-inline-message{position
 body.cj199-driver #cj199-notice.show,body.cj199-driver #cj222-inline-message.show{transform:none;opacity:1}
 body.cj199-driver #cj199-notice.error,body.cj199-driver #cj222-inline-message.error{border-color:#f0c9cd;border-left-color:#d32632;color:#8d1822!important}
 body.cj199-driver .v31-driver-app,body.cj199-driver .v31-driver-shell,body.cj199-driver #v31-driver-app,body.cj199-driver #cj190-driver-app,body.cj199-driver #cj196-driver-app,body.cj199-driver #cj24-driver-app,body.cj199-driver .v31-driver-map-card,body.cj199-driver .driver-dashboard,body.cj199-driver .driver-home{display:none!important}
+body.cj199-driver #cj199-start{width:96px!important;height:96px!important;bottom:118px!important;border-width:7px!important;box-shadow:0 9px 26px #0d214f38,0 0 0 4px #0a2f96!important;font-size:15px!important;letter-spacing:.03em!important}
+body.cj199-driver #cj199-start.online{box-shadow:0 9px 26px #ff7a003d,0 0 0 4px #0d45d8!important}
+body.cj199-driver #cj199-map .leaflet-control-zoom a{width:38px!important;height:38px!important;line-height:38px!important;font-size:23px!important}
+body.cj199-driver #cj199-map .leaflet-bottom.leaflet-left{bottom:112px!important}
+@media(max-width:390px){body.cj199-driver #cj199-start{width:88px!important;height:88px!important;bottom:116px!important;font-size:14px!important;border-width:6px!important}}
