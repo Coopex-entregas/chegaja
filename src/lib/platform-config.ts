@@ -31,7 +31,6 @@ async function encryptValue(secret: string, value: string): Promise<string> {
 
 async function decryptValue(secret: string, value: string): Promise<string> {
   if (!value) return '';
-  // Compatibilidade com uma eventual configuração antiga em texto puro.
   if (!value.startsWith('enc:v1:')) return value;
   const [, , ivRaw, cipherRaw] = value.split(':');
   if (!ivRaw || !cipherRaw) return '';
@@ -65,11 +64,17 @@ export async function getMapsRuntimeConfig(env: Env, force = false): Promise<Map
   const serverKey = storedServer || String(env.GOOGLE_MAPS_API_KEY || '').trim();
   const browserKey = storedBrowser || String(env.GOOGLE_MAPS_BROWSER_KEY || '').trim();
   const rawProvider = String(rows.maps_provider || 'auto').trim().toLowerCase();
+
+  // A chave do navegador serve apenas para exibir o mapa. Busca de endereços,
+  // geocodificação e cálculo de rotas são executados no Worker e precisam de uma
+  // chave de servidor. Quando ela não existe, usamos OpenStreetMap/Nominatim/OSRM
+  // para que o endereço continue sendo encontrado e o valor seja calculado.
   const provider: MapsProvider = rawProvider === 'openstreetmap'
     ? 'openstreetmap'
-    : rawProvider === 'google'
+    : serverKey
       ? 'google'
-      : (serverKey || browserKey ? 'google' : 'openstreetmap');
+      : 'openstreetmap';
+
   const value: MapsRuntimeConfig = {
     provider,
     serverKey,
