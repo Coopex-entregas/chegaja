@@ -39,4 +39,5 @@ jobs:
           node --check public/chegaja-v225-driver-polish.js
           node --check public/chegaja-v226-driver-map-gesture.js
           node --check public/chegaja-v227-address-search.js
+          node --check public/chegaja-v228-driver-map-follow.js
           node --check public/sw.js
