@@ -1,8 +1,8 @@
-/* ChegaJá 14.30.1 — seta persistente com bússola suave e sem giro completo */
+/* ChegaJá 14.30.2 — seta persistente com giroscópio, sem inversão ao mover o mapa */
 (()=>{
 'use strict';
-if(window.__CJ224_DRIVER_GPS_MARKERS_14301__)return;
-window.__CJ224_DRIVER_GPS_MARKERS_14301__=true;
+if(window.__CJ224_DRIVER_GPS_MARKERS_14302__)return;
+window.__CJ224_DRIVER_GPS_MARKERS_14302__=true;
 
 const G={
  map:null,arrow:null,position:null,last:null,gpsHeading:null,compassHeading:null,
@@ -62,7 +62,9 @@ function currentHeading(){
  return 0;
 }
 function setTarget(){
- const desired=normalize(currentHeading()-G.mapBearing);
+ /* O marcador já pertence ao painel rotacionado do Leaflet. Aplicar novamente
+    a rotação do mapa invertia a seta depois de arrastar ou girar o mapa. */
+ const desired=normalize(currentHeading());
  G.targetAngle=G.displayAngle+shortestDelta(normalize(G.displayAngle),desired);
  if(G.animation==null)G.animation=requestAnimationFrame(animateArrow);
 }
@@ -71,14 +73,14 @@ function animateArrow(){
  const node=G.arrow?.getElement?.()?.querySelector('.cj224-heading');
  const diff=G.targetAngle-G.displayAngle;
  if(Math.abs(diff)<.08)G.displayAngle=G.targetAngle;
- else G.displayAngle+=diff*.24;
+ else G.displayAngle+=diff*.2;
  if(node)node.style.transform=`rotate(${G.displayAngle}deg)`;
  if(Math.abs(G.targetAngle-G.displayAngle)>=.08)G.animation=requestAnimationFrame(animateArrow);
 }
 function smoothCompass(next){
  const normalized=normalize(next);
  if(G.compassHeading==null)G.compassHeading=normalized;
- else G.compassHeading=normalize(G.compassHeading+shortestDelta(G.compassHeading,normalized)*.28);
+ else G.compassHeading=normalize(G.compassHeading+shortestDelta(G.compassHeading,normalized)*.2);
  setTarget();
 }
 function update(raw){
@@ -101,7 +103,7 @@ function screenAngle(){
 }
 function orientation(event){
  const now=performance.now();
- if(now-G.lastOrientationAt<12)return;
+ if(now-G.lastOrientationAt<20)return;
  G.lastOrientationAt=now;
  let heading=Number(event.webkitCompassHeading);
  if(!Number.isFinite(heading)){
@@ -137,7 +139,7 @@ function bindPermission(){
  window.addEventListener('deviceorientationabsolute',orientation,true);
  window.addEventListener('deviceorientation',orientation,true);
  document.addEventListener('click',event=>{
-  if(event.target?.closest?.('#cj199-start,#cj199-center,#cj199-map'))requestCompassPermission();
+  if(event.target?.closest?.('#cj199-start,#cj199-center,#cj205-sos-button,#cj199-map'))requestCompassPermission();
  },{capture:true,passive:true});
  window.addEventListener('cj:driver-map-bearing',event=>{
   G.mapBearing=Number(event.detail?.bearing)||0;
@@ -154,7 +156,7 @@ function health(){
 }
 function boot(){
  bindPermission();
- clearInterval(G.timer);G.timer=setInterval(health,800);
+ clearInterval(G.timer);G.timer=setInterval(health,1000);
  health();
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)health()});
 }
