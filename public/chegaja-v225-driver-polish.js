@@ -9,6 +9,7 @@ const isDriver=()=>window.state?.user?.role==='driver';
 const token=()=>String(window.state?.token||localStorage.getItem('lg_token')||'').trim();
 const titles={schedules:'Escala, filtros e trocas',deliveries:'Minhas entregas',routes:'Rotas',financial:'Ganhos e descontos',advances:'Adiantamentos',ratings:'Avaliações',profile:'Perfil e configurações',account:'Alterar senha',attendance:'Check-in'};
 let checkingIn=false;
+let stableEarnings='';
 
 async function api(path,opt={}){
  const ctl=new AbortController(),timer=setTimeout(()=>ctl.abort(),opt.timeout||7000);
@@ -147,8 +148,17 @@ function bindCheckin(){
   performCheckin(button);
  },true);
 }
+function stabilizeEarnings(){
+ const label=$('#cj199-metric-label'),value=$('#cj199-metric-value');
+ if(!label||!value||String(label.textContent||'').trim()!=='GANHOS HOJE')return;
+ const text=String(value.textContent||'').trim(),compact=text.replace(/\s/g,'');
+ const zero=/^(?:R\$)?0(?:[.,]00)?$/.test(compact);
+ if(!zero){stableEarnings=text;return}
+ if(stableEarnings&&value.textContent!==stableEarnings)value.textContent=stableEarnings;
+}
 function health(){
  if(!isDriver())return;
+ stabilizeEarnings();
  ensureBackHeader();
  polishSwapPicker();
  const quick=$('#cj199-drawer [data-scale]');if(quick)quick.hidden=false;
