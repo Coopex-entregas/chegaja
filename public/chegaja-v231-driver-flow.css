@@ -1,0 +1,17 @@
+/* ChegaJá 14.30.7 — fluxo simples do cooperado */
+body.cj199-driver #cj217-nav,
+body.cj199-driver #cj217-nav.show{
+  display:none!important;
+  visibility:hidden!important;
+  pointer-events:none!important;
+}
+body.cj199-driver .cj217-sheet .arrived{
+  display:none!important;
+}
+body.cj199-driver #cj199-map .leaflet-pane.cj231-route-pane{
+  z-index:520!important;
+  pointer-events:none!important;
+}
+body.cj199-driver #cj199-map .cj231-route-line{
+  filter:drop-shadow(0 2px 2px rgba(0,35,120,.22));
+}
