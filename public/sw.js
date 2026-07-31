@@ -1,12 +1,26 @@
-const CACHE='chegaja-static-14-31-2';
-const CORE=[
-  '/','/index.html','/manifest.webmanifest',
-  '/icons/icon-official.png','/icons/logo-official.png',
-  '/vendor/leaflet/leaflet.css','/vendor/leaflet/leaflet.js','/vendor/qrcode.js',
-  '/chegaja-final.css?v=14.15.9','/chegaja-v144.css?v=14.15.9','/chegaja-v145.css?v=14.15.9','/chegaja-v148.css?v=14.15.9','/chegaja-v149.css?v=14.15.9','/chegaja-mobile-app.css?v=14.16.0',
-  '/chegaja-map-fallback.css?v=14.22.0','/chegaja-v201-operational.css?v=14.28.0','/chegaja-v203-client-rebuild.css?v=14.22.3','/chegaja-v199-driver.css?v=14.29.6','/chegaja-v205-driver-fixes.css?v=14.30.2','/chegaja-v206-admin-fixes.css?v=14.22.3','/chegaja-v207-client-uber.css?v=14.22.2','/chegaja-v208-base-photo.css?v=14.22.6','/chegaja-v217-driver-navigation.css?v=14.29.8','/chegaja-v222-driver-stability.css?v=14.29.7','/chegaja-v223-driver-final.css?v=14.29.6','/chegaja-v225-driver-polish.css?v=14.29.8','/chegaja-v227-address-search.css?v=14.29.9','/chegaja-v222-smooth-navigation.css?v=14.31.1','/chegaja-v231-driver-flow.css?v=14.30.8','/chegaja-v232-navigation-final.css?v=14.31.2',
-  '/chegaja-maps-leaflet.js?v=14.22.0','/app.js?v=14.15.9','/chegaja-v198-auth.js?v=14.22.0','/chegaja-v208-base-photo.js?v=14.22.6','/chegaja-final.js?v=14.15.9','/chegaja-v144.js?v=14.15.9','/chegaja-v145.js?v=14.15.9','/chegaja-v148.js?v=14.15.9','/chegaja-v149.js?v=14.15.9','/chegaja-v201-operational.js?v=14.28.0','/chegaja-v203-client-rebuild.js?v=14.22.3','/chegaja-v199-driver.js?v=14.29.6','/chegaja-v205-driver-fixes.js?v=14.30.2','/chegaja-v206-admin-fixes.js?v=14.22.3','/chegaja-v207-client-uber.js?v=14.22.2','/chegaja-v217-driver-navigation.js?v=14.29.8','/chegaja-v223-driver-final.js?v=14.29.6','/chegaja-v225-driver-polish.js?v=14.29.8','/chegaja-v227-address-search.js?v=14.29.9','/chegaja-v222-smooth-navigation.js?v=14.31.1','/chegaja-v230-base-toast-filter.js?v=14.30.7','/chegaja-v231-driver-flow.js?v=14.30.8','/chegaja-v232-navigation-final.js?v=14.31.2'
-];
-self.addEventListener('install',event=>{self.skipWaiting();event.waitUntil(caches.open(CACHE).then(cache=>cache.addAll(CORE)).catch(()=>{}))});
-self.addEventListener('activate',event=>{event.waitUntil(Promise.all([self.clients.claim(),caches.keys().then(keys=>Promise.all(keys.filter(key=>key!==CACHE).map(key=>caches.delete(key))))]))});
-self.addEventListener('fetch',event=>{const request=event.request,url=new URL(request.url);if(request.method!=='GET'||url.pathname.startsWith('/api/'))return;if(request.mode==='navigate'){event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok)caches.open(CACHE).then(cache=>cache.put('/index.html',response.clone())).catch(()=>{});return response}).catch(()=>caches.match('/index.html')));return}event.respondWith(fetch(request,{cache:'no-store'}).then(response=>{if(response.ok)caches.open(CACHE).then(cache=>cache.put(request,response.clone())).catch(()=>{});return response}).catch(()=>caches.match(request))) });
+const RECOVERY_VERSION='14.31.4';
+
+self.addEventListener('install',event=>{
+  self.skipWaiting();
+});
+
+self.addEventListener('activate',event=>{
+  event.waitUntil((async()=>{
+    try{
+      const keys=await caches.keys();
+      await Promise.all(keys.map(key=>caches.delete(key)));
+    }catch{}
+    try{await self.clients.claim()}catch{}
+    try{
+      const clients=await self.clients.matchAll({type:'window',includeUncontrolled:true});
+      for(const client of clients)client.postMessage({type:'CHEGAJA_RECOVERY',version:RECOVERY_VERSION});
+    }catch{}
+    try{await self.registration.unregister()}catch{}
+  })());
+});
+
+self.addEventListener('fetch',event=>{
+  const request=event.request;
+  if(request.method!=='GET')return;
+  event.respondWith(fetch(request,{cache:'no-store'}));
+});
