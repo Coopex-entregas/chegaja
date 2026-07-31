@@ -42,7 +42,7 @@ body.cj217-active-delivery #cj199-queue-text{display:none}
 body.cj217-active-delivery #cj199-online{font-size:15px}
 body.cj217-active-delivery #cj199-online:after{content:' • entrega em andamento';color:#ff6a1a;font-size:11px}
 
-.cj199-photo-marker{background:transparent!important;border:0!important}
+.cj199-photo-marker{display:grid!important;place-items:center!important;background:transparent!important;border:0!important}
 .cj199-photo-marker>span{
  width:22px!important;height:22px!important;display:block!important;border-radius:50%!important;
  background:#22b65b!important;border:4px solid #fff!important;
