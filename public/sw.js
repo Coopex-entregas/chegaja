@@ -1,4 +1,4 @@
-const CACHE='chegaja-static-14-30-8';
+const CACHE='chegaja-static-14-30-9';
 const CORE=[
   '/','/index.html','/manifest.webmanifest',
   '/icons/icon-official.png','/icons/logo-official.png',
