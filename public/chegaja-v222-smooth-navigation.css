@@ -1,21 +1,34 @@
-/* ChegaJá 14.30.9 — mapa estável, seta e rota persistente */
+/* ChegaJá 14.31.1 — marcador GPS no mapa, rota persistente e bloqueio lateral */
 #cj217-nav{display:none!important}
-#cj222-nav-arrow{position:absolute;left:50%;top:57%;width:64px;height:64px;z-index:950;display:none;pointer-events:none;transform:translate(-50%,-50%);filter:drop-shadow(0 7px 9px rgba(5,20,70,.28))}
-#cj222-nav-arrow.show{display:block}
-#cj222-nav-arrow>span{display:block;width:100%;height:100%;transform:rotate(var(--cj222-heading,0deg));transform-origin:50% 50%;will-change:transform}
-#cj222-nav-arrow svg{display:block;width:100%;height:100%;overflow:visible}
-#cj222-nav-arrow .shadow{fill:rgba(5,17,54,.28)}
-#cj222-nav-arrow .body{fill:#1459ff;stroke:#fff;stroke-width:3.5;stroke-linejoin:round}
-#cj222-nav-arrow .center{fill:#fff;opacity:.95}
+#cj222-nav-arrow{display:none!important}
+
+.cj222-location-icon{background:transparent!important;border:0!important;pointer-events:none!important}
+.cj222-location-arrow{width:64px;height:64px;transform:rotate(var(--cj222-heading,0deg));transform-origin:50% 50%;filter:drop-shadow(0 7px 9px rgba(5,20,70,.3));will-change:transform}
+.cj222-location-arrow svg{display:block;width:100%;height:100%;overflow:visible}
+.cj222-location-arrow .shadow{fill:rgba(5,17,54,.3)}
+.cj222-location-arrow .body{fill:#1459ff;stroke:#fff;stroke-width:3.5;stroke-linejoin:round}
+.cj222-location-arrow .center{fill:#fff;opacity:.96}
+
 #cj222-recenter{position:absolute;right:14px;bottom:112px;z-index:951;display:none;align-items:center;gap:7px;border:0;border-radius:999px;background:#fff;color:#0d257a;padding:10px 13px;box-shadow:0 8px 24px rgba(5,20,70,.2);font:700 11px/1 system-ui,-apple-system,sans-serif}
 #cj222-recenter.show{display:flex}
 #cj222-recenter b{font-size:20px;line-height:1}
 #cj222-recenter small{font:800 10px/1 system-ui,-apple-system,sans-serif;letter-spacing:.04em}
-body.cj199-driver.cj222-navigation .cj199-photo-marker,body.cj199-driver.cj222-navigation .cj224-nav-arrow-marker,body.cj199-driver.cj222-navigation .cj224-position-marker{display:none!important}
+
+body.cj199-driver.cj222-navigation .cj199-photo-marker,
+body.cj199-driver.cj222-navigation .cj224-nav-arrow-marker,
+body.cj199-driver.cj222-navigation .cj224-position-marker{display:none!important}
 body.cj199-driver #cj199-map{overflow:hidden!important;touch-action:none!important;background:#e8edf3!important}
 body.cj199-driver #cj199-map .leaflet-map-pane{rotate:0deg!important;scale:1!important;transform-origin:center!important}
 body.cj199-driver #cj199-map .leaflet-tile{opacity:1!important}
 body.cj199-driver #cj199-map .leaflet-tile-container{backface-visibility:visible!important}
 .cj222-route-pane,.cj231-route-pane{pointer-events:none!important}
-@media (min-width:900px),(pointer:fine){#cj222-nav-arrow{top:54%;width:58px;height:58px}}
-@media (prefers-reduced-motion:reduce){#cj222-nav-arrow>span{transition:none}}
+
+#cj222-portrait-lock{display:none;position:fixed;inset:0;z-index:2147483647;background:#f4f7fc;color:#0d257a;align-items:center;justify-content:center;text-align:center;padding:28px;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+#cj222-portrait-lock>div{display:flex;max-width:360px;flex-direction:column;align-items:center;gap:12px}
+#cj222-portrait-lock b{display:grid;width:72px;height:72px;place-items:center;border-radius:22px;background:#fff;box-shadow:0 12px 34px rgba(13,37,122,.16);font-size:38px;color:#ff6a1a}
+#cj222-portrait-lock strong{font-size:22px;line-height:1.15}
+#cj222-portrait-lock span{font-size:14px;line-height:1.45;color:#53617c}
+body.cj222-landscape-blocked #cj222-portrait-lock{display:flex}
+
+@media (min-width:900px),(pointer:fine){.cj222-location-arrow{width:58px;height:58px}}
+@media (prefers-reduced-motion:reduce){.cj222-location-arrow{transition:none}}
