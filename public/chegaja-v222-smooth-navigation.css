@@ -1,4 +1,5 @@
-/* ChegaJá 14.30.5 — navegação suave móvel */
+/* ChegaJá 14.30.9 — mapa estável, seta e rota persistente */
+#cj217-nav{display:none!important}
 #cj222-nav-arrow{position:absolute;left:50%;top:57%;width:64px;height:64px;z-index:950;display:none;pointer-events:none;transform:translate(-50%,-50%);filter:drop-shadow(0 7px 9px rgba(5,20,70,.28))}
 #cj222-nav-arrow.show{display:block}
 #cj222-nav-arrow>span{display:block;width:100%;height:100%;transform:rotate(var(--cj222-heading,0deg));transform-origin:50% 50%;will-change:transform}
@@ -11,9 +12,10 @@
 #cj222-recenter b{font-size:20px;line-height:1}
 #cj222-recenter small{font:800 10px/1 system-ui,-apple-system,sans-serif;letter-spacing:.04em}
 body.cj199-driver.cj222-navigation .cj199-photo-marker,body.cj199-driver.cj222-navigation .cj224-nav-arrow-marker,body.cj199-driver.cj222-navigation .cj224-position-marker{display:none!important}
-body.cj199-driver #cj199-map{overflow:hidden!important;touch-action:none!important}
+body.cj199-driver #cj199-map{overflow:hidden!important;touch-action:none!important;background:#e8edf3!important}
 body.cj199-driver #cj199-map .leaflet-map-pane{rotate:0deg!important;scale:1!important;transform-origin:center!important}
-body.cj199-driver #cj199-map .leaflet-zoom-animated{will-change:transform}
-body.cj199-driver #cj199-map .leaflet-tile-container{will-change:transform;backface-visibility:hidden}
+body.cj199-driver #cj199-map .leaflet-tile{opacity:1!important}
+body.cj199-driver #cj199-map .leaflet-tile-container{backface-visibility:visible!important}
+.cj222-route-pane,.cj231-route-pane{pointer-events:none!important}
 @media (min-width:900px),(pointer:fine){#cj222-nav-arrow{top:54%;width:58px;height:58px}}
 @media (prefers-reduced-motion:reduce){#cj222-nav-arrow>span{transition:none}}
