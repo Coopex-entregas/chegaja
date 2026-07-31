@@ -15,7 +15,8 @@ const F={
   casing:null,
   line:null,
   timers:new Set(),
-  lastMap:null
+  sheetObserver:null,
+  sheetNode:null
 };
 
 const isDriver=()=>window.state?.user?.role==='driver';
@@ -110,10 +111,20 @@ function decorateSheet(){
   }
 }
 
+function bindSheetObserver(){
+  const sheet=$('#cj199-sheet');
+  if(!sheet||F.sheetNode===sheet)return;
+  F.sheetObserver?.disconnect();
+  F.sheetNode=sheet;
+  F.sheetObserver=new MutationObserver(()=>queueMicrotask(decorateSheet));
+  F.sheetObserver.observe(sheet,{childList:true,subtree:true});
+}
+
 function openDeliverySheet(){
   if(!isDriver())return;
   window.dispatchEvent(new CustomEvent('cj:driver-open-delivery'));
   const open=()=>{
+    bindSheetObserver();
     const sheet=$('#cj199-sheet');
     if(!sheet)return;
     sheet.hidden=false;
@@ -220,7 +231,6 @@ function attachMap(){
   if(F.map!==map){
     removeRoute();
     F.map=map;
-    F.lastMap=map;
   }
   if(!map.getPane('cj231RoutePane')){
     const pane=map.createPane('cj231RoutePane');
@@ -278,6 +288,10 @@ function drawRoute(force=false){
 
 function navigation(event){
   const detail=event.detail||null;
+  if(detail?.arrived){
+    try{window.speechSynthesis?.cancel?.()}catch{}
+    decorateSheet();
+  }
   if(detail?.route){
     F.route=detail.route;
     F.routeKey='';
@@ -290,6 +304,7 @@ function navigation(event){
 
 function tick(){
   if(!isDriver())return;
+  bindSheetObserver();
   decorateSheet();
 
   const offer=pendingOffer();
@@ -314,9 +329,6 @@ window.addEventListener('cj:driver-open-delivery',()=>schedule(decorateSheet,0))
 for(const eventName of ['pointerdown','touchstart','click']){
   document.addEventListener(eventName,unlockAudio,{capture:true,passive:true});
 }
-
-new MutationObserver(()=>queueMicrotask(decorateSheet))
-  .observe(document.documentElement,{childList:true,subtree:true});
 
 setInterval(tick,300);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick,{once:true});
