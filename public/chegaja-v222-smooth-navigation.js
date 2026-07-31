@@ -97,9 +97,8 @@ function drawRoute(force=false){
   S.routeKey=key;
   clearLayers();
   const latLngs=points.map(p=>[p.lat,p.lng]);
-  const renderer=L.canvas({padding:.65});
-  S.routeCasing=L.polyline(latLngs,{renderer,color:'#ffffff',weight:11,opacity:.96,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.65}).addTo(S.map);
-  S.routeMain=L.polyline(latLngs,{renderer,color:'#1459ff',weight:7,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.65}).addTo(S.map);
+  S.routeCasing=L.polyline(latLngs,{color:'#ffffff',weight:11,opacity:.96,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.65}).addTo(S.map);
+  S.routeMain=L.polyline(latLngs,{color:'#1459ff',weight:7,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.65}).addTo(S.map);
   S.routeCasing._cj222Route=true;
   S.routeMain._cj222Route=true;
   cleanupCompetingRoutes();
@@ -330,7 +329,7 @@ function tick(){
 }
 
 window.addEventListener('cj:driver-navigation',onNavigation);
-document.addEventListener('pointerup',event=>{if(MOBILE&&event.target?.closest?.('#cj199-app'))requestOrientation()},{capture:true,once:true});
+document.addEventListener('pointerup',event=>{if(MOBILE&&event.target?.closest?.('#cj199-app'))requestOrientation()},{capture:true});
 window.addEventListener('orientationchange',()=>setTimeout(()=>{try{S.map?.invalidateSize(false)}catch{}},250));
 document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();if(MOBILE)attachOrientation()}});
 setInterval(tick,120);
