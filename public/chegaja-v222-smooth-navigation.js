@@ -1,4 +1,4 @@
-/* ChegaJá 14.29.5 — navegação suave móvel, giroscópio e rota azul persistente */
+/* ChegaJá 14.30.4 — navegação suave móvel, giroscópio e rota azul persistente */
 (()=>{
 'use strict';
 if(window.__CJ222_SMOOTH_NAV__)return;
@@ -10,7 +10,8 @@ const S={
   map:null,app:null,route:null,routeKey:'',routeCasing:null,routeMain:null,
   lastPosition:null,lastPositionKey:'',routeIndex:0,speed:0,gpsHeading:null,
   gyroHeading:null,gyroReady:false,gyroAsked:false,targetHeading:0,displayHeading:0,
-  following:true,mapBound:null,arrow:null,recenter:null,lastDeliveryId:'',raf:0,lastFrame:0
+  following:true,mapBound:null,arrow:null,recenter:null,lastDeliveryId:'',raf:0,lastFrame:0,
+  originalSetView:null,originalPanTo:null,originalPanBy:null,userUntil:0
 };
 
 const activeDelivery=()=>window.ChegaJaDriverActiveDelivery||null;
@@ -73,6 +74,21 @@ function clearLayers(){
   S.routeCasing=S.routeMain=null;
 }
 
+function cleanupCompetingRoutes(){
+  if(!S.map||typeof window.L==='undefined')return;
+  try{
+    S.map.eachLayer(layer=>{
+      if(layer?._cj222Route)return;
+      const isLine=layer instanceof L.Polyline&&!(layer instanceof L.Polygon);
+      if(!isLine)return;
+      const color=String(layer.options?.color||'').toLowerCase();
+      const weight=Number(layer.options?.weight||0);
+      const oldRoute=(color==='#1459ff'||color==='#fff'||color==='#ffffff')&&weight>=6&&layer.options?.interactive===false;
+      if(oldRoute)S.map.removeLayer(layer);
+    });
+  }catch{}
+}
+
 function drawRoute(force=false){
   if(!S.map||!S.route||typeof window.L==='undefined')return;
   const points=routePoints(S.route),key=keyFor(points);
@@ -84,6 +100,9 @@ function drawRoute(force=false){
   const renderer=L.canvas({padding:.65});
   S.routeCasing=L.polyline(latLngs,{renderer,color:'#ffffff',weight:11,opacity:.96,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.65}).addTo(S.map);
   S.routeMain=L.polyline(latLngs,{renderer,color:'#1459ff',weight:7,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.65}).addTo(S.map);
+  S.routeCasing._cj222Route=true;
+  S.routeMain._cj222Route=true;
+  cleanupCompetingRoutes();
   S.routeCasing.bringToFront?.();
   S.routeMain.bringToFront?.();
 }
@@ -125,7 +144,13 @@ function lookAhead(position){
 function desiredHeading(){
   const ahead=lookAhead(S.lastPosition);
   const routeBearing=ahead?bearing(S.lastPosition,ahead):null;
-  if(Number.isFinite(routeBearing))return routeBearing;
+  if(Number.isFinite(routeBearing)){
+    if(MOBILE&&Number.isFinite(S.gyroHeading)&&(Number(S.speed)||0)<2){
+      const correction=Math.max(-18,Math.min(18,angleDelta(routeBearing,S.gyroHeading)))*.08;
+      return norm(routeBearing+correction);
+    }
+    return routeBearing;
+  }
   if(Number.isFinite(S.gpsHeading))return norm(S.gpsHeading);
   if(MOBILE&&Number.isFinite(S.gyroHeading))return norm(S.gyroHeading);
   return S.displayHeading;
@@ -145,8 +170,38 @@ function centerMap(force=false){
   try{window.ChegaJaDriverMap?.follow?.(false)}catch{}
   const target=mapCenterTarget();
   const zoom=Math.max(18,Number(S.map.getZoom()||18));
-  if(force||Math.abs(Number(S.map.getZoom()||0)-zoom)>.15)S.map.setZoom(zoom,{animate:false});
-  S.map.panTo([target.lat,target.lng],{animate:!force,duration:force?.18:.72,easeLinearity:.18,noMoveStart:true});
+  try{
+    if(force||Math.abs(Number(S.map.getZoom()||0)-zoom)>.15){
+      S.originalSetView?.([target.lat,target.lng],zoom,{animate:false,noMoveStart:true,cj222Smooth:true});
+    }else{
+      S.originalPanTo?.([target.lat,target.lng],{animate:true,duration:.72,easeLinearity:.18,noMoveStart:true,cj222Smooth:true});
+    }
+  }catch{}
+}
+
+function patchMapCamera(){
+  if(!S.map||S.map.__cj222SmoothCamera)return;
+  S.map.__cj222SmoothCamera=true;
+  S.originalSetView=S.map.setView.bind(S.map);
+  S.originalPanTo=typeof S.map.panTo==='function'?S.map.panTo.bind(S.map):null;
+  S.originalPanBy=typeof S.map.panBy==='function'?S.map.panBy.bind(S.map):null;
+  const allowed=options=>Boolean(options?.cj222Smooth||Date.now()<S.userUntil||!activeDelivery());
+  S.map.setView=function(center,zoom,options={}){
+    if(!allowed(options))return this;
+    return S.originalSetView(center,zoom,options);
+  };
+  if(S.originalPanTo)S.map.panTo=function(center,options={}){
+    if(!allowed(options))return this;
+    return S.originalPanTo(center,options);
+  };
+  if(S.originalPanBy)S.map.panBy=function(offset,options={}){
+    if(!allowed(options))return this;
+    return S.originalPanBy(offset,options);
+  };
+  const container=S.map.getContainer?.();
+  const user=()=>{S.userUntil=Date.now()+2200};
+  container?.addEventListener('pointerdown',user,{passive:true});
+  container?.addEventListener('wheel',user,{passive:true});
 }
 
 function bindMap(){
@@ -162,8 +217,11 @@ function bindMap(){
     };
     map.on('dragstart',manual);
     map.on('zoomstart',manual);
+    patchMapCamera();
     setTimeout(()=>{try{map.invalidateSize(false)}catch{}},40);
   }
+  patchMapCamera();
+  cleanupCompetingRoutes();
   drawRoute();
   return true;
 }
@@ -262,6 +320,7 @@ function tick(){
   if(activeDelivery()){
     try{window.ChegaJaDriverMap?.follow?.(false)}catch{}
     setPosition(window.ChegaJaLastDriverLocation);
+    cleanupCompetingRoutes();
     drawRoute();
   }else{
     S.route=null;S.routeKey='';clearLayers();
