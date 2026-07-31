@@ -1,17 +1,19 @@
-/* ChegaJá 14.30.9 — controlador único de mapa, rota e seta */
+/* ChegaJá 14.31.0 — navegação estável: câmera sem deriva, rota azul, seta relativa ao celular e voz */
 (()=>{
 'use strict';
-if(window.__CJ222_STABLE_NAV_14309__)return;
-window.__CJ222_STABLE_NAV_14309__=true;
+if(window.__CJ222_STABLE_NAV_14310__)return;
+window.__CJ222_STABLE_NAV_14310__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const MOBILE=matchMedia('(pointer:coarse)').matches&&((navigator.maxTouchPoints||0)>0||/Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent));
 const S={
- map:null,mapBound:null,route:null,points:[],routeKey:'',casing:null,line:null,
- deliveryId:'',gps:null,lastGps:null,speed:0,routeIndex:0,
+ map:null,route:null,points:[],routeKey:'',casing:null,line:null,deliveryId:'',
+ gps:null,cameraGps:null,lastGpsAt:0,speed:0,accuracy:Infinity,routeIndex:0,
  following:true,programmaticUntil:0,lastCameraAt:0,
  arrow:null,recenter:null,gpsHeading:null,gyroHeading:null,
- targetHeading:0,displayHeading:0,lastFrame:0,raf:0,orientationAsked:false
+ targetHeading:0,displayHeading:0,lastFrame:0,raf:0,orientationAsked:false,
+ dispatchInstalled:false,originalDispatch:null,userInteracted:false,
+ lastSpoken:'',lastSpokenAt:0,pendingSpeech:''
 };
 
 const active=()=>window.ChegaJaDriverActiveDelivery||null;
@@ -36,10 +38,9 @@ function bearing(a,b){
  const result=norm(Math.atan2(y,x)*180/Math.PI);
  return Number.isFinite(result)?result:null;
 }
-function currentGps(){
- const raw=window.ChegaJaLastDriverLocation;
+function currentRawGps(raw=window.ChegaJaLastDriverLocation){
  const gps=point(raw?.lat??raw?.latitude,raw?.lng??raw?.longitude);
- return valid(gps)?gps:S.gps;
+ return valid(gps)?gps:null;
 }
 function targetPoint(){
  const item=active();if(!item)return null;
@@ -48,19 +49,30 @@ function targetPoint(){
  return valid(target)?target:null;
 }
 
-function rawGeometry(route){
- let raw=route?.geometry??route?.coordinates??[];
+function decodeGeometry(value){
+ let raw=value;
+ for(let i=0;i<3&&typeof raw==='string';i++){
+  try{raw=JSON.parse(raw)}catch{return[]}
+ }
  if(raw?.type==='Feature')raw=raw.geometry;
- if(raw?.type==='LineString')raw=raw.coordinates;
- if(raw?.type==='MultiLineString')raw=(raw.coordinates||[]).flat();
- return Array.isArray(raw)?raw:[];
+ if(raw?.geometry)raw=raw.geometry;
+ if(raw?.coordinates)raw=raw.coordinates;
+ const pairs=[];
+ const walk=node=>{
+  if(!Array.isArray(node))return;
+  if(node.length>=2&&Number.isFinite(Number(node[0]))&&Number.isFinite(Number(node[1]))){pairs.push([Number(node[0]),Number(node[1])]);return}
+  for(const child of node)walk(child);
+ };
+ walk(raw);
+ return pairs;
+}
+function rawGeometry(route){
+ return decodeGeometry(route?.geometry??route?.coordinates??route??[]);
 }
 function candidate(raw,swap=false){
  const list=[];
  for(const item of raw){
-  if(!Array.isArray(item)||item.length<2)continue;
-  const a=Number(item[0]),b=Number(item[1]);
-  const p=swap?point(b,a):point(a,b);
+  const p=swap?point(item[1],item[0]):point(item[0],item[1]);
   if(valid(p))list.push(p);
  }
  return list;
@@ -73,13 +85,14 @@ function nearestDistance(list,gps){
  return best;
 }
 function normalizeRoute(route){
- const raw=rawGeometry(route),gps=currentGps(),target=targetPoint();
+ const raw=rawGeometry(route),gps=S.gps||currentRawGps(),target=targetPoint();
  const candidates=[candidate(raw,false),candidate(raw,true)].filter(list=>list.length>=2);
  if(!candidates.length)return[];
  let list=candidates[0],best=Infinity;
  for(const option of candidates){
-  const endpointScore=valid(target)?Math.min(distance(option[0],target),distance(option.at(-1),target))*.3:0;
-  const score=nearestDistance(option,gps)+endpointScore;
+  const gpsScore=nearestDistance(option,gps);
+  const targetScore=valid(target)?Math.min(distance(option[0],target),distance(option.at(-1),target))*.35:0;
+  const score=gpsScore+targetScore;
   if(score<best){best=score;list=option}
  }
  if(valid(target)&&distance(list.at(-1),target)>distance(list[0],target))list=[...list].reverse();
@@ -112,17 +125,17 @@ function ensureRoutePane(){
  if(!S.map)return;
  if(!S.map.getPane('cj222StableRoutePane')){
   const pane=S.map.createPane('cj222StableRoutePane');
-  pane.style.zIndex='520';pane.style.pointerEvents='none';
+  pane.style.zIndex='620';pane.style.pointerEvents='none';
  }
 }
 function drawRoute(force=false){
- if(!S.map||!S.points.length||typeof L==='undefined')return;
+ if(!S.map||S.points.length<2||typeof L==='undefined')return;
  const key=keyFor(S.points),visible=S.line&&S.casing&&S.map.hasLayer?.(S.line)&&S.map.hasLayer?.(S.casing);
  if(!force&&key===S.routeKey&&visible)return;
  removeLegacyRoutes();removeOwnRoute();ensureRoutePane();S.routeKey=key;
  const latlngs=S.points.map(p=>[p.lat,p.lng]);
- S.casing=L.polyline(latlngs,{pane:'cj222StableRoutePane',color:'#fff',weight:13,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.6}).addTo(S.map);
- S.line=L.polyline(latlngs,{pane:'cj222StableRoutePane',color:'#1459ff',weight:8,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.6}).addTo(S.map);
+ S.casing=L.polyline(latlngs,{pane:'cj222StableRoutePane',color:'#fff',weight:14,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.45}).addTo(S.map);
+ S.line=L.polyline(latlngs,{pane:'cj222StableRoutePane',color:'#1459ff',weight:8,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.45}).addTo(S.map);
  S.casing._cj222StableRoute=S.line._cj222StableRoute=true;
  S.casing._cjSmoothRoute=S.line._cjSmoothRoute=true;
  S.casing._cj231Route=S.line._cj231Route=true;
@@ -142,7 +155,7 @@ function nearestIndex(position){
 }
 function lookAhead(position){
  const list=S.points;if(list.length<2||!valid(position))return null;
- let i=nearestIndex(position),remaining=Math.max(28,Math.min(85,34+S.speed*6)),previous=list[i];
+ let i=nearestIndex(position),remaining=Math.max(28,Math.min(90,36+S.speed*6)),previous=list[i];
  for(i+=1;i<list.length;i++){
   const segment=distance(previous,list[i]);
   if(segment>=remaining)return list[i];
@@ -152,10 +165,11 @@ function lookAhead(position){
 }
 function calculateHeading(){
  const ahead=lookAhead(S.gps),routeHeading=ahead?bearing(S.gps,ahead):null;
- if(Number.isFinite(routeHeading))return routeHeading;
- if(Number.isFinite(S.gpsHeading))return norm(S.gpsHeading);
- if(MOBILE&&Number.isFinite(S.gyroHeading))return norm(S.gyroHeading);
- return S.displayHeading;
+ if(Number.isFinite(routeHeading)){
+  const reference=Number.isFinite(S.gyroHeading)?S.gyroHeading:(S.speed>=1.2&&Number.isFinite(S.gpsHeading)?S.gpsHeading:null);
+  return Number.isFinite(reference)?norm(routeHeading-reference):0;
+ }
+ return 0;
 }
 
 function ensureUi(){
@@ -177,36 +191,54 @@ function showManual(value){
 }
 function centerNow(){
  if(!S.map)return;
- const gps=currentGps();if(!valid(gps))return;
- S.gps=gps;showManual(false);S.programmaticUntil=performance.now()+900;
+ const gps=S.gps||currentRawGps();if(!valid(gps))return;
+ S.gps=gps;S.cameraGps={...gps};showManual(false);S.programmaticUntil=performance.now()+900;
+ try{window.ChegaJaDriverMap?.follow?.(false)}catch{}
  try{S.map.stop?.()}catch{}
  try{S.map.invalidateSize(false)}catch{}
- const zoom=Number(S.map.getZoom?.()||18.5);
+ const zoom=Number(S.map.getZoom?.()||18);
  try{S.map.setView([gps.lat,gps.lng],zoom,{animate:false,noMoveStart:true})}catch{}
 }
-function followGps(){
+function followGps(force=false){
  if(!S.map||!S.following||!active()||!valid(S.gps))return;
- const now=performance.now();if(now-S.lastCameraAt<500)return;S.lastCameraAt=now;S.programmaticUntil=now+700;
- try{S.map.panTo([S.gps.lat,S.gps.lng],{animate:true,duration:.38,easeLinearity:.22,noMoveStart:true})}catch{}
+ const now=performance.now(),cameraMove=distance(S.cameraGps,S.gps);
+ const meaningful=force||(S.speed>=1.2&&cameraMove>=5)||cameraMove>=25;
+ if(!meaningful||(!force&&now-S.lastCameraAt<850))return;
+ S.lastCameraAt=now;S.programmaticUntil=now+900;S.cameraGps={...S.gps};
+ try{S.map.panTo([S.gps.lat,S.gps.lng],{animate:true,duration:.62,easeLinearity:.2,noMoveStart:true})}catch{}
 }
 function bindMap(){
  const map=window.ChegaJaDriverMap?.map;if(!map)return false;
  if(S.map!==map){
-  removeOwnRoute();S.map=map;S.mapBound=map;
+  removeOwnRoute();S.map=map;S.cameraGps=null;
   try{window.ChegaJaDriverMap?.follow?.(false)}catch{}
   const manual=()=>{if(active()&&performance.now()>=S.programmaticUntil)showManual(true)};
   map.on('dragstart',manual);map.on('zoomstart',manual);
-  setTimeout(()=>{try{map.invalidateSize(false)}catch{};drawRoute(true)},80);
+  setTimeout(()=>{try{map.invalidateSize(false)}catch{};drawRoute(true)},100);
  }
  try{window.ChegaJaDriverMap?.follow?.(false)}catch{}
  return true;
 }
 function updateGps(raw=window.ChegaJaLastDriverLocation){
- const gps=point(raw?.lat??raw?.latitude,raw?.lng??raw?.longitude);if(!valid(gps))return;
- const moved=distance(S.gps,gps);S.lastGps=S.gps;S.gps=gps;S.speed=Math.max(0,Number(raw?.speed)||0);
- const heading=Number(raw?.heading);if(Number.isFinite(heading)&&heading>=0)S.gpsHeading=norm(heading);
- S.targetHeading=calculateHeading();
- if(moved>=1.5)followGps();
+ const next=currentRawGps(raw);if(!valid(next))return;
+ const now=performance.now(),accuracy=Math.max(0,Number(raw?.accuracy)||0),speed=Math.max(0,Number(raw?.speed)||0);
+ const dt=S.lastGpsAt?Math.max(.1,(now-S.lastGpsAt)/1000):Infinity;
+ const jump=distance(S.gps,next);
+ const heading=Number(raw?.heading);
+ if(Number.isFinite(heading)&&heading>=0)S.gpsHeading=norm(heading);
+ S.speed=speed;S.accuracy=accuracy||S.accuracy;S.lastGpsAt=now;
+ if(valid(S.gps)){
+  if(accuracy>120)return;
+  const maxJump=Math.max(40,dt*35+Math.max(accuracy,10)*1.5);
+  if(jump>maxJump&&speed<12)return;
+  if(speed<1.2&&jump<Math.max(16,accuracy*.7)){S.targetHeading=calculateHeading();return}
+  if(jump<35){
+   const alpha=accuracy<=15?.42:accuracy<=35?.3:.2;
+   next.lat=S.gps.lat+(next.lat-S.gps.lat)*alpha;
+   next.lng=S.gps.lng+(next.lng-S.gps.lng)*alpha;
+  }
+ }
+ S.gps=next;S.targetHeading=calculateHeading();followGps(false);
 }
 
 function screenAngle(){const value=Number(screen.orientation?.angle??window.orientation??0);return Number.isFinite(value)?value:0}
@@ -215,8 +247,8 @@ function orientation(event){
  let heading=Number(event.webkitCompassHeading);
  if(!Number.isFinite(heading)&&Number.isFinite(Number(event.alpha)))heading=norm(360-Number(event.alpha)+screenAngle());
  if(!Number.isFinite(heading))return;
- S.gyroHeading=Number.isFinite(S.gyroHeading)?norm(S.gyroHeading+angleDelta(S.gyroHeading,heading)*.12):heading;
- if(!S.points.length&&!Number.isFinite(S.gpsHeading))S.targetHeading=S.gyroHeading;
+ S.gyroHeading=Number.isFinite(S.gyroHeading)?norm(S.gyroHeading+angleDelta(S.gyroHeading,heading)*.14):heading;
+ S.targetHeading=calculateHeading();
 }
 function listenOrientation(){
  window.addEventListener('deviceorientationabsolute',orientation,true);
@@ -231,22 +263,53 @@ async function askOrientation(){
  }catch{}
 }
 
-function navigation(event){
- const detail=event.detail||null,id=String(detail?.delivery_id||active()?.id||'');
+function normalizeInstruction(text){return String(text||'').replace(/\s+/g,' ').trim()}
+function speakNow(text){
+ const instruction=normalizeInstruction(text);if(!instruction||!('speechSynthesis'in window))return;
+ const now=Date.now();if(instruction===S.lastSpoken&&now-S.lastSpokenAt<18000)return;
+ if(!S.userInteracted){S.pendingSpeech=instruction;return}
+ try{
+  speechSynthesis.cancel();
+  const utterance=new SpeechSynthesisUtterance(instruction);
+  utterance.lang='pt-BR';utterance.rate=.98;utterance.pitch=1;utterance.volume=1;
+  speechSynthesis.speak(utterance);S.lastSpoken=instruction;S.lastSpokenAt=now;S.pendingSpeech='';
+ }catch{}
+}
+function speakNavigation(detail){
+ if(!detail||detail.arrived)return;
+ const instruction=detail.step?.instruction||detail.instruction||detail.next?.instruction||'';
+ speakNow(instruction);
+}
+function handleNavigation(detail){
+ const id=String(detail?.delivery_id||active()?.id||'');
  if(detail?.route){
   const newDelivery=Boolean(id&&id!==S.deliveryId);
   const nextPoints=normalizeRoute(detail.route),nextKey=keyFor(nextPoints);
   S.route=detail.route;S.deliveryId=id||S.deliveryId;
   if(nextKey&&nextKey!==keyFor(S.points)){S.points=nextPoints;S.routeIndex=0;drawRoute(true)}
   else if(nextKey&&!S.line){S.points=nextPoints;drawRoute(true)}
-  S.targetHeading=calculateHeading();
-  if(newDelivery){showManual(false);setTimeout(centerNow,80)}
+  S.targetHeading=calculateHeading();speakNavigation(detail);
+  if(newDelivery){showManual(false);setTimeout(centerNow,100)}
   return;
  }
  if(!active()){
   S.route=null;S.points=[];S.deliveryId='';S.routeIndex=0;removeOwnRoute();
  }
 }
+function installNavigationBridge(){
+ if(S.dispatchInstalled)return;S.dispatchInstalled=true;
+ S.originalDispatch=window.dispatchEvent.bind(window);
+ window.dispatchEvent=function(event){
+  if(event?.type==='cj:driver-navigation'&&!event.__cj222Bypass){
+   handleNavigation(event.detail||null);
+   const clearEvent=new CustomEvent('cj:driver-navigation',{detail:null});
+   Object.defineProperty(clearEvent,'__cj222Bypass',{value:true});
+   return S.originalDispatch(clearEvent);
+  }
+  return S.originalDispatch(event);
+ };
+}
+
 function animate(now){
  const dt=Math.min(50,Math.max(8,now-(S.lastFrame||now)));S.lastFrame=now;
  const alpha=1-Math.exp(-dt/150);S.displayHeading=norm(S.displayHeading+angleDelta(S.displayHeading,S.targetHeading)*alpha);
@@ -264,16 +327,22 @@ function tick(){
  }
  if(!active()){S.route=null;S.points=[];S.deliveryId='';removeOwnRoute()}
 }
+function unlockUser(){
+ S.userInteracted=true;askOrientation();
+ if(S.pendingSpeech)speakNow(S.pendingSpeech);
+}
 
+installNavigationBridge();
 document.addEventListener('click',event=>{
+ unlockUser();
  const button=event.target?.closest?.('#cj222-recenter,#cj199-center');if(!button)return;
- event.preventDefault();event.stopImmediatePropagation();askOrientation();centerNow();
+ event.preventDefault();event.stopImmediatePropagation();centerNow();
 },{capture:true});
-document.addEventListener('pointerup',event=>{if(MOBILE&&event.target?.closest?.('#cj199-app'))askOrientation()},{capture:true});
-window.addEventListener('cj:driver-navigation',navigation);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();setTimeout(()=>{try{S.map?.invalidateSize(false)}catch{}},120)}});
+document.addEventListener('pointerdown',unlockUser,{capture:true,passive:true});
+document.addEventListener('touchstart',unlockUser,{capture:true,passive:true});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){tick();setTimeout(()=>{try{S.map?.invalidateSize(false)}catch{}},150)}});
 window.addEventListener('orientationchange',()=>setTimeout(()=>{try{S.map?.invalidateSize(false)}catch{}},250));
-setInterval(tick,350);
+setInterval(tick,400);
 S.raf=requestAnimationFrame(animate);
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick,{once:true});else tick();
 })();
