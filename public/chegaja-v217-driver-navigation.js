@@ -1,8 +1,8 @@
-/* ChegaJá 14.31.6 — painel único do cooperado com Google Maps */
+/* ChegaJá 14.32.0 — painel único do cooperado com Leaflet + OpenStreetMap */
 (()=>{
 'use strict';
-if(window.__CJ_GOOGLE_DRIVER_14316__)return;
-window.__CJ_GOOGLE_DRIVER_14316__=true;
+if(window.__CJ_DRIVER_LEAFLET_14320__)return;
+window.__CJ_DRIVER_LEAFLET_14320__=true;
 
 const $=(s,r=document)=>r.querySelector(s);
 const $$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -16,10 +16,11 @@ const point=(lat,lng)=>({lat:Number(lat),lng:Number(lng)});
 
 const A={
  installed:false,oldDashboard:null,oldNavigate:null,mounted:false,
- map:null,mapConfig:null,mapLoading:null,self:null,pickup:null,delivery:null,casing:null,line:null,directions:null,
- gps:null,gpsWatch:null,firstGpsCentered:false,manualView:false,programmatic:false,lastSent:0,
+ map:null,mapHost:null,self:null,pickup:null,delivery:null,casing:null,line:null,
+ gps:null,gpsWatch:null,firstGpsCentered:false,manualView:false,programmatic:false,following:true,lastSent:0,
  detail:null,online:false,queue:null,summary:null,schedules:[],decision:false,lastOfferId:'',audio:null,audioUnlocked:false,
- pollTimer:null,routeTimer:null,healthTimer:null,routeBusy:false,lastRouteAt:0,routePoints:[],sheetKey:'',touchY:null
+ pollTimer:null,routeTimer:null,healthTimer:null,routeBusy:false,lastRouteAt:0,lastRouteOrigin:null,lastRouteTarget:null,routePoints:[],sheetKey:'',touchY:null,
+ resizeObserver:null,resizeTimer:null
 };
 
 async function api(path,opt={}){
@@ -41,7 +42,7 @@ function removeLegacy(){
  try{window.ChegaJaV31?.stopDriver?.()}catch{}
 }
 function shell(){return `<main id="cj199-app" aria-label="Painel do cooperado">
- <div id="cj199-map" aria-label="Google Maps do cooperado"></div>
+ <div id="cj199-map" aria-label="Mapa OpenStreetMap do cooperado"></div>
  <button id="cj199-metric" type="button"><small id="cj199-metric-label">GANHOS HOJE</small><strong id="cj199-metric-value">R$ 0,00</strong><span id="cj199-metric-hint">Acompanhe sua operação</span></button>
  <button id="cj199-queue" type="button"><small>FILA</small><strong id="cj199-queue-number">+</strong></button>
  <button id="cj199-center" type="button" aria-label="Centralizar na minha localização">◎</button>
@@ -52,103 +53,120 @@ function shell(){return `<main id="cj199-app" aria-label="Painel do cooperado">
  <div id="cj199-drawer"><button class="backdrop" type="button"></button><aside><header><div id="cj199-photo">CJ</div><span><strong id="cj199-name">Cooperado</strong><small>Meu aplicativo</small></span><button data-close type="button">×</button></header><nav><button data-go="dashboard">Início</button><button data-go="deliveries">Entregas</button><button data-go="schedules">Minha escala</button><button data-go="routes">Rotas</button><button data-go="financial">Ganhos e descontos</button><button data-go="advances">Adiantamentos</button><button data-checkin>Fazer check-in</button><button data-go="ratings">Avaliações</button><button data-go="profile">Perfil e configurações</button><button data-go="account">Alterar senha</button><button data-logout>Sair</button></nav></aside></div>
  </main>`}
 
-async function loadGoogleMaps(){
- if(window.google?.maps)return window.google.maps;
- if(A.mapLoading)return A.mapLoading;
- A.mapLoading=(async()=>{
-  const cfg=(await api('/api/auth/maps-config',{timeout:7000})).item||{};
-  if(!cfg.enabled||!cfg.api_key)throw new Error('Cadastre a chave do Google Maps para navegador no Administrador Principal.');
-  A.mapConfig=cfg;
-  await new Promise((resolve,reject)=>{
-   if(window.google?.maps){resolve();return}
-   const callback=`__cjGoogleReady_${Date.now()}`;window[callback]=()=>{delete window[callback];resolve()};
-   const script=document.createElement('script');script.async=true;script.defer=true;
-   script.src=`https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(cfg.api_key)}&v=weekly&libraries=geometry&callback=${callback}`;
-   script.onerror=()=>{delete window[callback];reject(new Error('Não foi possível carregar o Google Maps. Verifique a chave e as APIs ativadas.'))};
-   document.head.appendChild(script);
-  });
-  return window.google.maps;
- })();
- return A.mapLoading;
-}
-function currentCenter(){try{return A.map?.getCenter?.()?.toJSON?.()||null}catch{return null}}
+function currentCenter(){try{const c=A.map?.getCenter?.();return c?{lat:c.lat,lng:c.lng}:null}catch{return null}}
+function selfIcon(){return L.divIcon({className:'cj217-self-icon',html:'<span class="cj217-self-marker"></span>',iconSize:[34,34],iconAnchor:[17,17]})}
+function stopIcon(kind){return L.divIcon({className:`cj217-stop-icon ${kind}`,html:`<span>${kind==='pickup'?'C':'E'}</span>`,iconSize:[34,34],iconAnchor:[17,17]})}
 function ensureSelfMarker(){
- if(!A.map||!A.gps)return;
- const icon={path:google.maps.SymbolPath.CIRCLE,scale:10,fillColor:'#18b85a',fillOpacity:1,strokeColor:'#ffffff',strokeWeight:4};
- if(!A.self)A.self=new google.maps.Marker({map:A.map,position:A.gps,icon,zIndex:1000,title:'Sua localização'});else A.self.setPosition(A.gps);
+ if(!A.map||!valid(A.gps))return;
+ if(!A.self)A.self=L.marker([A.gps.lat,A.gps.lng],{icon:selfIcon(),zIndexOffset:1000,keyboard:false,title:'Sua localização'}).addTo(A.map);
+ else A.self.setLatLng([A.gps.lat,A.gps.lng]);
 }
-function stopIcon(color,label){return{path:google.maps.SymbolPath.CIRCLE,scale:14,fillColor:color,fillOpacity:1,strokeColor:'#fff',strokeWeight:3,labelOrigin:new google.maps.Point(0,0)}}
+function markerPosition(marker,p){if(!marker||!valid(p))return null;marker.setLatLng([p.lat,p.lng]);return marker}
 function updateStops(){
  if(!A.map)return;const item=A.detail;
- for(const marker of[A.pickup,A.delivery])marker?.setMap?.(null);A.pickup=A.delivery=null;
- if(!item)return;
+ if(!item){A.pickup?.remove();A.delivery?.remove();A.pickup=A.delivery=null;return}
  const pickup=point(item.pickup_lat,item.pickup_lng),delivery=point(item.delivery_lat,item.delivery_lng);
- if(valid(pickup))A.pickup=new google.maps.Marker({map:A.map,position:pickup,icon:stopIcon('#1459ff','C'),label:{text:'C',color:'#fff',fontWeight:'900'},title:'Coleta'});
- if(valid(delivery))A.delivery=new google.maps.Marker({map:A.map,position:delivery,icon:stopIcon('#ff6a1a','E'),label:{text:'E',color:'#fff',fontWeight:'900'},title:'Entrega'});
+ if(valid(pickup)){if(!A.pickup)A.pickup=L.marker([pickup.lat,pickup.lng],{icon:stopIcon('pickup'),title:'Coleta',keyboard:false}).addTo(A.map);else markerPosition(A.pickup,pickup)}else{A.pickup?.remove();A.pickup=null}
+ if(valid(delivery)){if(!A.delivery)A.delivery=L.marker([delivery.lat,delivery.lng],{icon:stopIcon('delivery'),title:'Entrega',keyboard:false}).addTo(A.map);else markerPosition(A.delivery,delivery)}else{A.delivery?.remove();A.delivery=null}
+}
+function bindMapInteraction(){
+ if(!A.map||A.map.__cj217Bound)return;A.map.__cj217Bound=true;
+ const manual=()=>{if(!A.programmatic){A.manualView=true;A.following=false;$('#cj199-center')?.classList.add('manual')}};
+ A.map.on('dragstart',manual);A.map.on('zoomstart',manual);
 }
 async function ensureMap(){
- const host=$('#cj199-map');if(!host)return;
- await loadGoogleMaps();
- if(A.map&&A.map.getDiv?.()===host){google.maps.event.trigger(A.map,'resize');return}
- host.replaceChildren();
- const center=A.gps||{lat:-5.7945,lng:-35.211};
- const options={center,zoom:A.gps?17:13,disableDefaultUI:true,zoomControl:true,streetViewControl:false,mapTypeControl:false,fullscreenControl:false,gestureHandling:'greedy',clickableIcons:false,backgroundColor:'#dfe7ef'};
- if(A.mapConfig?.map_id&&A.mapConfig.map_id!=='DEMO_MAP_ID')options.mapId=A.mapConfig.map_id;
- A.map=new google.maps.Map(host,options);A.directions=new google.maps.DirectionsService();
- A.map.addListener('dragstart',()=>{if(!A.programmatic)A.manualView=true});
- A.map.addListener('zoom_changed',()=>{if(!A.programmatic)A.manualView=true});
- ensureSelfMarker();updateStops();
- if(A.routePoints.length)drawRoute(A.routePoints);
+ const host=$('#cj199-map');if(!host||typeof L==='undefined')throw new Error('O mapa não carregou. Atualize a página.');
+ if(A.map&&A.mapHost===host){preserveResize();return}
+ destroyMap();A.mapHost=host;host.replaceChildren();
+ const center=valid(A.gps)?A.gps:{lat:-5.7945,lng:-35.211};
+ A.map=L.map(host,{zoomControl:true,attributionControl:true,preferCanvas:true,zoomSnap:.5,zoomDelta:.5,fadeAnimation:false,markerZoomAnimation:false}).setView([center.lat,center.lng],valid(A.gps)?17:13);
+ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,maxNativeZoom:19,updateWhenIdle:true,keepBuffer:7,attribution:'© OpenStreetMap'}).addTo(A.map);
+ bindMapInteraction();ensureSelfMarker();updateStops();if(A.routePoints.length)drawRoute(A.routePoints);
+ window.ChegaJaDriverMap={map:A.map,move:raw=>{const p=point(raw?.lat??raw?.latitude,raw?.lng??raw?.longitude);if(valid(p)){A.gps=p;ensureSelfMarker();followGps()}},follow:enabled=>{A.following=Boolean(enabled);A.manualView=!A.following}};
+ if(typeof ResizeObserver!=='undefined'){A.resizeObserver=new ResizeObserver(()=>preserveResize());A.resizeObserver.observe(host)}
+ requestAnimationFrame(()=>requestAnimationFrame(()=>A.map?.invalidateSize(false)));
 }
-function clearRoute(){A.casing?.setMap?.(null);A.line?.setMap?.(null);A.casing=A.line=null;A.routePoints=[]}
+function destroyMap(){
+ try{A.resizeObserver?.disconnect()}catch{}A.resizeObserver=null;
+ for(const layer of[A.casing,A.line,A.self,A.pickup,A.delivery])try{layer?.remove()}catch{}
+ A.casing=A.line=A.self=A.pickup=A.delivery=null;
+ if(A.map)try{A.map.remove()}catch{}A.map=null;A.mapHost=null;
+}
+function clearRoute(){try{A.casing?.remove();A.line?.remove()}catch{}A.casing=A.line=null;A.routePoints=[];A.lastRouteOrigin=A.lastRouteTarget=null}
+function normalizeGeometry(raw){
+ let data=raw;for(let i=0;i<2&&typeof data==='string';i++){try{data=JSON.parse(data)}catch{return[]}}
+ if(data?.type==='Feature')data=data.geometry;
+ if(data?.type==='LineString')data=data.coordinates;
+ if(data?.geometry)data=data.geometry.coordinates||data.geometry;
+ if(!Array.isArray(data))return[];
+ const direct=data.map(p=>Array.isArray(p)?point(p[0],p[1]):point(p?.lat??p?.latitude,p?.lng??p?.longitude)).filter(valid);
+ const swapped=data.map(p=>Array.isArray(p)?point(p[1],p[0]):point(p?.lat??p?.latitude,p?.lng??p?.longitude)).filter(valid);
+ const gps=A.gps,target=targetPoint();
+ const score=list=>{if(list.length<2)return Infinity;let total=0;if(valid(gps))total+=distance(gps,list[0]);if(valid(target))total+=Math.min(distance(target,list[0]),distance(target,list.at(-1)));return total};
+ let points=score(swapped)<score(direct)?swapped:direct;
+ if(valid(gps)&&points.length>1&&distance(gps,points.at(-1))<distance(gps,points[0]))points=[...points].reverse();
+ return points;
+}
 function drawRoute(points){
  if(!A.map||!Array.isArray(points)||points.length<2)return;
- const path=points.map(p=>({lat:Number(p.lat),lng:Number(p.lng)})).filter(valid);if(path.length<2)return;
- A.casing?.setMap?.(null);A.line?.setMap?.(null);A.routePoints=path;
- A.casing=new google.maps.Polyline({map:A.map,path,strokeColor:'#ffffff',strokeOpacity:1,strokeWeight:13,zIndex:20,clickable:false,geodesic:false});
- A.line=new google.maps.Polyline({map:A.map,path,strokeColor:'#1459ff',strokeOpacity:1,strokeWeight:8,zIndex:21,clickable:false,geodesic:false});
- snapSelfToRoute();
+ const path=points.map(p=>point(p.lat,p.lng)).filter(valid);if(path.length<2)return;A.routePoints=path;
+ const latlngs=path.map(p=>[p.lat,p.lng]);
+ if(!A.casing)A.casing=L.polyline(latlngs,{color:'#fff',weight:14,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,pane:'overlayPane'}).addTo(A.map);else A.casing.setLatLngs(latlngs);
+ if(!A.line)A.line=L.polyline(latlngs,{color:'#1459ff',weight:8,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,pane:'overlayPane'}).addTo(A.map);else A.line.setLatLngs(latlngs);
+ A.casing.bringToFront?.();A.line.bringToFront?.();
 }
-function geometryPoints(raw){return Array.isArray(raw)?raw.map(p=>point(p?.[0],p?.[1])).filter(valid):[]}
+function geometryPoints(raw){return normalizeGeometry(raw)}
 function targetPoint(){
  const item=A.detail;if(!item)return null;const delivering=['picked_up','in_route','problem'].includes(String(item.status));
  const p=point(delivering?item.delivery_lat:item.pickup_lat,delivering?item.delivery_lng:item.pickup_lng);return valid(p)?p:null;
-}
-function directionsFallback(origin,destination){
- return new Promise(resolve=>{
-  if(!A.directions||!valid(origin)||!valid(destination)){resolve([]);return}
-  A.directions.route({origin,destination,travelMode:google.maps.TravelMode.DRIVING,provideRouteAlternatives:false},(result,status)=>{
-   if(status!==google.maps.DirectionsStatus.OK){resolve([]);return}
-   resolve((result.routes?.[0]?.overview_path||[]).map(p=>({lat:p.lat(),lng:p.lng()})));
-  });
- });
-}
-async function updateRoute(force=false){
- if(!A.detail||!['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(String(A.detail.status))||A.routeBusy||document.hidden)return;
- if(!force&&Date.now()-A.lastRouteAt<7000)return;A.lastRouteAt=Date.now();A.routeBusy=true;
- try{
-  const data=await api('/api/app/v32/driver/navigation',{timeout:9000});let points=geometryPoints(data.route?.geometry);
-  if(points.length<2&&!data.arrived)points=await directionsFallback(A.gps,targetPoint());
-  if(points.length>=2)drawRoute(points);else if(!data.arrived)notice('A rota ainda não foi calculada. Verifique as APIs Routes e Maps JavaScript.',true);
- }catch(error){const points=await directionsFallback(A.gps,targetPoint());if(points.length>=2)drawRoute(points);else notice(error.message,true)}
- finally{A.routeBusy=false}
 }
 function distance(a,b){
  if(!valid(a)||!valid(b))return Infinity;const rad=v=>v*Math.PI/180,r=6371000,dLat=rad(b.lat-a.lat),dLng=rad(b.lng-a.lng),h=Math.sin(dLat/2)**2+Math.cos(rad(a.lat))*Math.cos(rad(b.lat))*Math.sin(dLng/2)**2;return 2*r*Math.asin(Math.min(1,Math.sqrt(h)));
 }
 function snapSelfToRoute(){
- if(!A.self||!A.gps||A.routePoints.length<2){ensureSelfMarker();return}
+ ensureSelfMarker();if(!A.self||!valid(A.gps)||A.routePoints.length<2)return;
  let best=A.gps,bestDistance=Infinity,step=Math.max(1,Math.floor(A.routePoints.length/350));
  for(let i=0;i<A.routePoints.length;i+=step){const d=distance(A.gps,A.routePoints[i]);if(d<bestDistance){bestDistance=d;best=A.routePoints[i]}}
- A.self.setPosition(bestDistance<=80?best:A.gps);
+ A.self.setLatLng([bestDistance<=80?best.lat:A.gps.lat,bestDistance<=80?best.lng:A.gps.lng]);
+}
+function shouldRefreshRoute(force=false){
+ if(force)return true;const origin=A.gps,target=targetPoint();if(!valid(origin)||!valid(target))return false;
+ if(Date.now()-A.lastRouteAt<12000)return false;
+ if(!A.lastRouteOrigin||!A.lastRouteTarget)return true;
+ return distance(origin,A.lastRouteOrigin)>55||distance(target,A.lastRouteTarget)>15||A.routePoints.length<2;
+}
+async function osrmFallback(origin,destination){
+ if(!valid(origin)||!valid(destination))return[];
+ try{
+  const url=`https://router.project-osrm.org/route/v1/driving/${origin.lng},${origin.lat};${destination.lng},${destination.lat}?overview=full&geometries=geojson&steps=false`;
+  const response=await fetch(url,{cache:'no-store'});if(!response.ok)return[];
+  const data=await response.json().catch(()=>null);return geometryPoints(data?.routes?.[0]?.geometry);
+ }catch{return[]}
+}
+async function updateRoute(force=false){
+ if(!A.detail||!['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(String(A.detail.status))||A.routeBusy||document.hidden)return;
+ if(!shouldRefreshRoute(force))return;const origin=A.gps,target=targetPoint();if(!valid(origin)||!valid(target))return;
+ A.lastRouteAt=Date.now();A.routeBusy=true;
+ try{
+  const data=await api('/api/app/v32/driver/navigation',{timeout:9000});let points=geometryPoints(data.route?.geometry);
+  if(points.length<2&&!data.arrived)points=await osrmFallback(origin,target);
+  if(points.length>=2){A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(points)}
+  else if(data.arrived)clearRoute();
+ }catch{const points=await osrmFallback(origin,target);if(points.length>=2){A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(points)}}
+ finally{A.routeBusy=false}
+}
+function followGps(){
+ if(!A.map||!valid(A.gps)||A.manualView||!A.following)return;
+ A.programmatic=true;A.map.panTo([A.gps.lat,A.gps.lng],{animate:false});setTimeout(()=>A.programmatic=false,70);
 }
 function centralize(){
- if(!A.map||!A.gps)return notice('Aguardando a localização do GPS.',true);
- A.manualView=false;A.programmatic=true;A.map.setCenter(A.gps);A.map.setZoom(18);setTimeout(()=>A.programmatic=false,350);
+ if(!A.map||!valid(A.gps))return notice('Aguardando a localização do GPS.',true);
+ A.manualView=false;A.following=true;$('#cj199-center')?.classList.remove('manual');A.programmatic=true;
+ A.map.setView([A.gps.lat,A.gps.lng],18,{animate:false});setTimeout(()=>A.programmatic=false,120);
 }
 function preserveResize(){
- if(!A.map)return;const center=currentCenter(),zoom=A.map.getZoom();
- for(const delay of[80,260,520])setTimeout(()=>{try{google.maps.event.trigger(A.map,'resize');if(center){A.programmatic=true;A.map.setCenter(center);if(Number.isFinite(zoom))A.map.setZoom(zoom);setTimeout(()=>A.programmatic=false,80)}if(A.routePoints.length)drawRoute(A.routePoints)}catch{}},delay);
+ if(!A.map)return;clearTimeout(A.resizeTimer);const center=currentCenter(),zoom=A.map.getZoom();
+ A.resizeTimer=setTimeout(()=>{for(const delay of[0,90,260])setTimeout(()=>requestAnimationFrame(()=>{try{A.map.invalidateSize(false);if(center&&!A.following){A.programmatic=true;A.map.setView([center.lat,center.lng],zoom,{animate:false});setTimeout(()=>A.programmatic=false,70)}if(A.routePoints.length)drawRoute(A.routePoints)}catch{}}),delay)},20);
 }
 
 function offerRequired(item){return Boolean(item)&&(['offered','assigned'].includes(String(item.status))||Boolean(item.requires_acceptance))&&!item.accepted_at}
@@ -173,7 +191,7 @@ function renderSheet(force=false){
  if(!A.detail){renderSchedules();return}
  const item=A.detail,key=[item.id,item.status,item.updated_at||''].join('|');if(!force&&key===A.sheetKey&&host.querySelector('.cj217-sheet'))return;A.sheetKey=key;
  const offer=offerRequired(item);
- host.innerHTML=`<section class="cj217-sheet"><div class="cj217-delivery-head"><div><small>${offer?'NOVA ENTREGA':'ENTREGA ATUAL'}</small><strong>${esc(item.display_code||'Entrega')}</strong></div><span>${esc(statusText(item.status))}</span></div><article class="cj217-address"><b>C</b><div><small>COLETA</small><strong>${esc(item.pickup_address||'Endereço não informado')}</strong>${item.pickup_complement?`<span>${esc(item.pickup_complement)}</span>`:''}</div></article><article class="cj217-address"><b>E</b><div><small>ENTREGA</small><strong>${esc(item.delivery_address||'Endereço não informado')}</strong>${item.delivery_complement?`<span>${esc(item.delivery_complement)}</span>`:''}</div></article><div class="cj217-values"><span><small>VOCÊ RECEBE</small><b>${money(item.driver_net_cents??item.driver_earnings_cents??item.charge_cents??0)}</b></span><span><small>PAGAMENTO</small><b>${esc(String(item.payment_method||'—').toUpperCase())}</b></span><span><small>DISTÂNCIA</small><b>${Number(item.distance_meters||0)>=1000?`${(Number(item.distance_meters)/1000).toFixed(1).replace('.',',')} km`:`${Math.round(Number(item.distance_meters||0))} m`}</b></span><span><small>TEMPO</small><b>${Math.max(1,Math.round(Number(item.duration_seconds||0)/60))} min</b></span></div>${item.notes?`<p class="cj217-notes"><b>Observações:</b> ${esc(item.notes)}</p>`:''}<div class="cj217-secondary-actions"><button id="cj217-secondary" class="danger" type="button">${offer?'RECUSAR':'CANCELAR ENTREGA'}</button><button id="cj217-open-maps" type="button">ABRIR NO MAPS</button></div></section>`;
+ host.innerHTML=`<section class="cj217-sheet"><div class="cj217-delivery-head"><div><small>${offer?'NOVA ENTREGA':'ENTREGA ATUAL'}</small><strong>${esc(item.display_code||'Entrega')}</strong></div><span>${esc(statusText(item.status))}</span></div><article class="cj217-address"><b>C</b><div><small>COLETA</small><strong>${esc(item.pickup_address||'Endereço não informado')}</strong>${item.pickup_complement?`<span>${esc(item.pickup_complement)}</span>`:''}</div></article><article class="cj217-address"><b>E</b><div><small>ENTREGA</small><strong>${esc(item.delivery_address||'Endereço não informado')}</strong>${item.delivery_complement?`<span>${esc(item.delivery_complement)}</span>`:''}</div></article><div class="cj217-values"><span><small>VOCÊ RECEBE</small><b>${money(item.driver_net_cents??item.driver_earnings_cents??item.charge_cents??0)}</b></span><span><small>PAGAMENTO</small><b>${esc(String(item.payment_method||'—').toUpperCase())}</b></span><span><small>DISTÂNCIA</small><b>${Number(item.distance_meters||0)>=1000?`${(Number(item.distance_meters)/1000).toFixed(1).replace('.',',')} km`:`${Math.round(Number(item.distance_meters||0))} m`}</b></span><span><small>TEMPO</small><b>${Math.max(1,Math.round(Number(item.duration_seconds||0)/60))} min</b></span></div>${item.notes?`<p class="cj217-notes"><b>Observações:</b> ${esc(item.notes)}</p>`:''}<div class="cj217-secondary-actions"><button id="cj217-secondary" class="danger" type="button">${offer?'RECUSAR':'CANCELAR ENTREGA'}</button><button id="cj217-open-maps" type="button">ABRIR ROTA EXTERNA</button></div></section>`;
  const title=$('#cj199-sheet header strong'),small=$('#cj199-sheet header small');if(title)title.textContent=item.display_code||'Entrega atual';if(small)small.textContent=offer?'NOVA ENTREGA':'ENTREGA ATUAL';
  $('#cj217-secondary').onclick=()=>offer?decline():cancelDelivery();$('#cj217-open-maps').onclick=openExternalMaps;
 }
@@ -189,7 +207,7 @@ function renderControls(){
  if($('#cj199-online'))$('#cj199-online').textContent=A.online?'Você está online':'Você está offline';
  if($('#cj199-queue-number'))$('#cj199-queue-number').textContent=A.queue?String(A.queue.queue_position||1):'+';
  $('#cj199-queue')?.classList.toggle('active',Boolean(A.queue));if($('#cj199-queue-text'))$('#cj199-queue-text').textContent=A.queue?`Você é o ${A.queue.queue_position||1}º da fila`:'Você está fora da fila';
- applyMetric();renderSheet();
+ applyMetric();renderSheet();window.ChegaJaDriverActiveDelivery=A.detail||null;
 }
 
 function unlockAudio(){
@@ -236,7 +254,11 @@ async function cancelDelivery(){
  const reason=prompt('Informe o motivo do cancelamento:');if(reason===null)return;if(String(reason).trim().length<3)return notice('Informe o motivo do cancelamento.',true);if(!confirm('Confirma o cancelamento desta entrega?'))return;
  try{await api(`/api/app/driver/deliveries/${encodeURIComponent(A.detail.id)}/cancel`,{method:'POST',body:{reason:String(reason).trim()},timeout:9000});A.detail=null;clearRoute();closeSheet();await poll(true)}catch(error){notice(error.message,true)}
 }
-function openExternalMaps(){const target=targetPoint();if(!valid(target))return;const params=new URLSearchParams({api:'1',travelmode:'driving',destination:`${target.lat},${target.lng}`});if(valid(A.gps))params.set('origin',`${A.gps.lat},${A.gps.lng}`);location.href=`https://www.google.com/maps/dir/?${params}`}
+function openExternalMaps(){
+ const target=targetPoint();if(!valid(target))return;const origin=valid(A.gps)?`${A.gps.lat},${A.gps.lng}`:'';
+ const route=origin?`${origin};${target.lat},${target.lng}`:`${target.lat},${target.lng}`;
+ location.href=`https://www.openstreetmap.org/directions?engine=fossgis_osrm_car&route=${encodeURIComponent(route)}`;
+}
 
 async function getQueue(){try{return await api('/api/app/v10/queue/locations',{timeout:6000})}catch{return{active:null,items:[]}}}
 async function getSchedules(){const now=new Date(),from=now.toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'}),end=new Date(`${from}T12:00:00`);end.setDate(end.getDate()+7);try{return(await api(`/api/app/v18/driver/schedule?from=${from}&to=${end.toISOString().slice(0,10)}`,{timeout:6500})).items||[]}catch{return[]}}
@@ -268,7 +290,7 @@ function startGps(){
  if(A.gpsWatch!=null||!navigator.geolocation)return;
  A.gpsWatch=navigator.geolocation.watchPosition(p=>{
   A.gps={lat:p.coords.latitude,lng:p.coords.longitude};window.ChegaJaLastDriverLocation={lat:A.gps.lat,lng:A.gps.lng,accuracy:p.coords.accuracy,heading:p.coords.heading,speed:p.coords.speed};ensureSelfMarker();snapSelfToRoute();
-  if(A.map&&!A.firstGpsCentered){A.firstGpsCentered=true;A.programmatic=true;A.map.setCenter(A.gps);A.map.setZoom(17);setTimeout(()=>A.programmatic=false,250)}
+  if(A.map&&!A.firstGpsCentered){A.firstGpsCentered=true;centralize()}else followGps();
   if(A.online&&Date.now()-A.lastSent>6000){A.lastSent=Date.now();api('/api/app/map/location',{method:'POST',body:{latitude:A.gps.lat,longitude:A.gps.lng,accuracy:p.coords.accuracy,heading:p.coords.heading,speed:p.coords.speed},timeout:5000}).catch(()=>{})}
  },()=>{},{enableHighAccuracy:true,maximumAge:1500,timeout:15000});
 }
@@ -296,8 +318,8 @@ function install(){
 }
 function startTimers(){
  clearInterval(A.pollTimer);clearInterval(A.routeTimer);clearInterval(A.healthTimer);
- A.pollTimer=setInterval(()=>poll(false),3000);A.routeTimer=setInterval(()=>updateRoute(false),8000);A.healthTimer=setInterval(()=>{if(isHome()){removeLegacy();if(!$('#cj199-app'))mount();else{renderControls();if(A.routePoints.length&&A.map&&!A.line)drawRoute(A.routePoints)}}},900);
+ A.pollTimer=setInterval(()=>poll(false),6000);A.routeTimer=setInterval(()=>updateRoute(false),15000);A.healthTimer=setInterval(()=>{if(isHome()){removeLegacy();if(!$('#cj199-app'))mount();else{renderControls();if(A.routePoints.length&&A.map)drawRoute(A.routePoints)}}},5000);
 }
-window.addEventListener('orientationchange',preserveResize);window.addEventListener('resize',preserveResize);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&isHome()){preserveResize();poll(true)}});
-window.addEventListener('load',()=>{install();setInterval(()=>{if(!A.installed)install()},700)},{once:true});if(document.readyState==='complete'){install();setInterval(()=>{if(!A.installed)install()},700)}
+window.addEventListener('orientationchange',preserveResize);window.addEventListener('resize',preserveResize);document.addEventListener('visibilitychange',()=>{if(!document.hidden&&isHome()){preserveResize();poll(true);updateRoute(true)}});
+window.addEventListener('load',()=>{install();setTimeout(()=>{if(!A.installed)install()},900)},{once:true});if(document.readyState==='complete'){install();setTimeout(()=>{if(!A.installed)install()},900)}
 })();

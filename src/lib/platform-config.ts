@@ -63,23 +63,17 @@ export async function getMapsRuntimeConfig(env: Env, force = false): Promise<Map
   const storedBrowser = await decryptValue(env.JWT_SECRET, rows.google_maps_browser_key || '');
   const serverKey = storedServer || String(env.GOOGLE_MAPS_API_KEY || '').trim();
   const browserKey = storedBrowser || String(env.GOOGLE_MAPS_BROWSER_KEY || '').trim();
-  const rawProvider = String(rows.maps_provider || 'auto').trim().toLowerCase();
 
-  // A chave do navegador serve apenas para exibir o mapa. Busca de endereços,
-  // geocodificação e cálculo de rotas são executados no Worker e precisam de uma
-  // chave de servidor. Quando ela não existe, usamos OpenStreetMap/Nominatim/OSRM
-  // para que o endereço continue sendo encontrado e o valor seja calculado.
-  const provider: MapsProvider = rawProvider === 'openstreetmap'
-    ? 'openstreetmap'
-    : serverKey
-      ? 'google'
-      : 'openstreetmap';
+  // OpenStreetMap/Nominatim/OSRM são o runtime oficial. As chaves Google antigas
+  // permanecem apenas armazenadas para compatibilidade administrativa e nunca
+  // determinam o funcionamento normal da aplicação.
+  const provider: MapsProvider = 'openstreetmap';
 
   const value: MapsRuntimeConfig = {
     provider,
     serverKey,
     browserKey,
-    mapId:String(rows.google_maps_map_id || env.GOOGLE_MAPS_MAP_ID || 'DEMO_MAP_ID').trim() || 'DEMO_MAP_ID',
+    mapId:String(rows.google_maps_map_id || env.GOOGLE_MAPS_MAP_ID || '').trim(),
     serverKeySource:storedServer ? 'database' : serverKey ? 'environment' : 'none',
     browserKeySource:storedBrowser ? 'database' : browserKey ? 'environment' : 'none'
   };
@@ -96,9 +90,8 @@ export async function saveMapsRuntimeConfig(env: Env, input: {
   clearBrowserKey?: unknown;
 }): Promise<MapsRuntimeConfig> {
   const current = await getMapsRuntimeConfig(env, true);
-  const providerRaw = String(input.provider ?? current.provider).trim().toLowerCase();
-  const provider: MapsProvider = providerRaw === 'google' ? 'google' : 'openstreetmap';
-  const mapId = String(input.mapId ?? current.mapId ?? 'DEMO_MAP_ID').trim() || 'DEMO_MAP_ID';
+  const provider: MapsProvider = 'openstreetmap';
+  const mapId = String(input.mapId ?? current.mapId ?? '').trim();
   const serverInput = String(input.serverKey ?? '').trim();
   const browserInput = String(input.browserKey ?? '').trim();
   const clearServer = input.clearServerKey === true || input.clearServerKey === 'true' || input.clearServerKey === 1 || input.clearServerKey === '1';
@@ -124,7 +117,7 @@ export async function saveMapsRuntimeConfig(env: Env, input: {
 export function mapsConfigForAdmin(config: MapsRuntimeConfig) {
   const mask = (value: string) => value ? `${value.slice(0,4)}••••••${value.slice(-4)}` : '';
   return {
-    provider:config.provider,
+    provider:'openstreetmap',
     map_id:config.mapId,
     has_server_key:Boolean(config.serverKey),
     has_browser_key:Boolean(config.browserKey),

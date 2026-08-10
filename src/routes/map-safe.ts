@@ -1,28 +1,21 @@
 import { Hono } from 'hono';
 import type { AppBindings } from '../types';
-import { getMapsRuntimeConfig } from '../lib/platform-config';
 import { bodyJson, toNumber } from '../lib/util';
 
 export const mapSafeRoutes = new Hono<AppBindings>();
 export const publicMapSafeRoutes = new Hono<AppBindings>();
 type Row = Record<string, any>;
 
-// A chave usada no navegador deve, preferencialmente, ser a chave específica do
-// Maps JavaScript. Para instalações antigas que salvaram apenas uma chave Google,
-// mantém compatibilidade usando a chave do servidor até o Master separar as chaves.
 publicMapSafeRoutes.get('/maps-config', async c => {
-  const config=await getMapsRuntimeConfig(c.env);
-  const browserKey=String(config.browserKey||config.serverKey||'').trim();
-  const enabled=Boolean(browserKey);
   return c.json({
     ok:true,
     item:{
-      provider:enabled?'google':'unavailable',
-      requested_provider:config.provider,
-      enabled,
-      api_key:enabled?browserKey:null,
-      map_id:config.mapId||'DEMO_MAP_ID',
-      key_source:config.browserKey?'browser':config.serverKey?'server_compatibility':'none'
+      provider:'openstreetmap',
+      requested_provider:'openstreetmap',
+      enabled:true,
+      api_key:null,
+      map_id:null,
+      key_source:'none'
     }
   });
 });
@@ -53,12 +46,45 @@ mapSafeRoutes.post('/map/location', async c => {
 
 mapSafeRoutes.get('/map/drivers', async c => {
   const auth=c.get('auth'),requested=String(c.req.query('cooperative_id')||'').trim();
-  let sql=`SELECT d.id,d.cooperative_id,d.name,d.photo_url,d.phone,d.vehicle_model,d.vehicle_plate,d.online,d.last_seen_at,d.current_lat,d.current_lng,d.location_accuracy,d.location_updated_at,c.name cooperative_name FROM drivers d JOIN cooperatives c ON c.id=d.cooperative_id WHERE d.deleted_at IS NULL AND d.status='active' AND d.current_lat IS NOT NULL AND d.current_lng IS NOT NULL`;
+
+  // O estabelecimento só recebe coordenadas quando a permissão comercial de
+  // mapa em tempo real estiver ativa. Mesmo com a permissão, a lista é limitada
+  // aos cooperados escalados para ele na data atual.
+  if(auth.role==='establishment'){
+    if(!auth.establishmentId||!auth.cooperativeId)return c.json({ok:true,items:[],location_allowed:false});
+    const establishment=await c.env.DB.prepare(`SELECT id,name,driver_map_enabled FROM establishments WHERE id=? AND cooperative_id=? AND deleted_at IS NULL LIMIT 1`)
+      .bind(auth.establishmentId,auth.cooperativeId).first<Row>();
+    if(!establishment||Number(establishment.driver_map_enabled||0)!==1)return c.json({ok:true,items:[],location_allowed:false});
+    const rows=await c.env.DB.prepare(`
+      SELECT d.id,d.cooperative_id,d.name,d.photo_url,d.phone,d.vehicle_model,d.vehicle_plate,
+        CASE WHEN d.online=1 AND datetime(d.last_seen_at)>=datetime('now','-10 minutes') THEN 1 ELSE 0 END online,
+        d.last_seen_at,d.current_lat,d.current_lng,d.location_accuracy,d.location_updated_at,
+        ? cooperative_name,
+        (SELECT s.start_at FROM schedules s WHERE s.driver_id=d.id AND s.establishment_id=? AND s.deleted_at IS NULL
+          AND s.status IN ('scheduled','confirmed') AND date(s.start_at)=date('now','-3 hours') ORDER BY s.start_at LIMIT 1) schedule_start,
+        (SELECT s.end_at FROM schedules s WHERE s.driver_id=d.id AND s.establishment_id=? AND s.deleted_at IS NULL
+          AND s.status IN ('scheduled','confirmed') AND date(s.start_at)=date('now','-3 hours') ORDER BY s.start_at LIMIT 1) schedule_end,
+        ? schedule_location
+      FROM drivers d
+      WHERE d.cooperative_id=? AND d.deleted_at IS NULL AND d.status='active'
+        AND EXISTS(SELECT 1 FROM schedules s WHERE s.driver_id=d.id AND s.establishment_id=? AND s.deleted_at IS NULL
+          AND s.status IN ('scheduled','confirmed') AND date(s.start_at)=date('now','-3 hours'))
+      ORDER BY online DESC,d.location_updated_at DESC,d.name
+      LIMIT 300`)
+      .bind(String(establishment.name||''),auth.establishmentId,auth.establishmentId,String(establishment.name||''),auth.cooperativeId,auth.establishmentId).all<Row>();
+    return c.json({ok:true,items:rows.results||[],location_allowed:true});
+  }
+
+  let sql=`SELECT d.id,d.cooperative_id,d.name,d.photo_url,d.phone,d.vehicle_model,d.vehicle_plate,
+    CASE WHEN d.online=1 AND datetime(d.last_seen_at)>=datetime('now','-10 minutes') THEN 1 ELSE 0 END online,
+    d.last_seen_at,d.current_lat,d.current_lng,d.location_accuracy,d.location_updated_at,c.name cooperative_name
+    FROM drivers d JOIN cooperatives c ON c.id=d.cooperative_id
+    WHERE d.deleted_at IS NULL AND d.status='active' AND d.current_lat IS NOT NULL AND d.current_lng IS NOT NULL`;
   const params:unknown[]=[];
-  if(auth.role==='platform_admin'){if(requested){sql+=' AND d.cooperative_id=?';params.push(requested)}}else{if(!auth.cooperativeId)return c.json({ok:true,items:[]});sql+=' AND d.cooperative_id=?';params.push(auth.cooperativeId)}
+  if(auth.role==='platform_admin'){if(requested){sql+=' AND d.cooperative_id=?';params.push(requested)}}
+  else{if(!auth.cooperativeId)return c.json({ok:true,items:[],location_allowed:true});sql+=' AND d.cooperative_id=?';params.push(auth.cooperativeId)}
   if(auth.role==='driver'&&auth.driverId){sql+=' AND d.id=?';params.push(auth.driverId)}
-  if(auth.role==='establishment'&&auth.establishmentId){sql+=` AND (EXISTS(SELECT 1 FROM deliveries x WHERE x.assigned_driver_id=d.id AND x.establishment_id=? AND x.deleted_at IS NULL AND x.status NOT IN ('delivered','cancelled')) OR EXISTS(SELECT 1 FROM schedules s WHERE s.driver_id=d.id AND s.establishment_id=? AND s.deleted_at IS NULL AND date(s.start_at)>=date('now','-1 day')))`;params.push(auth.establishmentId,auth.establishmentId)}
-  sql+=' ORDER BY d.online DESC,d.location_updated_at DESC,d.name LIMIT 1500';
+  sql+=' ORDER BY online DESC,d.location_updated_at DESC,d.name LIMIT 1500';
   const rows=await c.env.DB.prepare(sql).bind(...params).all<Row>();
-  return c.json({ok:true,items:rows.results||[]});
+  return c.json({ok:true,items:rows.results||[],location_allowed:true});
 });

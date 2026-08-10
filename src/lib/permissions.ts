@@ -35,20 +35,33 @@ function actionFromMethod(method: string): PermissionAction {
 
 export const enforceUserPermissions: MiddlewareHandler<AppBindings> = async (c, next) => {
   const auth = c.get('auth');
+
+  // Localização em tempo real de cooperados é uma permissão do estabelecimento,
+  // aplicada no servidor. A interface não consegue contornar esta checagem.
+  if (auth?.role === 'establishment' && /^\/api\/app\/tenant\/online-drivers(?:\/|$)/.test(c.req.path)) {
+    if (!auth.establishmentId || !auth.cooperativeId) return c.json({ ok:true, items:[], location_allowed:false });
+    const establishment = await c.env.DB.prepare(`
+      SELECT driver_map_enabled
+      FROM establishments
+      WHERE id=? AND cooperative_id=? AND deleted_at IS NULL
+      LIMIT 1
+    `).bind(auth.establishmentId, auth.cooperativeId).first<{ driver_map_enabled:number }>();
+    if (!establishment || Number(establishment.driver_map_enabled || 0) !== 1) {
+      return c.json({ ok:true, items:[], location_allowed:false });
+    }
+  }
+
   if (!auth || auth.role === 'platform_admin' || auth.role === 'driver' || auth.role === 'establishment') {
     await next();
     return;
   }
 
-  // O administrador principal da cooperativa continua com acesso integral quando
-  // não possui uma matriz personalizada. Usuários adicionais podem ser limitados.
   const moduleEntry = routeModules.find(([pattern]) => pattern.test(c.req.path));
   if (!moduleEntry) {
     await next();
     return;
   }
 
-  // A própria tela de permissões precisa permanecer acessível ao administrador.
   if (/^\/api\/app\/users\/[^/]+\/permissions$/.test(c.req.path) && auth.role === 'cooperative_admin') {
     await next();
     return;
