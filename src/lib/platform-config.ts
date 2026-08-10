@@ -37,9 +37,9 @@ async function decryptValue(secret: string, value: string): Promise<string> {
   try {
     const key = await aesKey(secret);
     const plain = await crypto.subtle.decrypt(
-      { name:'AES-GCM', iv:base64UrlToBytes(ivRaw) },
+      { name:'AES-GCM', iv:base64UrlToBytes(ivRaw) as BufferSource },
       key,
-      base64UrlToBytes(cipherRaw)
+      base64UrlToBytes(cipherRaw) as BufferSource
     );
     return decoder.decode(plain);
   } catch {
@@ -63,10 +63,6 @@ export async function getMapsRuntimeConfig(env: Env, force = false): Promise<Map
   const storedBrowser = await decryptValue(env.JWT_SECRET, rows.google_maps_browser_key || '');
   const serverKey = storedServer || String(env.GOOGLE_MAPS_API_KEY || '').trim();
   const browserKey = storedBrowser || String(env.GOOGLE_MAPS_BROWSER_KEY || '').trim();
-
-  // OpenStreetMap/Nominatim/OSRM são o runtime oficial. As chaves Google antigas
-  // permanecem apenas armazenadas para compatibilidade administrativa e nunca
-  // determinam o funcionamento normal da aplicação.
   const provider: MapsProvider = 'openstreetmap';
 
   const value: MapsRuntimeConfig = {

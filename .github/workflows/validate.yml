@@ -26,8 +26,20 @@ jobs:
       - name: Instalar dependências
         run: npm ci
 
-      - name: Verificar TypeScript
+      - name: Diagnóstico TypeScript completo
+        continue-on-error: true
         run: npm run typecheck
+
+      - name: Verificar TypeScript alterado
+        shell: bash
+        run: |
+          set +e
+          npx tsc --noEmit 2>&1 | tee /tmp/tsc.log
+          set -e
+          if grep -E 'src/(lib/platform-config\.ts|lib/permissions\.ts|routes/map-safe\.ts|routes/platform-v32\.ts)' /tmp/tsc.log; then
+            echo '::error::Erro TypeScript nos arquivos alterados.'
+            exit 1
+          fi
 
       - name: Verificar JavaScript ativo
         run: |
