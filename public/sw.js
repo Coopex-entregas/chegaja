@@ -1,4 +1,4 @@
-const RECOVERY_VERSION='14.32.0';
+const RECOVERY_VERSION='14.32.1';
 
 self.addEventListener('install',event=>{
   self.skipWaiting();
