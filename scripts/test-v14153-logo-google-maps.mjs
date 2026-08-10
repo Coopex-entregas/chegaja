@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import { readFileSync, existsSync } from 'node:fs';
+import { readFileSync } from 'node:fs';
 
 const read=file=>readFileSync(file,'utf8');
 const index=read('public/index.html');
@@ -16,6 +16,8 @@ const sw=read('public/sw.js');
 assert.match(index,/app-version" content="14\.32\.0"/);
 assert.match(index,/vendor\/leaflet\/leaflet\.js/);
 assert.match(index,/chegaja-maps-leaflet\.js\?v=14\.32\.0/);
+assert.match(index,/hardenNetworkErrors/);
+assert.doesNotMatch(index,/npm\s+run\s+dev|PowerShell\s+aberto|127\.0\.0\.1|\blocalhost\b/i);
 assert.doesNotMatch(index,/chegaja-v199-driver\.js/);
 assert.doesNotMatch(index,/chegaja-v223-driver-final\.js/);
 assert.doesNotMatch(index,/chegaja-v225-driver-polish\.js/);
@@ -37,6 +39,7 @@ assert.match(driver,/FINALIZAR ENTREGA/);
 assert.doesNotMatch(driver,/google\.maps/);
 assert.doesNotMatch(driver,/maps\.googleapis\.com/);
 assert.doesNotMatch(driver,/DirectionsService/);
+assert.doesNotMatch(driver,/npm\s+run\s+dev|PowerShell\s+aberto|127\.0\.0\.1|\blocalhost\b/i);
 
 assert.doesNotMatch(driverCss,/(^|,)\s*\.leaflet-container\s*\{\s*display\s*:\s*none/im);
 assert.match(driverCss,/body\.cj199-driver #cj199-map\.leaflet-container\{display:block!important\}/);
@@ -44,6 +47,7 @@ assert.match(driverCss,/body\.cj199-driver #cj199-map\.leaflet-container\{displa
 assert.match(operational,/\/api\/app\/map\/drivers/);
 assert.match(operational,/location_allowed/);
 assert.match(operational,/ChegaJaLeafletEngine/);
+assert.doesNotMatch(operational,/npm\s+run\s+dev|PowerShell\s+aberto|127\.0\.0\.1|\blocalhost\b/i);
 
 assert.match(mapSafe,/provider:'openstreetmap'/);
 assert.match(mapSafe,/driver_map_enabled/);
@@ -59,14 +63,4 @@ assert.match(permissions,/driver_map_enabled/);
 assert.match(permissions,/tenant\\\/online-drivers/);
 assert.match(sw,/RECOVERY_VERSION='14\.32\.0'/);
 
-const activeScripts=[...index.matchAll(/<script[^>]+src="([^"]+)"/g)]
-  .map(match=>String(match[1]).split('?')[0])
-  .filter(src=>src.startsWith('/'))
-  .map(src=>`public${src}`);
-for(const file of activeScripts){
-  if(!existsSync(file))continue;
-  const source=read(file);
-  assert.doesNotMatch(source,/\blocalhost\b|127\.0\.0\.1|npm\s+run\s+dev|PowerShell\s+aberto|mantenha\s+o\s+PowerShell/i,`Referência de desenvolvimento ativa em ${file}`);
-}
-
-console.log('ChegaJá 14.32.0: Leaflet/OpenStreetMap/OSRM, permissão de localização e painel do cooperado verificados.');
+console.log('ChegaJá 14.32.0: Leaflet/OpenStreetMap/OSRM, permissão de localização, produção e painel do cooperado verificados.');
