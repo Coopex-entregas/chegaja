@@ -13,10 +13,12 @@ const navigation=read('src/routes/platform-v32.ts');
 const permissions=read('src/lib/permissions.ts');
 const sw=read('public/sw.js');
 
-assert.match(index,/app-version" content="14\.32\.0"/);
+assert.match(index,/app-version" content="14\.32\.1"/);
 assert.match(index,/vendor\/leaflet\/leaflet\.js/);
-assert.match(index,/chegaja-maps-leaflet\.js\?v=14\.32\.0/);
+assert.match(index,/chegaja-maps-leaflet\.js\?v=14\.32\.1/);
 assert.match(index,/hardenNetworkErrors/);
+assert.match(index,/installDriverDomGuard/);
+assert.match(index,/height:100svh/);
 assert.doesNotMatch(index,/npm\s+run\s+dev|PowerShell\s+aberto|127\.0\.0\.1|\blocalhost\b/i);
 assert.doesNotMatch(index,/chegaja-v199-driver\.js/);
 assert.doesNotMatch(index,/chegaja-v223-driver-final\.js/);
@@ -61,6 +63,6 @@ assert.doesNotMatch(navigation,/googleRoute/);
 
 assert.match(permissions,/driver_map_enabled/);
 assert.match(permissions,/tenant\\\/online-drivers/);
-assert.match(sw,/RECOVERY_VERSION='14\.32\.0'/);
+assert.match(sw,/RECOVERY_VERSION='14\.32\.1'/);
 
-console.log('ChegaJá 14.32.0: Leaflet/OpenStreetMap/OSRM, permissão de localização, produção e painel do cooperado verificados.');
+console.log('ChegaJá 14.32.1: mapa do cooperado estabilizado, Leaflet/OpenStreetMap/OSRM e permissões verificados.');
