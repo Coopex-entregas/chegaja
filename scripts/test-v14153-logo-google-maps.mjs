@@ -12,14 +12,18 @@ const mapSafe=read('src/routes/map-safe.ts');
 const appIndex=read('src/index.ts');
 const navigation=read('src/routes/platform-v32.ts');
 
-assert.match(index,/app-version" content="14\.33\.9"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.9&recovery=14339/);
+assert.match(index,/app-version" content="14\.33\.10"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.10&recovery=143310/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.9&recovery=14339/);
 assert.doesNotMatch(index,/chegaja-v232-navigation-final/);
 assert.doesNotMatch(index,/cj217-active-delivery #cj199-start\[hidden\]/);
 assert.doesNotMatch(index,/pointer-events:none!important;left:50%/);
 
-assert.match(driver,/ChegaJá 14\.33\.9/);
+assert.match(driver,/ChegaJá 14\.33\.10/);
+assert.match(driver,/onlineBusy:false/);
+assert.match(driver,/start\.disabled=false;start\.removeAttribute\('disabled'\)/);
+assert.match(driver,/if\(A\.onlineBusy\|\|A\.decision\)return/);
+assert.match(driver,/b\.removeAttribute\('disabled'\)/);
 assert.match(driver,/watchPosition/);
 assert.match(driver,/getCurrentPosition/);
 assert.match(driver,/enableHighAccuracy:true/);
@@ -54,4 +58,4 @@ assert.match(mapSafe,/d\.current_lat IS NOT NULL AND d\.current_lng IS NOT NULL/
 assert.doesNotMatch(appIndex,/UPDATE drivers SET online=0 WHERE online=1 AND datetime\(last_seen_at\)/);
 assert.match(navigation,/platformV32Routes\.post\('\/v32\/driver\/sos'/);
 
-console.log('ChegaJá 14.33.9: GPS, online persistente e rastreamento de Base/estabelecimento/cliente verificados.');
+console.log('ChegaJá 14.33.10: botão INICIAR/PARAR sem disabled nativo, GPS e rastreamento verificados.');
