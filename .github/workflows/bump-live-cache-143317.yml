@@ -1,0 +1,35 @@
+name: Aplicar cache completo 14.33.17
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/bump-live-cache-143317.py'
+      - '.github/workflows/bump-live-cache-143317.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Atualizar cache
+        run: python3 scripts/bump-live-cache-143317.py
+      - name: Validar
+        run: |
+          grep -q 'app.js?v=14.33.17&recovery=143317' public/index.html
+          grep -q 'chegaja-v201-operational.js?v=14.33.17&recovery=143317' public/index.html
+          node --check public/app.js
+          node --check public/chegaja-v201-operational.js
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then exit 0; fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/index.html
+          git commit -m "chore: forçar cache completo 14.33.17"
+          git push origin HEAD:main
