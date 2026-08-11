@@ -1,4 +1,4 @@
-/* ChegaJá 14.33.17 — ÚNICA folha do painel do cooperado. Conteúdo consolidado das regras necessárias. */
+/* ChegaJá 14.33.19 — ÚNICA folha do painel do cooperado. */
 /* ChegaJá 14.22.0 — visual aprovado do cooperado, responsivo e clicável */
 :root{--cj-blue:#0d45d8;--cj-blue-dark:#0a2f96;--cj-orange:#ff7a00;--cj-white:#fff;--cj-ink:#0d214f}
 html,body{max-width:100%;}
@@ -196,3 +196,12 @@ body.cj217-pending-offer #cj199-sheet{display:none!important}
 body.cj217-pending-offer #toast-container,body.cj217-pending-offer .toast,body.cj217-pending-offer #cj217-notice{display:none!important;visibility:hidden!important}
 body.cj217-pending-offer #cj199-metric,body.cj217-pending-offer #cj199-bottom,body.cj217-pending-offer #cj199-queue,body.cj217-pending-offer #cj199-center,body.cj217-pending-offer #cj199-checkin,body.cj217-pending-offer #cj217-sos{pointer-events:none!important}
 @media(max-width:390px){.cj217-offer-top strong{font-size:23px!important}.cj217-offer-highlight strong{font-size:30px!important}.cj217-offer-actions button{height:58px!important;font-size:13px!important}.cj217-offer-scroll{padding:10px!important;gap:9px!important}.cj217-offer-route,.cj217-offer-highlight{padding:15px!important}}
+
+
+/* ChegaJá 14.33.19 — navegação sempre visível */
+body.cj199-driver #cj199-map{display:block!important;visibility:visible!important;opacity:1!important}
+body.cj217-active-delivery #cj199-map{z-index:2!important}
+body.cj199-driver #cj199-map .cj217-self-icon{z-index:10000!important;opacity:1!important;visibility:visible!important}
+body.cj199-driver #cj199-map .cj217-self-marker{width:38px!important;height:44px!important;background:#1459ff!important;border:3px solid #fff!important;filter:drop-shadow(0 5px 7px #07183aaa)!important;opacity:1!important;visibility:visible!important}
+body.cj199-driver #cj199-map .leaflet-overlay-pane{z-index:450!important}
+body.cj199-driver #cj199-map .leaflet-marker-pane{z-index:650!important}

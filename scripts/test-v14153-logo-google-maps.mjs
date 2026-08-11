@@ -10,13 +10,13 @@ const driverLive=read('src/routes/driver-live.ts');
 const mapSafe=read('src/routes/map-safe.ts');
 const navigation=read('src/routes/platform-v32.ts');
 
-assert.match(index,/app-version" content="14\.33\.18"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.18&recovery=143318/);
-assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.18&recovery=143318/);
+assert.match(index,/app-version" content="14\.33\.19"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.19&recovery=143319/);
+assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.19&recovery=143319/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.18/);
+assert.match(driver,/ChegaJá 14\.33\.19/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,3000\)/);
@@ -27,7 +27,10 @@ assert.match(driver,/hydrateServerGps/);
 assert.match(driver,/async function locationHeartbeat/);
 assert.match(driver,/maximumAge:2500,timeout:6500/);
 assert.match(driver,/A\.locationTimer=setInterval\(\(\)=>locationHeartbeat\(\),7000\)/);
-assert.match(driver,/closeSheet\(\);if\(!valid\(A\.gps\)\)/);
+assert.match(driver,/await forceDriverHome\(\)/);
+assert.match(driver,/pts=\[\{\.\.\.origin\},\{\.\.\.target\}\]/);
+assert.match(driver,/oldDeliveries/);
+assert.match(driver,/page==='deliveries'.*ChegaJaDriverActiveDelivery/);
 assert.match(driver,/\/api\/app\/v32\/driver\/sos/);
 assert.match(driver,/id="cj217-sos"/);
 assert.match(driver,/router\.project-osrm\.org/);
@@ -58,4 +61,4 @@ assert.match(driverCss,/#cj217-offer-decline\{background:#d92525!important\}/);
 assert.match(driverCss,/#cj217-offer-accept\{background:#16a34a!important\}/);
 assert.match(driverCss,/body\.cj217-pending-offer #toast-container/);
 
-console.log('ChegaJá 14.33.18: painel único, oferta full-screen, navegação após aceite e GPS contínuo validados.');
+console.log('ChegaJá 14.33.19: aceite retorna ao mapa, seta e rota validados.');
