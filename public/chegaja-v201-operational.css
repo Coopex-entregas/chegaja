@@ -1,10 +1,16 @@
-/* ChegaJá 14.20.1 — mapas operacionais Leaflet */
-.cj201-leaflet-host{background:#e8edf3!important;min-height:260px}
-.cj201-map-parent{position:relative!important;overflow:hidden}
-.cj201-est-map{position:absolute!important;inset:0!important;z-index:3!important;background:#e8edf3}
+/* ChegaJá 14.33.1 — mapas operacionais Leaflet contidos no painel */
+.cj201-leaflet-host{background:#e8edf3!important;min-height:260px;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
+.cj201-map-parent{position:relative!important;overflow:hidden!important;width:100%!important;max-width:100%!important;min-width:0!important;contain:layout paint}
+.cj201-est-map{position:absolute!important;inset:0!important;z-index:3!important;background:#e8edf3;width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important}
 .cj201-photo-icon{background:transparent!important;border:0!important}
 .cj201-photo-icon span{width:var(--s);height:var(--s);display:grid;place-items:center;border-radius:50%;overflow:hidden;background:#0d45d8;color:#fff;border:3px solid #fff;box-shadow:0 4px 12px #0b1d474d;font-size:10px;font-weight:950}
 .cj201-photo-icon img{width:100%;height:100%;object-fit:cover}
 .cj201-leaflet-host .leaflet-control-attribution,.cj201-est-map .leaflet-control-attribution{font-size:8px}
 body .topbar-actions>button:has(+ button),body .topbar-actions button{touch-action:manipulation}
+body:not(.cj199-driver) #page-content{min-width:0!important;max-width:100%!important;overflow-x:hidden!important}
+body:not(.cj199-driver) #page-content>*{min-width:0!important;max-width:100%!important;box-sizing:border-box!important}
+body:not(.cj199-driver) #page-content .panel,body:not(.cj199-driver) #page-content .panel-body,body:not(.cj199-driver) #page-content .dashboard-grid,body:not(.cj199-driver) #page-content .map-card,body:not(.cj199-driver) #page-content [class*="map-wrap"]{min-width:0!important;max-width:100%!important;box-sizing:border-box!important;overflow:hidden!important}
+body:not(.cj199-driver) #page-content .leaflet-container{width:100%!important;max-width:100%!important;min-width:0!important;overflow:hidden!important;box-sizing:border-box!important}
+body:not(.cj199-driver) #page-content .leaflet-map-pane,body:not(.cj199-driver) #page-content .leaflet-tile-pane{max-width:none!important}
+@media(max-width:1200px){body:not(.cj199-driver) #page-content .dashboard-grid{grid-template-columns:minmax(0,1fr)!important}}
 @media(max-width:700px){.cj201-leaflet-host,.cj201-est-map{min-height:360px}.cj201-map-parent{min-height:360px}}
