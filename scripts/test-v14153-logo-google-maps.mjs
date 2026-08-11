@@ -88,11 +88,14 @@ assert.match(operationalCss,/overflow-x:hidden!important/);
 
 assert.match(addressResilient,/requestedHouseNumber/);
 assert.match(addressResilient,/exactNumber/);
+assert.match(addressResilient,/withTypedNumber/);
 assert.match(addressResilient,/searchParams\.set\('street'/);
 assert.match(addressResilient,/exact_number_required/);
 assert.match(addressResilient,/exact_number_found/);
+assert.match(addressResilient,/typed_number_preserved/);
+assert.match(addressResilient,/number_source:'provider'\|'typed'/);
+assert.match(addressResilient,/preserveTypedNumber/);
 assert.match(addressResilient,/confirmation_token:confirmable\?/);
-assert.match(addressResilient,/confirmable=!requestedNumber\|\|numberMatches/);
 
 assert.match(mapSafe,/provider:'openstreetmap'/);
 assert.match(mapSafe,/driver_map_enabled/);
@@ -124,4 +127,4 @@ assert.match(permissions,/driver_map_enabled/);
 assert.match(permissions,/tenant\\\/online-drivers/);
 assert.match(sw,/RECOVERY_VERSION='14\.33\.2'/);
 
-console.log('ChegaJá 14.33.2: endereço com número exato e rota azul exclusiva do cooperado verificados.');
+console.log('ChegaJá 14.33.2: número digitado preservado, endereço confirmável e rota azul exclusiva do cooperado verificados.');
