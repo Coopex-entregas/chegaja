@@ -10,16 +10,16 @@ const driverLive=read('src/routes/driver-live.ts');
 const mapSafe=read('src/routes/map-safe.ts');
 const navigation=read('src/routes/platform-v32.ts');
 
-assert.match(index,/app-version" content="14\.33\.17"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.17&recovery=143317/);
-assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.17&recovery=143317/);
+assert.match(index,/app-version" content="14\.33\.18"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.18&recovery=143318/);
+assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.18&recovery=143318/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.17/);
+assert.match(driver,/ChegaJá 14\.33\.18/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
-assert.match(driver,/setInterval\(fire,3400\)/);
+assert.match(driver,/setInterval\(fire,3000\)/);
 assert.doesNotMatch(driver,/offerAlertCount>=6/);
 assert.match(driver,/forceDriverHome/);
 assert.match(driver,/if\(!isHome\(\)&&\(offerRequired\(item\)\|\|changed\)\)await forceDriverHome\(\)/);
@@ -46,4 +46,16 @@ assert.match(operational,/R\.timer=setTimeout\(tick,6000\)/);
 assert.match(driverLive,/Finalize ou resolva suas entregas ativas antes de ficar offline/);
 assert.match(mapSafe,/d\.current_lat IS NOT NULL AND d\.current_lng IS NOT NULL/);
 assert.match(navigation,/platformV32Routes\.post\('\/v32\/driver\/sos'/);
-console.log('ChegaJá 14.33.17: painel único, oferta full-screen, navegação após aceite e GPS contínuo validados.');
+
+assert.match(driver,/cj217-offer-screen/);
+assert.match(driver,/function renderOfferScreen/);
+assert.match(driver,/cj217-offer-accept/);
+assert.match(driver,/cj217-offer-decline/);
+assert.match(driver,/setInterval\(fire,3000\)/);
+assert.match(driver,/c\.__cjPrimed/);
+assert.match(driverCss,/#cj217-offer-screen\{position:fixed!important;inset:0!important;z-index:2147483000!important/);
+assert.match(driverCss,/#cj217-offer-decline\{background:#d92525!important\}/);
+assert.match(driverCss,/#cj217-offer-accept\{background:#16a34a!important\}/);
+assert.match(driverCss,/body\.cj217-pending-offer #toast-container/);
+
+console.log('ChegaJá 14.33.18: painel único, oferta full-screen, navegação após aceite e GPS contínuo validados.');
