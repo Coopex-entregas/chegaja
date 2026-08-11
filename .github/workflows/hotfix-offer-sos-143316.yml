@@ -19,6 +19,9 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Instalar dependências
+        run: npm ci --ignore-scripts
+
       - name: Aplicar correção 14.33.20
         run: python3 scripts/consolidate-driver-143317.py
 
