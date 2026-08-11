@@ -51,9 +51,13 @@ mapSafeRoutes.get('/map/drivers', async c => {
         ? schedule_location
       FROM drivers d
       WHERE d.cooperative_id=? AND d.deleted_at IS NULL AND d.status='active'
-        AND EXISTS(SELECT 1 FROM schedules s WHERE s.driver_id=d.id AND s.establishment_id=? AND s.deleted_at IS NULL AND s.status IN ('scheduled','confirmed') AND date(s.start_at)=date('now','-3 hours'))
+        AND d.current_lat IS NOT NULL AND d.current_lng IS NOT NULL
+        AND (
+          EXISTS(SELECT 1 FROM schedules s WHERE s.driver_id=d.id AND s.establishment_id=? AND s.deleted_at IS NULL AND s.status IN ('scheduled','confirmed') AND date(s.start_at)=date('now','-3 hours'))
+          OR EXISTS(SELECT 1 FROM deliveries dl WHERE dl.assigned_driver_id=d.id AND dl.establishment_id=? AND dl.deleted_at IS NULL AND dl.status IN ('assigned','accepted','to_pickup','at_pickup','picked_up','in_route','problem'))
+        )
       ORDER BY online DESC,d.location_updated_at DESC,d.name LIMIT 300`)
-      .bind(String(establishment.name||''),auth.establishmentId,auth.establishmentId,String(establishment.name||''),auth.cooperativeId,auth.establishmentId).all<Row>();
+      .bind(String(establishment.name||''),auth.establishmentId,auth.establishmentId,String(establishment.name||''),auth.cooperativeId,auth.establishmentId,auth.establishmentId).all<Row>();
     return c.json({ok:true,items:rows.results||[],location_allowed:true});
   }
   let sql=`SELECT d.id,d.cooperative_id,d.name,d.photo_url,d.phone,d.vehicle_model,d.vehicle_plate,
