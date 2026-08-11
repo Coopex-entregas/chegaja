@@ -1,0 +1,37 @@
+name: Aplicar hotfix oferta e SOS 14.33.16
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/hotfix-offer-sos-143316.mjs'
+      - '.github/workflows/hotfix-offer-sos-143316.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  hotfix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Baixar código
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Preparar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Aplicar correção
+        run: node scripts/hotfix-offer-sos-143316.mjs
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then
+            echo "Sem alterações pendentes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css public/chegaja-v205-driver-fixes.js public/index.html scripts/test-v14153-logo-google-maps.mjs
+          git commit -m "fix: oferta tela cheia toque contínuo e sos 14.33.16"
+          git push origin HEAD:main
