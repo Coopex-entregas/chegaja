@@ -14,7 +14,7 @@ const MODULES = [
 
 async function targetUser(c:any,userId:string){
   const auth=c.get('auth');assertRole(auth,['platform_admin','cooperative_admin']);
-  const user=await c.env.DB.prepare(`SELECT id,name,email,role,status,cooperative_id FROM users WHERE id=? AND deleted_at IS NULL`).bind(userId).first<Row>();
+  const user=(await c.env.DB.prepare(`SELECT id,name,email,role,status,cooperative_id FROM users WHERE id=? AND deleted_at IS NULL`).bind(userId).first()) as Row|null;
   if(!user)return null;
   if(auth.role!=='platform_admin'&&auth.cooperativeId!==user.cooperative_id)return null;
   if(['platform_admin','driver','establishment'].includes(String(user.role)))return {...user,permissions_locked:1};

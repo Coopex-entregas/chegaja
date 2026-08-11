@@ -36,19 +36,28 @@ platformV27Routes.get('/v27/base/live-map', async c => {
     ), driver_state AS (
       SELECT d.id,d.name,d.phone,d.photo_url,d.vehicle_model,d.vehicle_plate,d.current_lat,d.current_lng,
         d.location_accuracy,d.location_updated_at,d.last_seen_at,
-        CASE WHEN d.online=1 AND datetime(d.last_seen_at)>=datetime('now','-10 minutes') THEN 1 ELSE 0 END online,
+        CASE WHEN d.online=1 THEN 1 ELSE 0 END online,
+        CASE WHEN d.last_seen_at IS NOT NULL AND datetime(d.last_seen_at)>=datetime('now','-10 minutes') THEN 1 ELSE 0 END heartbeat_fresh,
         q.id queue_id,q.arrived_at,q.queue_order,q.queue_position,
         CASE WHEN EXISTS(SELECT 1 FROM schedules s WHERE s.driver_id=d.id AND s.base_id=? AND s.deleted_at IS NULL
           AND s.status IN ('scheduled','confirmed') AND date(s.start_at)=date('now','-3 hours')) THEN 1 ELSE 0 END scheduled_here,
+        (SELECT s.start_at FROM schedules s WHERE s.driver_id=d.id AND s.base_id=? AND s.deleted_at IS NULL
+          AND s.status IN ('scheduled','confirmed') AND date(s.start_at)=date('now','-3 hours') ORDER BY s.start_at LIMIT 1) schedule_start,
+        (SELECT s.end_at FROM schedules s WHERE s.driver_id=d.id AND s.base_id=? AND s.deleted_at IS NULL
+          AND s.status IN ('scheduled','confirmed') AND date(s.start_at)=date('now','-3 hours') ORDER BY s.start_at LIMIT 1) schedule_end,
         (SELECT COUNT(*) FROM deliveries x WHERE x.assigned_driver_id=d.id AND x.base_id=? AND x.deleted_at IS NULL
-          AND x.status NOT IN ('delivered','cancelled')) active_delivery_count
+          AND x.status NOT IN ('delivered','cancelled')) active_delivery_count,
+        (SELECT x.display_code FROM deliveries x WHERE x.assigned_driver_id=d.id AND x.base_id=? AND x.deleted_at IS NULL
+          AND x.status NOT IN ('delivered','cancelled') ORDER BY x.created_at LIMIT 1) active_delivery_code,
+        (SELECT x.status FROM deliveries x WHERE x.assigned_driver_id=d.id AND x.base_id=? AND x.deleted_at IS NULL
+          AND x.status NOT IN ('delivered','cancelled') ORDER BY x.created_at LIMIT 1) active_delivery_status
       FROM drivers d LEFT JOIN queue_here q ON q.driver_id=d.id
       WHERE d.cooperative_id=? AND d.status='active' AND d.deleted_at IS NULL
     )
-    SELECT * FROM driver_state
+    SELECT *,? schedule_location FROM driver_state
     WHERE online=1 OR queue_id IS NOT NULL OR scheduled_here=1 OR active_delivery_count>0
     ORDER BY CASE WHEN queue_position IS NULL THEN 1 ELSE 0 END,queue_position,online DESC,name COLLATE NOCASE`)
-    .bind(auth.cooperativeId,baseId,baseId,baseId,auth.cooperativeId).all<Row>();
+    .bind(auth.cooperativeId,baseId,baseId,baseId,baseId,baseId,baseId,baseId,auth.cooperativeId,String(base.name||'Base')).all<Row>();
 
   return c.json({ok:true,base,items:rows.results||[]});
 });

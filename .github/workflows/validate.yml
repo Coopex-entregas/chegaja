@@ -36,7 +36,7 @@ jobs:
           set +e
           npx tsc --noEmit 2>&1 | tee /tmp/tsc.log
           set -e
-          if grep -E 'src/(lib/platform-config\.ts|lib/permissions\.ts|routes/map-safe\.ts|routes/platform-v32\.ts)' /tmp/tsc.log; then
+          if grep -E 'src/(lib/platform-config\.ts|lib/permissions\.ts|routes/(driver-live|map-safe|platform-v26|platform-v27|platform-v28|platform-v32|public-tracking-live)\.ts)' /tmp/tsc.log; then
             echo '::error::Erro TypeScript nos arquivos alterados.'
             exit 1
           fi

@@ -22,7 +22,7 @@ publicTrackingLiveRoutes.get('/tracking/:token', async c => {
       d.display_code,d.status,d.customer_name,d.recipient_name,d.pickup_address,d.pickup_lat,d.pickup_lng,
       d.pickup_apartment,d.pickup_complement,d.delivery_address,d.delivery_lat,d.delivery_lng,
       d.delivery_apartment,d.delivery_complement,d.notes,d.item_description,d.route_geometry,d.distance_meters,d.duration_seconds,
-      d.accepted_at,d.picked_up_at,d.delivered_at,d.updated_at,d.confirmation_code,d.confirmation_required,
+      d.created_at,d.accepted_at,d.picked_up_at,d.delivered_at,d.updated_at,d.confirmation_code,d.confirmation_required,
       d.finish_without_code_authorized,d.customer_chat_enabled,d.driver_call_enabled,d.cash_payment_location,d.payment_method,
       d.payment_status,d.completion_source,d.customer_confirmed_received_at,d.received_by_name,d.charge_cents,
       d.base_charge_cents,d.wait_charge_cents,d.cancellation_charge_cents,d.paid_cents,d.outstanding_cents,d.credit_used_cents,d.launched_by_name,d.created_by,
@@ -34,6 +34,14 @@ publicTrackingLiveRoutes.get('/tracking/:token', async c => {
       dr.name driver_name,dr.phone driver_phone,dr.vehicle_model,dr.vehicle_plate,dr.photo_url driver_photo_url,
       e.phone establishment_phone,e.email establishment_email,
       dr.current_lat driver_lat,dr.current_lng driver_lng,dr.location_updated_at,
+      (SELECT h.created_at FROM delivery_status_history h WHERE h.delivery_id=d.id AND h.new_status='at_pickup' ORDER BY h.created_at DESC LIMIT 1) pickup_arrived_at,
+      (SELECT h.created_at FROM delivery_status_history h WHERE h.delivery_id=d.id AND h.notes LIKE 'Chegada ao destino%' ORDER BY h.created_at DESC LIMIT 1) delivery_arrived_at,
+      CASE WHEN d.assigned_driver_id IS NULL THEN 0 ELSE (
+        SELECT COUNT(*) FROM deliveries q
+        WHERE q.assigned_driver_id=d.assigned_driver_id AND q.id<>d.id AND q.deleted_at IS NULL
+          AND q.status NOT IN ('delivered','cancelled')
+          AND datetime(COALESCE(q.accepted_at,q.created_at))<datetime(COALESCE(d.accepted_at,d.created_at))
+      ) END stops_before,
       r.id rating_id,u.name created_by_name
     FROM deliveries d
     JOIN establishments e ON e.id=d.establishment_id
@@ -80,10 +88,12 @@ publicTrackingLiveRoutes.get('/tracking/:token', async c => {
     delivery_apartment:item.delivery_apartment,delivery_complement:item.delivery_complement,
     notes:item.notes,item_description:item.item_description,
     route_geometry:routeGeometry,distance_meters:distanceMeters,duration_seconds:durationSeconds,
-    accepted_at:item.accepted_at,picked_up_at:item.picked_up_at,delivered_at:item.delivered_at,updated_at:item.updated_at,
+    accepted_at:item.accepted_at,pickup_arrived_at:item.pickup_arrived_at,picked_up_at:item.picked_up_at,
+    delivery_arrived_at:item.delivery_arrived_at,delivered_at:item.delivered_at,updated_at:item.updated_at,
+    stops_before:Math.max(0,Number(item.stops_before||0)),
     establishment_name:item.establishment_name,base_name:item.base_name,cooperative_name:item.cooperative_name,
     cooperative_phone:item.cooperative_phone,delivery_type:item.delivery_type,logo_url:item.logo_url,
-    primary_color:item.cooperative_color||'#721536',
+    primary_color:item.cooperative_color||'#0D45D8',
     driver_name:item.driver_name,driver_phone:item.driver_phone,vehicle_model:item.vehicle_model,
     vehicle_plate:item.vehicle_plate,driver_photo_url:item.driver_photo_url,
     establishment_phone:item.establishment_phone,establishment_email:item.establishment_email,

@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
   <meta name="theme-color" content="#0D45D8" />
   <meta name="description" content="ChegaJá — plataforma cooperativa de entregas, rastreamento, escalas e financeiro semanal." />
-  <meta name="app-version" content="14.32.1" />
+  <meta name="app-version" content="14.33.0" />
   <title>ChegaJá</title>
   <script>
   (()=>{
@@ -37,19 +37,14 @@
       const capture=()=>{const live=content.querySelector('#cj199-app');if(live)driverApp=live;return live};
       const restore=()=>{
         if(restoring||!active()||capture()||!driverApp)return;
-        restoring=true;
-        content.replaceChildren(driverApp);
-        requestAnimationFrame(()=>{
-          try{window.ChegaJaDriverMap?.map?.invalidateSize(false)}catch{}
-          restoring=false;
-        });
+        restoring=true;content.replaceChildren(driverApp);
+        requestAnimationFrame(()=>{try{window.ChegaJaDriverMap?.map?.invalidateSize(false)}catch{}restoring=false});
       };
       new MutationObserver(()=>{if(active()){if(!capture())restore()}else driverApp=null}).observe(content,{childList:true});
     };
     window.addEventListener('DOMContentLoaded',()=>{release();installDriverDomGuard()},{once:true});
     window.addEventListener('pageshow',()=>{release();installDriverDomGuard()});
-    window.addEventListener('error',release);
-    window.addEventListener('unhandledrejection',release);
+    window.addEventListener('error',release);window.addEventListener('unhandledrejection',release);
     window.addEventListener('load',hardenNetworkErrors,{once:true});
     setTimeout(release,1200);setTimeout(release,4500);setTimeout(hardenNetworkErrors,1800);
     if('serviceWorker' in navigator){navigator.serviceWorker.getRegistrations().then(items=>Promise.all(items.map(item=>item.unregister()))).catch(()=>{})}
@@ -66,39 +61,39 @@
     body.cj199-driver #cj199-map{display:block!important;visibility:visible!important;opacity:1!important}
     @supports not (height:100svh){body.cj199-driver,body.cj199-driver #app-shell,body.cj199-driver .app-body,body.cj199-driver #page-content,body.cj199-driver #cj199-app,body.cj199-driver #cj199-map{height:100vh!important;min-height:100vh!important;max-height:100vh!important}}
   </style>
-  <link rel="manifest" href="/manifest.webmanifest?recovery=14321" />
-  <link rel="icon" href="/icons/icon-official.png?recovery=14321" type="image/png" />
-  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css?recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-final.css?v=14.15.9&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v144.css?v=14.15.9&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v145.css?v=14.15.9&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v148.css?v=14.15.9&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v149.css?v=14.15.9&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-mobile-app.css?v=14.16.0&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-map-fallback.css?v=14.32.1&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v201-operational.css?v=14.32.1&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v203-client-rebuild.css?v=14.22.3&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v199-driver.css?v=14.29.6&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v205-driver-fixes.css?v=14.30.2&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v206-admin-fixes.css?v=14.22.3&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v207-client-uber.css?v=14.22.2&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v208-base-photo.css?v=14.22.6&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v222-driver-stability.css?v=14.29.7&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v223-driver-final.css?v=14.29.6&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v225-driver-polish.css?v=14.29.8&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v227-address-search.css?v=14.29.9&recovery=14321" />
-  <link rel="stylesheet" href="/chegaja-v217-driver-navigation.css?v=14.32.1&recovery=14321" />
+  <link rel="manifest" href="/manifest.webmanifest?recovery=14330" />
+  <link rel="icon" href="/icons/icon-official.png?recovery=14330" type="image/png" />
+  <link rel="stylesheet" href="/vendor/leaflet/leaflet.css?recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-final.css?v=14.15.9&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v144.css?v=14.15.9&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v145.css?v=14.15.9&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v148.css?v=14.15.9&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v149.css?v=14.15.9&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-mobile-app.css?v=14.16.0&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-map-fallback.css?v=14.33.0&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v201-operational.css?v=14.33.0&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v203-client-rebuild.css?v=14.22.3&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v199-driver.css?v=14.29.6&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v205-driver-fixes.css?v=14.30.2&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v206-admin-fixes.css?v=14.22.3&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v207-client-uber.css?v=14.22.2&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v208-base-photo.css?v=14.22.6&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v222-driver-stability.css?v=14.29.7&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v223-driver-final.css?v=14.29.6&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v225-driver-polish.css?v=14.29.8&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v227-address-search.css?v=14.29.9&recovery=14330" />
+  <link rel="stylesheet" href="/chegaja-v217-driver-navigation.css?v=14.33.0&recovery=14330" />
 </head>
 <body>
   <div id="auth-screen" class="auth-screen">
     <section class="auth-brand"><div class="auth-shape auth-shape-one"></div><div class="auth-shape auth-shape-two"></div>
-      <img class="brand-logo-large" src="/icons/logo-official.png?recovery=14321" alt="ChegaJá">
+      <img class="brand-logo-large" src="/icons/logo-official.png?recovery=14330" alt="ChegaJá">
       <div><p class="eyebrow">PLATAFORMA DE ENTREGAS</p><h1 id="auth-welcome-title">Bem-vindo ao ChegaJá</h1><p id="auth-welcome-subtitle">Entregas simples, rápidas e acompanhadas em tempo real.</p></div>
       <div class="auth-highlights"><span>Entrega em tempo real</span><span>Atendimento organizado</span><span>Gestão completa</span></div>
     </section>
     <section class="auth-panel">
       <form id="login-form" class="auth-card">
-        <div class="auth-login-logo"><img src="/icons/logo-official.png?recovery=14321" alt="ChegaJá"></div><div class="mobile-brand"><img class="brand-icon" src="/icons/icon-official.png?recovery=14321" alt=""><strong>ChegaJá</strong></div>
+        <div class="auth-login-logo"><img src="/icons/logo-official.png?recovery=14330" alt="ChegaJá"></div><div class="mobile-brand"><img class="brand-icon" src="/icons/icon-official.png?recovery=14330" alt=""><strong>ChegaJá</strong></div>
         <p class="eyebrow">Acesso seguro</p><h2>Entrar no sistema</h2>
         <label>Usuário ou e-mail<input name="login" autocomplete="username" required placeholder="seu@email.com" /></label>
         <label>Senha<div class="password-field"><input name="password" type="password" autocomplete="current-password" required placeholder="••••••••" /><button type="button" id="show-login-password" class="password-toggle">Mostrar</button></div></label>
@@ -111,11 +106,11 @@
     </section>
   </div>
   <div id="tracking-screen" class="tracking-screen hidden"></div>
-  <div id="customer-screen" class="customer-screen hidden"><div class="customer-shell"><header class="customer-header"><div class="sidebar-brand"><img class="brand-icon" src="/icons/icon-official.png?recovery=14321" alt=""><div><strong>ChegaJá</strong><small>Entregas e rastreamento</small></div></div><button class="btn" id="customer-back-login" type="button">Voltar ao acesso</button></header><main id="customer-content"></main></div></div>
-  <div id="app-shell" class="app-shell hidden"><aside class="sidebar" id="sidebar"><div class="sidebar-brand"><img class="brand-icon" src="/icons/icon-official.png?recovery=14321" alt=""><div><strong>ChegaJá</strong><small id="tenant-name">Gestão integrada</small></div></div><nav id="sidebar-nav"></nav><div class="sidebar-footer"><div class="user-mini"><div class="avatar" id="user-avatar">LG</div><div><strong id="user-name">Usuário</strong><small id="user-role">Perfil</small></div></div><button class="nav-item danger" id="logout-button" type="button"><span>↪</span>Sair</button></div></aside><div class="app-body"><header class="topbar"><div><p class="eyebrow" id="page-kicker">ChegaJá</p><h1 id="page-title">Visão geral</h1></div><div class="topbar-actions"><select id="master-coop-filter" class="master-coop-filter hidden" title="Cooperativa"></select><div id="online-control" class="online-control hidden"><span class="status-dot"></span><span id="online-label">Offline</span><button id="online-toggle" class="btn small">Ficar online</button></div><button class="v21-top-action hidden" id="v21-attendants" type="button">Atendentes</button><button class="v21-top-action hidden" id="v21-switch-attendant" type="button">Trocar atendente</button><button class="v21-top-action danger hidden" id="v21-logout" type="button">Sair</button><button class="icon-button" id="refresh-button" title="Atualizar">↻</button></div><button class="icon-button mobile-only" id="menu-button" aria-label="Abrir menu">☰</button></header><main id="page-content" class="page-content"></main></div></div>
+  <div id="customer-screen" class="customer-screen hidden"><div class="customer-shell"><header class="customer-header"><div class="sidebar-brand"><img class="brand-icon" src="/icons/icon-official.png?recovery=14330" alt=""><div><strong>ChegaJá</strong><small>Entregas e rastreamento</small></div></div><button class="btn" id="customer-back-login" type="button">Voltar ao acesso</button></header><main id="customer-content"></main></div></div>
+  <div id="app-shell" class="app-shell hidden"><aside class="sidebar" id="sidebar"><div class="sidebar-brand"><img class="brand-icon" src="/icons/icon-official.png?recovery=14330" alt=""><div><strong>ChegaJá</strong><small id="tenant-name">Gestão integrada</small></div></div><nav id="sidebar-nav"></nav><div class="sidebar-footer"><div class="user-mini"><div class="avatar" id="user-avatar">LG</div><div><strong id="user-name">Usuário</strong><small id="user-role">Perfil</small></div></div><button class="nav-item danger" id="logout-button" type="button"><span>↪</span>Sair</button></div></aside><div class="app-body"><header class="topbar"><div><p class="eyebrow" id="page-kicker">ChegaJá</p><h1 id="page-title">Visão geral</h1></div><div class="topbar-actions"><select id="master-coop-filter" class="master-coop-filter hidden" title="Cooperativa"></select><div id="online-control" class="online-control hidden"><span class="status-dot"></span><span id="online-label">Offline</span><button id="online-toggle" class="btn small">Ficar online</button></div><button class="v21-top-action hidden" id="v21-attendants" type="button">Atendentes</button><button class="v21-top-action hidden" id="v21-switch-attendant" type="button">Trocar atendente</button><button class="v21-top-action danger hidden" id="v21-logout" type="button">Sair</button><button class="icon-button" id="refresh-button" title="Atualizar">↻</button></div><button class="icon-button mobile-only" id="menu-button" aria-label="Abrir menu">☰</button></header><main id="page-content" class="page-content"></main></div></div>
   <div id="modal" class="modal hidden" role="dialog" aria-modal="true"><div class="modal-backdrop" aria-hidden="true"></div><div class="modal-card"><header><div><p class="eyebrow">ChegaJá</p><h2 id="modal-title">Formulário</h2></div><button class="icon-button" data-close-modal>×</button></header><div id="modal-body"></div></div></div>
   <div id="toast-container" class="toast-container"></div><div id="loading" class="loading hidden"><div class="spinner"></div><span>Carregando...</span></div>
-  <script src="/vendor/leaflet/leaflet.js?recovery=14321"></script><script src="/vendor/qrcode.js?recovery=14321"></script><script src="/chegaja-maps-leaflet.js?v=14.32.1&recovery=14321"></script>
-  <script src="/app.js?v=14.15.9&recovery=14321" defer></script><script src="/chegaja-v198-auth.js?v=14.22.0&recovery=14321" defer></script><script src="/chegaja-v208-base-photo.js?v=14.22.6&recovery=14321" defer></script><script src="/chegaja-final.js?v=14.15.9&recovery=14321" defer></script><script src="/chegaja-v144.js?v=14.15.9&recovery=14321" defer></script><script src="/chegaja-v145.js?v=14.15.9&recovery=14321" defer></script><script src="/chegaja-v148.js?v=14.15.9&recovery=14321" defer></script><script src="/chegaja-v149.js?v=14.15.9&recovery=14321" defer></script><script src="/chegaja-v201-operational.js?v=14.32.1&recovery=14321" defer></script><script src="/chegaja-v203-client-rebuild.js?v=14.22.3&recovery=14321" defer></script><script src="/chegaja-v205-driver-fixes.js?v=14.30.2&recovery=14321" defer></script><script src="/chegaja-v206-admin-fixes.js?v=14.22.3&recovery=14321" defer></script><script src="/chegaja-v207-client-uber.js?v=14.22.2&recovery=14321" defer></script><script src="/chegaja-v227-address-search.js?v=14.29.9&recovery=14321" defer></script><script src="/chegaja-v230-base-toast-filter.js?v=14.30.7&recovery=14321" defer></script><script src="/chegaja-v217-driver-navigation.js?v=14.32.1&recovery=14321" defer></script>
+  <script src="/vendor/leaflet/leaflet.js?recovery=14330"></script><script src="/vendor/qrcode.js?recovery=14330"></script><script src="/chegaja-maps-leaflet.js?v=14.33.0&recovery=14330"></script>
+  <script src="/app.js?v=14.15.9&recovery=14330" defer></script><script src="/chegaja-v198-auth.js?v=14.22.0&recovery=14330" defer></script><script src="/chegaja-v208-base-photo.js?v=14.22.6&recovery=14330" defer></script><script src="/chegaja-final.js?v=14.15.9&recovery=14330" defer></script><script src="/chegaja-v144.js?v=14.15.9&recovery=14330" defer></script><script src="/chegaja-v145.js?v=14.15.9&recovery=14330" defer></script><script src="/chegaja-v148.js?v=14.15.9&recovery=14330" defer></script><script src="/chegaja-v149.js?v=14.15.9&recovery=14330" defer></script><script src="/chegaja-v201-operational.js?v=14.33.0&recovery=14330" defer></script><script src="/chegaja-v203-client-rebuild.js?v=14.22.3&recovery=14330" defer></script><script src="/chegaja-v205-driver-fixes.js?v=14.30.2&recovery=14330" defer></script><script src="/chegaja-v206-admin-fixes.js?v=14.22.3&recovery=14330" defer></script><script src="/chegaja-v207-client-uber.js?v=14.22.2&recovery=14330" defer></script><script src="/chegaja-v227-address-search.js?v=14.29.9&recovery=14330" defer></script><script src="/chegaja-v230-base-toast-filter.js?v=14.30.7&recovery=14330" defer></script><script src="/chegaja-v217-driver-navigation.js?v=14.33.0&recovery=14330" defer></script>
 </body>
 </html>
