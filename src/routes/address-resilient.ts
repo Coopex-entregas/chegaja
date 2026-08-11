@@ -7,6 +7,13 @@ import { cleanText } from '../lib/util';
 export const addressResilientRoutes = new Hono<AppBindings>();
 type Row = Record<string, any>;
 
+type AddressResult = AddressCandidate & {
+ confirmable:boolean;
+ confirmation_token:string|null;
+ number_source:'provider'|'typed';
+ approximate_number:boolean;
+};
+
 const norm=(value:unknown)=>String(value||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();
 const houseKey=(value:unknown)=>norm(value).replace(/[^a-z0-9]/g,'');
 function requestedHouseNumber(query:string){
@@ -19,6 +26,11 @@ function withoutHouseNumber(query:string,number:string){
  return query.replace(new RegExp(`(?:,\\s*|\\s+)${number.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')}\\s*(?=,|$)`,'i'),' ').replace(/\s*,\s*,/g,',').replace(/\s{2,}/g,' ').replace(/^\s*,|,\s*$/g,'').trim();
 }
 function exactNumber(candidate:AddressCandidate,number:string){return !number||houseKey(candidate.number)===houseKey(number);}
+function withTypedNumber(candidate:AddressCandidate,number:string):AddressCandidate{
+ const street=String(candidate.street||candidate.place_name||'').trim();
+ const formatted=[street?`${street}, ${number}`:number,candidate.neighborhood,candidate.city,candidate.state_code||candidate.state,candidate.postal_code,candidate.country||'Brasil'].filter(Boolean).join(', ');
+ return {...candidate,number,formatted_address:formatted,display_name:formatted,exact_number:false,precision:candidate.precision==='rooftop'?'street':candidate.precision};
+}
 
 async function defaults(c:Context<AppBindings>,body:Row){
  if(body.base_id){
@@ -54,6 +66,7 @@ function candidateFromNominatim(item:any,query:string,city:string,state:string):
 async function nominatim(c:Context<AppBindings>,query:string,city:string,state:string,houseNumber=''):Promise<AddressCandidate[]>{
  const endpoint=c.env.GEOCODER_URL||'https://nominatim.openstreetmap.org/search';
  const urls:URL[]=[];
+ const addCommon=(url:URL)=>{url.searchParams.set('countrycodes','br');url.searchParams.set('format','jsonv2');url.searchParams.set('addressdetails','1');url.searchParams.set('namedetails','1');url.searchParams.set('limit','10');url.searchParams.set('dedupe','1');urls.push(url)};
  if(houseNumber){
   const road=withoutHouseNumber(query,houseNumber);
   const structured=new URL(endpoint);
@@ -61,14 +74,16 @@ async function nominatim(c:Context<AppBindings>,query:string,city:string,state:s
   if(city)structured.searchParams.set('city',city);
   if(state)structured.searchParams.set('state',state);
   structured.searchParams.set('country','Brasil');
-  structured.searchParams.set('countrycodes','br');structured.searchParams.set('format','jsonv2');structured.searchParams.set('addressdetails','1');structured.searchParams.set('namedetails','1');structured.searchParams.set('limit','10');structured.searchParams.set('dedupe','1');
-  urls.push(structured);
+  addCommon(structured);
+  for(const text of [`${road}, ${houseNumber}`,`${houseNumber} ${road}`,query]){
+   const exact=new URL(endpoint);exact.searchParams.set('q',[text,city,state,'Brasil'].filter(Boolean).join(', '));addCommon(exact);
+  }
+ }else{
+  const free=new URL(endpoint);free.searchParams.set('q',[query,city,state,'Brasil'].filter(Boolean).join(', '));addCommon(free);
  }
- const free=new URL(endpoint);
- free.searchParams.set('q',[query,city,state,'Brasil'].filter(Boolean).join(', '));free.searchParams.set('countrycodes','br');free.searchParams.set('format','jsonv2');free.searchParams.set('addressdetails','1');free.searchParams.set('namedetails','1');free.searchParams.set('limit','10');free.searchParams.set('dedupe','1');urls.push(free);
  const items:AddressCandidate[]=[];
  for(const url of urls){
-  let response:Response;try{response=await fetch(url.toString(),{headers:{'User-Agent':'ChegaJa/14.33 contato@chegaja.app','Accept-Language':'pt-BR'}})}catch{continue}
+  let response:Response;try{response=await fetch(url.toString(),{headers:{'User-Agent':'ChegaJa/14.33.3 contato@chegaja.app','Accept-Language':'pt-BR'}})}catch{continue}
   if(!response.ok)continue;
   const payload=await response.json<any[]>().catch(()=>[]);
   for(const item of payload||[]){const candidate=candidateFromNominatim(item,query,city,state);if(candidate)items.push(candidate)}
@@ -91,9 +106,13 @@ addressResilientRoutes.post('/address/autocomplete',async c=>{
  const unique=new Map<string,AddressCandidate>();
  for(const candidate of found){const key=`${candidate.lat.toFixed(6)}:${candidate.lng.toFixed(6)}`;if(!unique.has(key))unique.set(key,candidate)}
  const ordered=[...unique.values()].sort((a,b)=>Number(exactNumber(b,requestedNumber))-Number(exactNumber(a,requestedNumber))||Number(b.exact_city)-Number(a.exact_city)||Number(b.precision==='rooftop')-Number(a.precision==='rooftop'));
- const items=await Promise.all(ordered.slice(0,8).map(async candidate=>{
-  const numberMatches=exactNumber(candidate,requestedNumber),confirmable=!requestedNumber||numberMatches;
-  return {...candidate,exact_number:requestedNumber?numberMatches:candidate.exact_number,confirmable,confirmation_token:confirmable?await makeAddressConfirmationToken(c.env,candidate,base.cooperativeId||null):null};
+ const items:AddressResult[]=await Promise.all(ordered.slice(0,8).map(async candidate=>{
+  const numberMatches=exactNumber(candidate,requestedNumber);
+  const preserveTypedNumber=Boolean(requestedNumber&&!numberMatches);
+  const effective=preserveTypedNumber?withTypedNumber(candidate,requestedNumber):candidate;
+  const confirmable=Boolean(Number.isFinite(effective.lat)&&Number.isFinite(effective.lng)&&effective.exact_state&&(!requestedNumber||numberMatches||preserveTypedNumber));
+  return {...effective,exact_number:requestedNumber?numberMatches:candidate.exact_number,confirmable,number_source:numberMatches?'provider':preserveTypedNumber?'typed':'provider',approximate_number:preserveTypedNumber,confirmation_token:confirmable?await makeAddressConfirmationToken(c.env,effective,base.cooperativeId||null):null};
  }));
- return c.json({ok:true,items,locality:city?`${city}/${state}`:`Rio Grande do Norte/${state}`,scope:city?'city':'state',requested_number:requestedNumber||null,exact_number_required:Boolean(requestedNumber),exact_number_found:requestedNumber?items.some(item=>item.confirmable):true,fallback:items.some(item=>item.provider==='nominatim')});
+ const exactFound=requestedNumber?items.some(item=>item.exact_number&&houseKey(item.number)===houseKey(requestedNumber)):true;
+ return c.json({ok:true,items,locality:city?`${city}/${state}`:`Rio Grande do Norte/${state}`,scope:city?'city':'state',requested_number:requestedNumber||null,exact_number_required:Boolean(requestedNumber),exact_number_found:exactFound,typed_number_preserved:Boolean(requestedNumber&&!exactFound&&items.some(item=>item.confirmable)),fallback:items.some(item=>item.provider==='nominatim')});
 });
