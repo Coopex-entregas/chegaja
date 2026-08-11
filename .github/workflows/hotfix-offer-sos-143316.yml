@@ -1,4 +1,4 @@
-name: Consolidar navegação do cooperado 14.33.19
+name: Consolidar painel único do cooperado 14.33.20
 
 on:
   push:
@@ -18,28 +18,36 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      - name: Aplicar correção
+
+      - name: Aplicar correção 14.33.20
         run: python3 scripts/consolidate-driver-143317.py
-      - name: Validar JavaScript principal
+
+      - name: Validar JavaScript e TypeScript
         run: |
           node --check public/chegaja-v217-driver-navigation.js
-          node --check public/app.js
-          node --check public/chegaja-v201-operational.js
-      - name: Validar retorno ao mapa e rota
+          node --check public/chegaja-final.js
+          npx tsc --noEmit
+
+      - name: Validar oferta única e navegação
         run: |
-          grep -q 'ChegaJá 14.33.19' public/chegaja-v217-driver-navigation.js
-          grep -q '__CJ_DRIVER_LEAFLET_143319__=true' public/chegaja-v217-driver-navigation.js
-          grep -q 'oldDeliveries' public/chegaja-v217-driver-navigation.js
-          grep -q "page==='deliveries'" public/chegaja-v217-driver-navigation.js
-          grep -q 'await forceDriverHome()' public/chegaja-v217-driver-navigation.js
+          grep -q 'ChegaJá 14.33.20' public/chegaja-v217-driver-navigation.js
+          grep -q '__CJ_DRIVER_LEAFLET_143320__=true' public/chegaja-v217-driver-navigation.js
+          grep -q "status==='offered'||status==='assigned'" public/chegaja-v217-driver-navigation.js
+          grep -q 'nav.next?.lat' public/chegaja-v217-driver-navigation.js
+          grep -q 'acceptedStatus=' public/chegaja-v217-driver-navigation.js
           grep -q 'pts=\[{...origin},{...target}\]' public/chegaja-v217-driver-navigation.js
-          grep -q 'zIndexOffset:5000' public/chegaja-v217-driver-navigation.js
-          grep -q 'navegação sempre visível' public/chegaja-v217-driver-navigation.css
-          grep -q 'app-version" content="14.33.19"' public/index.html
-          grep -q 'chegaja-v217-driver-navigation.js?v=14.33.19&recovery=143319' public/index.html
-          grep -q 'chegaja-v217-driver-navigation.css?v=14.33.19&recovery=143319' public/index.html
+          grep -q "item.status==='assigned'&&item.assigned_driver_id===driverId" src/routes/platform-v28.ts
+          ! grep -q 'Nova entrega — toque em Aceitar' public/chegaja-final.js
+          grep -q "delivery_assigned'){stopRing();continue;" public/chegaja-final.js
+          grep -q 'sem balão legado' public/chegaja-v217-driver-navigation.css
+          grep -q 'app-version" content="14.33.20"' public/index.html
+          grep -q 'chegaja-v217-driver-navigation.js?v=14.33.20&recovery=143320' public/index.html
+          grep -q 'chegaja-v217-driver-navigation.css?v=14.33.20&recovery=143320' public/index.html
+          grep -q 'chegaja-final.js?v=14.33.20&recovery=143320' public/index.html
+
       - name: Rodar teste regressivo
         run: node scripts/test-v14153-logo-google-maps.mjs
+
       - name: Gravar na main
         run: |
           if git diff --quiet; then
@@ -48,6 +56,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: aceitar volta ao mapa com seta e rota 14.33.19"
+          git add public/index.html public/chegaja-final.js public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v28.ts scripts/test-v14153-logo-google-maps.mjs
+          git commit -m "fix: oferta full-screen única e rota coleta entrega 14.33.20"
           git push origin HEAD:main
