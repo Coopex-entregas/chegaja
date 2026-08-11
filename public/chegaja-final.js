@@ -3141,11 +3141,10 @@ const v9Closings=pages.closings;pages.closings=async function(){if(['cooperative
     });
     navigator.vibrate?.([420,130,420,600]);
   }
-  function ringBanner(){let el=$id('chegaja-ringing');if(!el){el=document.createElement('div');el.id='chegaja-ringing';el.className='chegaja-ringing';el.textContent='☎ Nova entrega — toque em Aceitar';document.body.append(el)}return el}
+  function ringBanner(){return null}
   function startRing(deliveryId){
-    if(state?.user?.role!=='driver')return;
-    if(CJ.ringDeliveryId===deliveryId&&CJ.ringTimer)return;
-    stopRing();CJ.ringDeliveryId=deliveryId||'assigned';ringBanner();oldPhoneBurst();CJ.ringTimer=setInterval(oldPhoneBurst,2400);
+    stopRing();
+    return;
   }
   function stopRing(){if(CJ.ringTimer)clearInterval(CJ.ringTimer);CJ.ringTimer=null;CJ.ringDeliveryId=null;$id('chegaja-ringing')?.remove();navigator.vibrate?.(0)}
   document.addEventListener('pointerdown',()=>audio(),{once:true});
@@ -3160,7 +3159,7 @@ const v9Closings=pages.closings;pages.closings=async function(){if(['cooperative
         const data=await api(`/api/app/v6/notifications?after=${v6.notificationCursor}`);
         v6.notificationCursor=Math.max(v6.notificationCursor,Number(data.cursor||0));
         for(const item of data.items||[]){
-          if(state.user.role==='driver'&&item.event_type==='delivery_assigned')startRing(item.delivery_id);
+          if(state.user.role==='driver'&&item.event_type==='delivery_assigned'){stopRing();continue;}
           if(state.user.role==='driver'&&['delivery_accepted','delivery_unassigned','delivery_cancelled','delivery_completed'].includes(item.event_type))stopRing();
           const soundName=eventSound(item.event_type);
           if(!(state.user.role==='driver'&&item.event_type==='delivery_assigned'))await sound.play(soundName);

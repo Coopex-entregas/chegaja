@@ -38,7 +38,8 @@ async function delivery(c:any,deliveryId:string,cooperativeId:string):Promise<Ro
 }
 function needsAcceptance(item:Row,driverId:string){
   if(item.status==='offered'&&!item.assigned_driver_id)return true;
-  return item.assigned_driver_id===driverId&&!item.accepted_at&&['assigned','accepted','to_pickup','at_pickup'].includes(String(item.status));
+  if(item.status==='assigned'&&item.assigned_driver_id===driverId)return true;
+  return item.assigned_driver_id===driverId&&!item.accepted_at&&['accepted','to_pickup','at_pickup'].includes(String(item.status));
 }
 platformV28Routes.get('/v28/driver/calls/:id',async c=>{
   const auth=c.get('auth');assertRole(auth,['driver']);
@@ -79,8 +80,8 @@ platformV28Routes.post('/v28/driver/calls/:id/accept',async c=>{
   let lat=Number(body.latitude),lng=Number(body.longitude);if(!validPoint(lat,lng)){lat=Number(driver.current_lat);lng=Number(driver.current_lng);}
   let nextStatus='accepted',distanceToPickup:null|number=null;
   if(validPoint(lat,lng)&&validPoint(Number(item.pickup_lat),Number(item.pickup_lng))){distanceToPickup=distanceMeters(lat,lng,Number(item.pickup_lat),Number(item.pickup_lng));nextStatus=distanceToPickup<=100?'at_pickup':'to_pickup';}
-  const result=await c.env.DB.prepare(`UPDATE deliveries SET assigned_driver_id=?,status=?,accepted_at=CURRENT_TIMESTAMP,assignment_source=CASE WHEN status='offered' THEN 'offer_live' ELSE assignment_source END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND cooperative_id=? AND accepted_at IS NULL AND ((status='offered' AND assigned_driver_id IS NULL) OR (assigned_driver_id=? AND status IN ('assigned','accepted','to_pickup','at_pickup')))`)
-    .bind(auth.driverId,nextStatus,item.id,auth.cooperativeId,auth.driverId).run();
+  const result=await c.env.DB.prepare(`UPDATE deliveries SET assigned_driver_id=?,status=?,accepted_at=CURRENT_TIMESTAMP,assignment_source=CASE WHEN status='offered' THEN 'offer_live' ELSE assignment_source END,updated_at=CURRENT_TIMESTAMP WHERE id=? AND cooperative_id=? AND ((status='offered' AND assigned_driver_id IS NULL AND accepted_at IS NULL) OR (status='assigned' AND assigned_driver_id=?) OR (assigned_driver_id=? AND accepted_at IS NULL AND status IN ('accepted','to_pickup','at_pickup')))`)
+    .bind(auth.driverId,nextStatus,item.id,auth.cooperativeId,auth.driverId,auth.driverId).run();
   if(!result.meta.changes)return c.json({ok:false,error:'Outro cooperado aceitou primeiro.'},409);
   const message=customerMessage(nextStatus);
   await c.env.DB.batch([

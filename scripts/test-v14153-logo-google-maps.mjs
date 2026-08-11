@@ -9,14 +9,16 @@ const operational=read('public/chegaja-v201-operational.js');
 const driverLive=read('src/routes/driver-live.ts');
 const mapSafe=read('src/routes/map-safe.ts');
 const navigation=read('src/routes/platform-v32.ts');
+const v28=read('src/routes/platform-v28.ts');
+const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.19"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.19&recovery=143319/);
-assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.19&recovery=143319/);
+assert.match(index,/app-version" content="14\.33\.20"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.20&recovery=143320/);
+assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.20&recovery=143320/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.19/);
+assert.match(driver,/ChegaJá 14\.33\.20/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,3000\)/);
@@ -35,6 +37,13 @@ assert.match(driver,/\/api\/app\/v32\/driver\/sos/);
 assert.match(driver,/id="cj217-sos"/);
 assert.match(driver,/router\.project-osrm\.org/);
 assert.match(driver,/const NAV_ZOOM=18\.5/);
+assert.match(driver,/status==='offered'\|\|status==='assigned'/);
+assert.match(driver,/nav\.next\?\.lat/);
+assert.match(driver,/acceptedStatus=\['accepted','to_pickup'/);
+assert.doesNotMatch(finalJs,/Nova entrega — toque em Aceitar/);
+assert.match(finalJs,/delivery_assigned'\)\{stopRing\(\);continue;/);
+assert.match(v28,/item\.status==='assigned'.*return true/);
+assert.match(index,/chegaja-final\.js\?v=14\.33\.20&recovery=143320/);
 
 assert.match(driverCss,/ÚNICA folha do painel do cooperado/);
 assert.match(driverCss,/body\.cj217-active-delivery #cj199-start\{display:none!important/);
@@ -61,4 +70,4 @@ assert.match(driverCss,/#cj217-offer-decline\{background:#d92525!important\}/);
 assert.match(driverCss,/#cj217-offer-accept\{background:#16a34a!important\}/);
 assert.match(driverCss,/body\.cj217-pending-offer #toast-container/);
 
-console.log('ChegaJá 14.33.19: aceite retorna ao mapa, seta e rota validados.');
+console.log('ChegaJá 14.33.20: oferta full-screen única, aceite e rota coleta/entrega validados.');
