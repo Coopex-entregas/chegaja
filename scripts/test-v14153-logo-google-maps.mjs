@@ -13,9 +13,9 @@ const mapSafe=read('src/routes/map-safe.ts');
 const appIndex=read('src/index.ts');
 const navigation=read('src/routes/platform-v32.ts');
 
-assert.match(index,/app-version" content="14\.33\.11"/);
+assert.match(index,/app-version" content="14\.33\.12"/);
 assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.10&recovery=143310/);
-assert.match(index,/chegaja-v230-base-toast-filter\.js\?v=14\.33\.11&recovery=143311/);
+assert.match(index,/chegaja-v230-base-toast-filter\.js\?v=14\.33\.12&recovery=143312/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.9&recovery=14339/);
 assert.doesNotMatch(index,/chegaja-v232-navigation-final/);
 assert.doesNotMatch(index,/cj217-active-delivery #cj199-start\[hidden\]/);
@@ -36,16 +36,20 @@ assert.match(driver,/GOOGLE MAPS/);
 assert.match(driver,/router\.project-osrm\.org/);
 assert.doesNotMatch(driver,/chegaja-v232/i);
 
-assert.match(stabilizer,/ChegaJá 14\.33\.11/);
+assert.match(stabilizer,/ChegaJá 14\.33\.12/);
+assert.match(stabilizer,/driverPanelVisible=.*#cj199-start/);
+assert.doesNotMatch(stabilizer,/state\?\.page==='dashboard'/);
+assert.match(stabilizer,/const tapPositionPromise=requestPositionFromTap\(\)/);
 assert.match(stabilizer,/event\.stopImmediatePropagation\(\)/);
 assert.match(stabilizer,/button\.removeAttribute\('disabled'\)/);
 assert.match(stabilizer,/watchPosition/);
-assert.match(stabilizer,/enableHighAccuracy:true,maximumAge:30000,timeout:30000/);
-assert.match(stabilizer,/enableHighAccuracy:false,maximumAge:120000,timeout:7000/);
-assert.match(stabilizer,/TIMEOUT\/posição temporariamente indisponível não encerram o rastreamento/);
-assert.match(stabilizer,/Promise\.any\(attempts\)/);
-assert.match(stabilizer,/Durante entrega ativa nunca permite ficar offline/);
-assert.match(stabilizer,/GPS ligado\. Aguardando o celular atualizar sua posição\./);
+assert.match(stabilizer,/getCurrentPosition/);
+assert.match(stabilizer,/enableHighAccuracy:true,maximumAge:60000,timeout:60000/);
+assert.match(stabilizer,/enableHighAccuracy:false,maximumAge:180000,timeout:8000/);
+assert.match(stabilizer,/TIMEOUT e indisponibilidade temporária NÃO desligam o rastreamento/);
+assert.match(stabilizer,/Promise\.any\(\[tapPromise,waitForWatchPosition\(15000\)\]\)/);
+assert.match(stabilizer,/Entrega ativa: nunca fica offline/);
+assert.match(stabilizer,/Localização atualizada\. Rastreamento ativo\./);
 assert.match(stabilizer,/\/api\/app\/map\/location/);
 assert.match(stabilizer,/\/api\/app\/driver\/online/);
 
@@ -64,4 +68,4 @@ assert.match(mapSafe,/d\.current_lat IS NOT NULL AND d\.current_lng IS NOT NULL/
 assert.doesNotMatch(appIndex,/UPDATE drivers SET online=0 WHERE online=1 AND datetime\(last_seen_at\)/);
 assert.match(navigation,/platformV32Routes\.post\('\/v32\/driver\/sos'/);
 
-console.log('ChegaJá 14.33.11: botão sempre clicável, GPS resiliente e rastreamento contínuo verificados.');
+console.log('ChegaJá 14.33.12: clique inicia GPS imediatamente, botão online/offline e rastreamento contínuo verificados.');
