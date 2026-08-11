@@ -1,36 +1,41 @@
-/* ChegaJá 14.33.5 — mantém o botão circular aprovado e reforça o SOS */
+/* ChegaJá 14.33.6 — botão online médio, bloqueado em entrega ativa */
 #cj222-portrait-lock,body.cj222-landscape-blocked #cj222-portrait-lock{display:none!important}
 body.cj222-landscape-blocked{overflow:hidden!important}
 
-/* O botão de online permanece sempre no modelo circular escolhido. */
+/* Mantém o modelo circular escolhido, porém menor e sem trocar por botão retangular. */
 body.cj199-driver #cj199-start,
 body.cj199-driver.cj217-active-delivery #cj199-start,
 body.cj199-driver #cj199-start.compact{
-  display:block!important;
+  display:grid!important;
+  place-items:center!important;
   position:absolute!important;
   z-index:32!important;
   left:50%!important;
   right:auto!important;
-  bottom:126px!important;
+  bottom:120px!important;
   transform:translateX(-50%)!important;
-  width:134px!important;
-  height:134px!important;
-  min-height:134px!important;
-  border:10px solid rgba(255,255,255,.96)!important;
+  width:106px!important;
+  height:106px!important;
+  min-width:106px!important;
+  min-height:106px!important;
+  padding:0!important;
+  border:7px solid rgba(255,255,255,.97)!important;
   border-radius:50%!important;
   background:#0d45d8!important;
   color:#fff!important;
-  box-shadow:0 12px 34px #0d214f44,0 0 0 5px #0a2f96!important;
-  font-size:22px!important;
+  box-shadow:0 9px 26px #0d214f3b,0 0 0 4px #0a2f96!important;
+  font-size:16px!important;
   font-weight:950!important;
   letter-spacing:.04em!important;
+  line-height:1!important;
   opacity:1!important;
 }
 body.cj199-driver #cj199-start.online,
 body.cj199-driver.cj217-active-delivery #cj199-start.online{
   background:#ff7a00!important;
-  box-shadow:0 12px 34px #ff7a0044,0 0 0 5px #0d45d8!important;
+  box-shadow:0 9px 26px #ff7a0038,0 0 0 4px #0d45d8!important;
 }
+body.cj199-driver.cj217-active-delivery #cj199-start[data-cj232-locked="1"]{cursor:default!important}
 body.cj199-driver #cj199-start:disabled{opacity:1!important;filter:none!important}
 
 #cj232-sos-menu{color:#b4232d!important;font-weight:950!important}
@@ -39,11 +44,7 @@ body.cj199-driver #cj199-start:disabled{opacity:1!important;filter:none!importan
 #cj232-feedback.show{opacity:1;transform:none}#cj232-feedback.error{background:#b4232d}
 
 @media(max-width:390px){
- body.cj199-driver #cj199-start,
- body.cj199-driver.cj217-active-delivery #cj199-start,
- body.cj199-driver #cj199-start.compact{
-   width:112px!important;height:112px!important;min-height:112px!important;bottom:120px!important;font-size:18px!important;border-width:8px!important
- }
+ body.cj199-driver #cj199-start,body.cj199-driver.cj217-active-delivery #cj199-start,body.cj199-driver #cj199-start.compact{width:96px!important;height:96px!important;min-width:96px!important;min-height:96px!important;bottom:116px!important;font-size:15px!important;border-width:6px!important}
 }
 @media (orientation:landscape) and (pointer:coarse) and (max-height:620px){
  html,body{width:100%!important;height:100%!important;min-height:100%!important;overflow:hidden!important}
@@ -56,5 +57,5 @@ body.cj199-driver #cj199-start:disabled{opacity:1!important;filter:none!importan
  body.cj199-driver #cj199-metric{top:10px!important;left:10px!important;transform:scale(.88)!important;transform-origin:top left!important}
  body.cj199-driver #cj199-queue{top:10px!important;right:10px!important;transform:scale(.88)!important;transform-origin:top right!important}
  body.cj199-driver #cj199-center{right:12px!important;bottom:78px!important}
- body.cj199-driver #cj199-start,body.cj199-driver.cj217-active-delivery #cj199-start{width:92px!important;height:92px!important;min-height:92px!important;bottom:72px!important;font-size:15px!important;border-width:7px!important}
+ body.cj199-driver #cj199-start,body.cj199-driver.cj217-active-delivery #cj199-start,body.cj199-driver #cj199-start.compact{width:82px!important;height:82px!important;min-width:82px!important;min-height:82px!important;bottom:72px!important;font-size:13px!important;border-width:5px!important}
 }
