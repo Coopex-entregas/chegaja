@@ -1,80 +1,142 @@
 from pathlib import Path
-import re
 
-ROOT=Path('.')
-def read(p): return (ROOT/p).read_text(encoding='utf-8')
-def write(p,s): (ROOT/p).write_text(s,encoding='utf-8')
-def must_replace(text, old, new, name):
+ROOT = Path('.')
+
+def read(path):
+    return (ROOT / path).read_text(encoding='utf-8')
+
+def write(path, text):
+    (ROOT / path).write_text(text, encoding='utf-8')
+
+def replace_once(text, old, new, label):
     if old not in text:
-        raise RuntimeError(f'Não encontrei bloco esperado: {name}')
-    return text.replace(old,new,1)
+        raise RuntimeError(f'Bloco não encontrado: {label}')
+    return text.replace(old, new, 1)
 
-jsp=Path('public/chegaja-v217-driver-navigation.js')
-js=read(jsp)
-if 'ChegaJá 14.33.19' not in js:
-    js=must_replace(js,
-        '/* ChegaJá 14.33.18 — painel único, oferta full-screen real, toque persistente e GPS contínuo */',
+# 14.33.20: um único fluxo de oferta no v217, assigned sempre exige decisão,
+# nenhum banner legado e navegação usa também o alvo retornado pelo backend.
+
+js_path = 'public/chegaja-v217-driver-navigation.js'
+js = read(js_path)
+if 'ChegaJá 14.33.20' not in js:
+    js = replace_once(js,
         '/* ChegaJá 14.33.19 — aceite volta ao mapa, seta visível e rota garantida */',
-        'versão JS')
-    js=js.replace('__CJ_DRIVER_LEAFLET_143318__','__CJ_DRIVER_LEAFLET_143319__')
-    js=must_replace(js,
-        'const A={installed:false,oldDashboard:null,oldNavigate:null,appNode:null,',
-        'const A={installed:false,oldDashboard:null,oldNavigate:null,oldDeliveries:null,appNode:null,',
-        'estado deliveries')
-    js=must_replace(js,
-        "function paintHeading(){const el=A.self?.getElement?.()?.querySelector('.cj217-self-marker');if(el&&Number.isFinite(A.lastHeading))el.style.transform=`rotate(${A.lastHeading}deg)`}",
-        "function paintHeading(){const el=A.self?.getElement?.()?.querySelector('.cj217-self-marker');if(el)el.style.transform=`rotate(${Number.isFinite(A.lastHeading)?A.lastHeading:0}deg)`}",
-        'seta com direção padrão')
-    js=must_replace(js,
-        "function ensureSelf(){if(!A.map||!valid(A.gps))return;if(!A.self)A.self=L.marker([A.gps.lat,A.gps.lng],{icon:selfIcon(),keyboard:false,zIndexOffset:1000,title:'Sua localização'}).addTo(A.map);else A.self.setLatLng([A.gps.lat,A.gps.lng]);paintHeading()}",
-        "function ensureSelf(){if(!A.map||!valid(A.gps))return;if(!A.self)A.self=L.marker([A.gps.lat,A.gps.lng],{icon:selfIcon(),keyboard:false,zIndexOffset:5000,title:'Sua localização'}).addTo(A.map);else A.self.setLatLng([A.gps.lat,A.gps.lng]);A.self.setZIndexOffset?.(5000);paintHeading()}",
-        'seta acima da rota')
-    js=must_replace(js,
-        "if(pts.length<2)pts=await osrm(origin,target);if(pts.length>=2){A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(pts);trimRouteToGps();if(navigationActive()&&!A.manualView&&A.following)followGps();else fitRouteOnce()}",
-        "if(pts.length<2)pts=await osrm(origin,target);if(pts.length<2)pts=[{...origin},{...target}];if(pts.length>=2){A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(pts);trimRouteToGps();ensureSelf();if(navigationActive()&&!A.manualView&&A.following)followGps();else fitRouteOnce()}",
-        'fallback visual da rota')
-    old_home="async function forceDriverHome(){if(!isDriver())return;if(window.state)window.state.page='dashboard';document.body.classList.remove('cj199-driver-page');document.body.classList.add('cj199-driver');$('#auth-screen')?.classList.add('hidden');$('#customer-screen')?.classList.add('hidden');$('#tracking-screen')?.classList.add('hidden');$('#app-shell')?.classList.remove('hidden');const content=$('#page-content');if(!content)return;ensureApp(content);try{await ensureMap()}catch{}preserveResize()}"
-    new_home="async function forceDriverHome(){if(!isDriver())return;if(window.state)window.state.page='dashboard';try{history.replaceState(null,'','#dashboard')}catch{}document.body.classList.remove('cj199-driver-page','modal-open');document.body.classList.add('cj199-driver');$('#modal')?.classList.add('hidden');$('#auth-screen')?.classList.add('hidden');$('#customer-screen')?.classList.add('hidden');$('#tracking-screen')?.classList.add('hidden');$('#app-shell')?.classList.remove('hidden');const content=$('#page-content');if(!content)return;ensureApp(content);try{await ensureMap()}catch{}ensureSelf();updateStops();renderControls();preserveResize()}"
-    js=must_replace(js,old_home,new_home,'retorno real ao mapa')
-    pat=r"if\(action==='accept'\)\{.*?\}else if\(action==='complete'\)\{"
-    new_accept="""if(action==='accept'){unlockAudio();let loc=await getPosition().catch(()=>null);if(!loc){const live=await api('/api/app/driver/live',{timeout:6000}).catch(()=>null);loc=hydrateServerGps(live)}if(!A.online){if(!loc)throw new Error('Não recebi sua localização para iniciar. Ative a localização do celular.');await api('/api/app/driver/online',{method:'POST',body:{online:true,...loc}});A.online=true;startGps(true);await pushLocation(loc,true)}const d=await acceptCall(x,loc||{});stopOfferAlert();A.detail={...x,status:String(d.status||'accepted'),accepted_at:new Date().toISOString(),requires_acceptance:false,updated_at:new Date().toISOString()};A.lastOfferId='';A.arrivedDelivery=false;A.wait=null;A.localPickupSince=0;A.manualView=false;A.following=true;clearRoute();await forceDriverHome();if(!valid(A.gps)){const live=await api('/api/app/driver/live',{timeout:6000}).catch(()=>null);hydrateServerGps(live)}try{await ensureMap()}catch{}ensureSelf();updateStops();renderControls();renderSheet(true);closeSheet();await locationHeartbeat().catch(()=>{});await updateRoute(true);ensureSelf();if(valid(A.gps))centralize();notice('Entrega aceita. Siga a linha azul até a coleta.');if(loc)autoProgress(loc,true).catch(()=>{})}else if(action==='complete'){"""
-    js,n=re.subn(pat,new_accept,js,count=1,flags=re.S)
-    if n!=1: raise RuntimeError('Não encontrei o bloco de aceite')
-    old_install="function install(){if(A.installed||!window.pages||typeof window.navigate!=='function')return false;A.installed=true;A.oldDashboard=window.pages.dashboard;A.oldNavigate=window.navigate;window.pages.dashboard=async function(){if(isDriver())return mount();return A.oldDashboard?.apply(this,arguments)};window.navigate=async function(page,...rest){if(isDriver()&&page==='dashboard'){window.state.page='dashboard';return mount()}if(isDriver())leaveHome();return A.oldNavigate.call(this,page,...rest)};if(isHome())mount();return true}"
-    new_install="function install(){if(A.installed||!window.pages||typeof window.navigate!=='function')return false;A.installed=true;A.oldDashboard=window.pages.dashboard;A.oldDeliveries=window.pages.deliveries;A.oldNavigate=window.navigate;window.pages.dashboard=async function(){if(isDriver())return mount();return A.oldDashboard?.apply(this,arguments)};window.pages.deliveries=async function(){if(isDriver()){try{await poll(true)}catch{}if(A.detail){await forceDriverHome();if(offerRequired(A.detail))notifyOffer(A.detail);else{startGps();locationHeartbeat().catch(()=>{});await updateRoute(true);ensureSelf();if(valid(A.gps))centralize()}return}}return A.oldDeliveries?.apply(this,arguments)};window.navigate=async function(page,...rest){if(isDriver()&&page==='dashboard'){window.state.page='dashboard';return mount()}if(isDriver()&&page==='deliveries'&&(A.detail||window.ChegaJaDriverActiveDelivery)){window.state.page='dashboard';await forceDriverHome();if(offerRequired(A.detail))notifyOffer(A.detail);else{await updateRoute(true);ensureSelf();if(valid(A.gps))centralize()}return}if(isDriver())leaveHome();return A.oldNavigate.call(this,page,...rest)};if(isHome())mount();return true}"
-    js=must_replace(js,old_install,new_install,'bloqueio da aba antiga durante entrega')
-    write(jsp,js)
+        '/* ChegaJá 14.33.20 — oferta única full-screen e rota resiliente coleta/entrega */',
+        'versão do painel')
+    js = js.replace('__CJ_DRIVER_LEAFLET_143319__', '__CJ_DRIVER_LEAFLET_143320__')
+    js = replace_once(js,
+        "sheetKey:'',touchY:null,audio:null};",
+        "sheetKey:'',touchY:null,audio:null,navTarget:null};",
+        'estado de alvo da navegação')
+    js = replace_once(js,
+        "function clearRoute(){A.casing?.remove();A.line?.remove();A.casing=A.line=null;A.routePoints=[];A.lastRouteOrigin=A.lastRouteTarget=null;A.routeFitKey=''}",
+        "function clearRoute(){A.casing?.remove();A.line?.remove();A.casing=A.line=null;A.routePoints=[];A.lastRouteOrigin=A.lastRouteTarget=null;A.routeFitKey='';A.navTarget=null}",
+        'limpeza da rota')
+    js = replace_once(js,
+        "function targetPoint(){const x=A.detail;if(!x)return null;const delivery=targetKind()==='delivery',p=point(delivery?x.delivery_lat:x.pickup_lat,delivery?x.delivery_lng:x.pickup_lng);return valid(p)?p:null}",
+        "function targetPoint(){const x=A.detail;if(!x)return null;const delivery=targetKind()==='delivery',p=point(delivery?x.delivery_lat:x.pickup_lat,delivery?x.delivery_lng:x.pickup_lng);return valid(p)?p:(valid(A.navTarget)?A.navTarget:null)}",
+        'fallback do alvo')
+    js = replace_once(js,
+        "const p=point(x.pickup_lat,x.pickup_lng),d=point(x.delivery_lat,x.delivery_lng);",
+        "const rawP=point(x.pickup_lat,x.pickup_lng),rawD=point(x.delivery_lat,x.delivery_lng),p=valid(rawP)?rawP:(targetKind()==='pickup'&&valid(A.navTarget)?A.navTarget:rawP),d=valid(rawD)?rawD:(targetKind()==='delivery'&&valid(A.navTarget)?A.navTarget:rawD);",
+        'marcadores com alvo da navegação')
+    js = replace_once(js,
+        "function offerRequired(x){return Boolean(x)&&(['offered','assigned'].includes(String(x.status))||Boolean(x.requires_acceptance))&&!x.accepted_at}",
+        "function offerRequired(x){if(!x)return false;const status=String(x.status||'');if(status==='offered'||status==='assigned')return true;return Boolean(x.requires_acceptance)&&!x.accepted_at}",
+        'assigned sempre pendente')
+    js = replace_once(js,
+        "if(!offer){host.hidden=true;host.innerHTML='';return}const routeMeters=",
+        "if(!offer){host.hidden=true;host.innerHTML='';return}document.body.classList.add('cj217-pending-offer');$('#toast-container')?.replaceChildren();$('#chegaja-ringing')?.remove();const routeMeters=",
+        'oferta elimina avisos antigos')
 
-cssp=Path('public/chegaja-v217-driver-navigation.css')
-css=read(cssp)
-css=css.replace('/* ChegaJá 14.33.17 — ÚNICA folha do painel do cooperado. Conteúdo consolidado das regras necessárias. */','/* ChegaJá 14.33.19 — ÚNICA folha do painel do cooperado. */',1)
-if 'ChegaJá 14.33.19 — navegação sempre visível' not in css:
-    css += r'''
+    old_route = "async function updateRoute(force=false){if(!A.detail||!['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(String(A.detail.status))||A.routeBusy||document.hidden||!routeDue(force))return;const origin=A.gps,target=targetPoint();if(!valid(origin)||!valid(target))return;A.routeBusy=true;A.lastRouteAt=Date.now();try{let pts=[];try{const d=await api('/api/app/v32/driver/navigation',{timeout:8000});pts=normalizeGeometry(d.route?.geometry)}catch{}if(pts.length>=2){let nearest=Infinity;for(const p of pts)nearest=Math.min(nearest,distance(origin,p));const endpoint=Math.min(distance(target,pts[0]),distance(target,pts.at(-1)));if(nearest>130||endpoint>180)pts=[]}if(pts.length<2)pts=await osrm(origin,target);if(pts.length<2)pts=[{...origin},{...target}];if(pts.length>=2){A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(pts);trimRouteToGps();ensureSelf();if(navigationActive()&&!A.manualView&&A.following)followGps();else fitRouteOnce()}}finally{A.routeBusy=false}}"
+    new_route = "async function updateRoute(force=false){if(!A.detail||!['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(String(A.detail.status))||A.routeBusy||document.hidden)return;const origin=A.gps;if(!valid(origin))return;let target=targetPoint();if(valid(target)&&!routeDue(force))return;if(!force&&!valid(target)&&Date.now()-A.lastRouteAt<5000)return;A.routeBusy=true;A.lastRouteAt=Date.now();try{let pts=[];try{const nav=await api('/api/app/v32/driver/navigation',{timeout:8000}),serverTarget=point(nav.next?.lat,nav.next?.lng);if(valid(serverTarget)){A.navTarget={...serverTarget};if(!valid(target))target=serverTarget;updateStops()}pts=normalizeGeometry(nav.route?.geometry)}catch{}if(!valid(target)&&valid(A.navTarget))target=A.navTarget;if(!valid(target))return;if(pts.length>=2){let nearest=Infinity;for(const p of pts)nearest=Math.min(nearest,distance(origin,p));const endpoint=Math.min(distance(target,pts[0]),distance(target,pts.at(-1)));if(nearest>130||endpoint>180)pts=[]}if(pts.length<2)pts=await osrm(origin,target);if(pts.length<2)pts=[{...origin},{...target}];A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(pts);trimRouteToGps();ensureSelf();updateStops();if(navigationActive()&&!A.manualView&&A.following)followGps();else fitRouteOnce()}finally{A.routeBusy=false}}"
+    js = replace_once(js, old_route, new_route, 'rota resiliente')
 
-/* ChegaJá 14.33.19 — navegação sempre visível */
-body.cj199-driver #cj199-map{display:block!important;visibility:visible!important;opacity:1!important}
-body.cj217-active-delivery #cj199-map{z-index:2!important}
-body.cj199-driver #cj199-map .cj217-self-icon{z-index:10000!important;opacity:1!important;visibility:visible!important}
-body.cj199-driver #cj199-map .cj217-self-marker{width:38px!important;height:44px!important;background:#1459ff!important;border:3px solid #fff!important;filter:drop-shadow(0 5px 7px #07183aaa)!important;opacity:1!important;visibility:visible!important}
-body.cj199-driver #cj199-map .leaflet-overlay-pane{z-index:450!important}
-body.cj199-driver #cj199-map .leaflet-marker-pane{z-index:650!important}
-'''
-write(cssp,css)
+    old_accept = "const d=await acceptCall(x,loc||{});stopOfferAlert();A.detail={...x,status:String(d.status||'accepted'),accepted_at:new Date().toISOString(),requires_acceptance:false,updated_at:new Date().toISOString()};"
+    new_accept = "const d=await acceptCall(x,loc||{});stopOfferAlert();const rawAcceptedStatus=String(d.status||d.delivery?.status||''),acceptedStatus=['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(rawAcceptedStatus)?rawAcceptedStatus:'accepted';A.detail={...x,status:acceptedStatus,accepted_at:new Date().toISOString(),requires_acceptance:false,updated_at:new Date().toISOString()};"
+    js = replace_once(js, old_accept, new_accept, 'normalização do aceite')
+    write(js_path, js)
 
-idxp=Path('public/index.html')
-idx=read(idxp)
-idx=idx.replace('app-version" content="14.33.18"','app-version" content="14.33.19"')
-idx=idx.replace('chegaja-v217-driver-navigation.css?v=14.33.18&recovery=143318','chegaja-v217-driver-navigation.css?v=14.33.19&recovery=143319')
-idx=idx.replace('chegaja-v217-driver-navigation.js?v=14.33.18&recovery=143318','chegaja-v217-driver-navigation.js?v=14.33.19&recovery=143319')
-write(idxp,idx)
+# Remove o segundo fluxo antigo de chamada/balloon do arquivo global.
+final_path = 'public/chegaja-final.js'
+final = read(final_path)
+final = replace_once(final,
+    "function ringBanner(){let el=$id('chegaja-ringing');if(!el){el=document.createElement('div');el.id='chegaja-ringing';el.className='chegaja-ringing';el.textContent='☎ Nova entrega — toque em Aceitar';document.body.append(el)}return el}",
+    "function ringBanner(){return null}",
+    'banner legado')
+old_start = """function startRing(deliveryId){
+    if(state?.user?.role!=='driver')return;
+    if(CJ.ringDeliveryId===deliveryId&&CJ.ringTimer)return;
+    stopRing();CJ.ringDeliveryId=deliveryId||'assigned';ringBanner();oldPhoneBurst();CJ.ringTimer=setInterval(oldPhoneBurst,2400);
+  }"""
+new_start = """function startRing(deliveryId){
+    stopRing();
+    return;
+  }"""
+final = replace_once(final, old_start, new_start, 'som legado')
+final = replace_once(final,
+    "if(state.user.role==='driver'&&item.event_type==='delivery_assigned')startRing(item.delivery_id);",
+    "if(state.user.role==='driver'&&item.event_type==='delivery_assigned'){stopRing();continue;}",
+    'notificação legada do cooperado')
+write(final_path, final)
 
-testp=Path('scripts/test-v14153-logo-google-maps.mjs')
-t=read(testp)
-t=t.replace('14\\.33\\.18','14\\.33\\.19')
-t=t.replace('14.33.18: painel único, oferta full-screen, navegação após aceite e GPS contínuo validados.','14.33.19: aceite retorna ao mapa, seta e rota validados.')
-t=t.replace('chegaja-v217-driver-navigation\\.js\\?v=14\\.33\\.19&recovery=143318','chegaja-v217-driver-navigation\\.js\\?v=14\\.33\\.19&recovery=143319')
-t=t.replace('chegaja-v217-driver-navigation\\.css\\?v=14\\.33\\.19&recovery=143318','chegaja-v217-driver-navigation\\.css\\?v=14\\.33\\.19&recovery=143319')
-t=t.replace("assert.match(driver,/closeSheet\\(\\);if\\(!valid\\(A\\.gps\\)\\)/);", "assert.match(driver,/await forceDriverHome\\(\\)/);\nassert.match(driver,/pts=\\[\\{\\.\\.\\.origin\\},\\{\\.\\.\\.target\\}\\]/);\nassert.match(driver,/oldDeliveries/);\nassert.match(driver,/page==='deliveries'.*ChegaJaDriverActiveDelivery/);")
-write(testp,t)
+# Backend: status assigned é sempre uma oferta ainda não decidida, mesmo se um dado
+# legado tiver preenchido accepted_at incorretamente.
+v28_path = 'src/routes/platform-v28.ts'
+v28 = read(v28_path)
+v28 = replace_once(v28,
+    """function needsAcceptance(item:Row,driverId:string){
+  if(item.status==='offered'&&!item.assigned_driver_id)return true;
+  return item.assigned_driver_id===driverId&&!item.accepted_at&&['assigned','accepted','to_pickup','at_pickup'].includes(String(item.status));
+}""",
+    """function needsAcceptance(item:Row,driverId:string){
+  if(item.status==='offered'&&!item.assigned_driver_id)return true;
+  if(item.status==='assigned'&&item.assigned_driver_id===driverId)return true;
+  return item.assigned_driver_id===driverId&&!item.accepted_at&&['accepted','to_pickup','at_pickup'].includes(String(item.status));
+}""",
+    'regra backend assigned')
+v28 = replace_once(v28,
+    "WHERE id=? AND cooperative_id=? AND accepted_at IS NULL AND ((status='offered' AND assigned_driver_id IS NULL) OR (assigned_driver_id=? AND status IN ('assigned','accepted','to_pickup','at_pickup')))`)",
+    "WHERE id=? AND cooperative_id=? AND ((status='offered' AND assigned_driver_id IS NULL AND accepted_at IS NULL) OR (status='assigned' AND assigned_driver_id=?) OR (assigned_driver_id=? AND accepted_at IS NULL AND status IN ('accepted','to_pickup','at_pickup')))`)",
+    'where do aceite')
+v28 = replace_once(v28,
+    ".bind(auth.driverId,nextStatus,item.id,auth.cooperativeId,auth.driverId).run();",
+    ".bind(auth.driverId,nextStatus,item.id,auth.cooperativeId,auth.driverId,auth.driverId).run();",
+    'bind do aceite')
+write(v28_path, v28)
 
-print('ChegaJá 14.33.19 preparado: aceite volta ao mapa, seta acima da rota e fallback visual ativo.')
+# CSS: durante oferta não existe qualquer balão/toast concorrente.
+css_path = 'public/chegaja-v217-driver-navigation.css'
+css = read(css_path)
+css = css.replace('/* ChegaJá 14.33.19 — ÚNICA folha do painel do cooperado. */','/* ChegaJá 14.33.20 — ÚNICA folha do painel do cooperado. */',1)
+if '14.33.20 — sem balão legado' not in css:
+    css += """
+
+/* ChegaJá 14.33.20 — sem balão legado; oferta é somente full-screen */
+body.cj199-driver #chegaja-ringing{display:none!important;visibility:hidden!important;pointer-events:none!important}
+body.cj217-pending-offer #toast-container,body.cj217-pending-offer .toast-container,body.cj217-pending-offer .toast,body.cj217-pending-offer #chegaja-ringing{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
+body.cj217-pending-offer #cj217-offer-screen{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
+"""
+write(css_path, css)
+
+# Cache da página: inclusive chegaja-final.js, porque o fluxo legado foi removido dele.
+index_path = 'public/index.html'
+index = read(index_path)
+index = index.replace('app-version" content="14.33.19"','app-version" content="14.33.20"')
+index = index.replace('chegaja-v217-driver-navigation.css?v=14.33.19&recovery=143319','chegaja-v217-driver-navigation.css?v=14.33.20&recovery=143320')
+index = index.replace('chegaja-v217-driver-navigation.js?v=14.33.19&recovery=143319','chegaja-v217-driver-navigation.js?v=14.33.20&recovery=143320')
+index = index.replace('chegaja-final.js?v=14.15.9&recovery=143314','chegaja-final.js?v=14.33.20&recovery=143320')
+write(index_path, index)
+
+# Regressão específica desta correção.
+test_path = 'scripts/test-v14153-logo-google-maps.mjs'
+test = read(test_path)
+test = test.replace("const navigation=read('src/routes/platform-v32.ts');", "const navigation=read('src/routes/platform-v32.ts');\nconst v28=read('src/routes/platform-v28.ts');\nconst finalJs=read('public/chegaja-final.js');")
+test = test.replace('14\\.33\\.19','14\\.33\\.20').replace('143319','143320')
+test = test.replace("assert.match(driver,/ChegaJá 14\\.33\\.19/);", "assert.match(driver,/ChegaJá 14\\.33\\.20/);")
+test = test.replace("assert.match(driver,/const NAV_ZOOM=18\\.5/);", "assert.match(driver,/const NAV_ZOOM=18\\.5/);\nassert.match(driver,/status==='offered'\\|\\|status==='assigned'/);\nassert.match(driver,/nav\\.next\\?\\.lat/);\nassert.match(driver,/acceptedStatus=\\['accepted','to_pickup'/);\nassert.doesNotMatch(finalJs,/Nova entrega — toque em Aceitar/);\nassert.match(finalJs,/delivery_assigned'\\)\\{stopRing\\(\\);continue;/);\nassert.match(v28,/item\\.status==='assigned'.*return true/);\nassert.match(index,/chegaja-final\\.js\\?v=14\\.33\\.20&recovery=143320/);")
+test = test.replace("console.log('ChegaJá 14.33.19: aceite retorna ao mapa, seta e rota validados.');", "console.log('ChegaJá 14.33.20: oferta full-screen única, aceite e rota coleta/entrega validados.');")
+write(test_path, test)
+
+print('ChegaJá 14.33.20 aplicado.')
