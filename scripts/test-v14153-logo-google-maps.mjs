@@ -7,6 +7,7 @@ const maps=read('public/chegaja-maps-leaflet.js');
 const mapCss=read('public/chegaja-map-fallback.css');
 const driver=read('public/chegaja-v217-driver-navigation.js');
 const driverCss=read('public/chegaja-v217-driver-navigation.css');
+const clientCss=read('public/chegaja-v207-client-uber.css');
 const operational=read('public/chegaja-v201-operational.js');
 const operationalCss=read('public/chegaja-v201-operational.css');
 const addressResilient=read('src/routes/address-resilient.ts');
@@ -20,12 +21,14 @@ const navigation=read('src/routes/platform-v32.ts');
 const permissions=read('src/lib/permissions.ts');
 const sw=read('public/sw.js');
 
-assert.match(index,/app-version" content="14\.33\.2"/);
+assert.match(index,/app-version" content="14\.33\.3"/);
 assert.match(index,/vendor\/leaflet\/leaflet\.js/);
 assert.match(index,/chegaja-maps-leaflet\.js\?v=14\.33\.2/);
 assert.match(index,/chegaja-v201-operational\.css\?v=14\.33\.2/);
 assert.match(index,/chegaja-v201-operational\.js\?v=14\.33\.2/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.2/);
+assert.match(index,/chegaja-v207-client-uber\.css\?v=14\.33\.3/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.3/);
+assert.match(index,/recovery=14333/);
 assert.match(index,/hardenNetworkErrors/);
 assert.match(index,/height:100svh/);
 assert.doesNotMatch(index,/npm\s+run\s+dev|PowerShell\s+aberto|127\.0\.0\.1|\blocalhost\b/i);
@@ -63,9 +66,14 @@ assert.match(driver,/trimRouteToGps/);
 assert.match(driver,/routeFitKey/);
 assert.match(driver,/offerAlertTimer/);
 assert.match(driver,/\/driver\/live\/\$\{encodeURIComponent\(x\.id\)\}\/accept/);
+assert.match(driver,/NAVEGAÇÃO ATIVA/);
+assert.match(driver,/setView\(\[A\.gps\.lat,A\.gps\.lng\],17\.5/);
+assert.match(driver,/www\.google\.com\/maps\/dir/);
+assert.match(driver,/GOOGLE MAPS/);
 assert.doesNotMatch(driver,/healthTimer/);
 assert.doesNotMatch(driver,/INICIAR ENTREGA/);
 assert.doesNotMatch(driver,/google\.maps|maps\.googleapis\.com|DirectionsService/);
+assert.doesNotMatch(driver,/openstreetmap\.org\/directions/);
 assert.doesNotMatch(driver,/npm\s+run\s+dev|PowerShell\s+aberto|127\.0\.0\.1|\blocalhost\b/i);
 
 assert.doesNotMatch(driverCss,/(^|,)\s*\.leaflet-container\s*\{\s*display\s*:\s*none/im);
@@ -73,6 +81,14 @@ assert.match(driverCss,/body\.cj199-driver #cj199-map\.leaflet-container\{displa
 assert.match(driverCss,/100svh/);
 assert.match(driverCss,/#cj217-wait/);
 assert.match(driverCss,/button\.primary/);
+
+assert.match(clientCss,/#tracking-screen\{/);
+assert.match(clientCss,/#tracking-screen:not\(\.hidden\)/);
+assert.match(clientCss,/min-height:100svh!important/);
+assert.match(clientCss,/#tracking-screen #v17-track-map/);
+assert.match(clientCss,/\.v17-chat-form/);
+assert.match(clientCss,/grid-template-columns:minmax\(0,1fr\)!important/);
+assert.match(clientCss,/overflow-x:hidden!important/);
 
 assert.match(operational,/\/api\/app\/map\/drivers/);
 assert.match(operational,/location_allowed/);
@@ -125,6 +141,6 @@ assert.match(navigation,/router\.project-osrm\.org/);
 assert.doesNotMatch(navigation,/routes\.googleapis\.com|googleRoute/);
 assert.match(permissions,/driver_map_enabled/);
 assert.match(permissions,/tenant\\\/online-drivers/);
-assert.match(sw,/RECOVERY_VERSION='14\.33\.2'/);
+assert.match(sw,/RECOVERY_VERSION='14\.33\.3'/);
 
-console.log('ChegaJá 14.33.2: número digitado preservado, endereço confirmável e rota azul exclusiva do cooperado verificados.');
+console.log('ChegaJá 14.33.3: navegação interna do cooperado, Google Maps opcional e rastreamento avulso mobile verificados.');
