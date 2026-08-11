@@ -12,25 +12,32 @@ const mapSafe=read('src/routes/map-safe.ts');
 const appIndex=read('src/index.ts');
 const navigation=read('src/routes/platform-v32.ts');
 
-assert.match(index,/app-version" content="14\.33\.14"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.14&recovery=143314/);
+assert.match(index,/app-version" content="14\.33\.15"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.15&recovery=143315/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.9&recovery=143314/);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter\.js/);
 assert.doesNotMatch(index,/chegaja-v232-navigation-final/);
 assert.doesNotMatch(index,/cj217-active-delivery #cj199-start\[hidden\]/);
 assert.doesNotMatch(index,/pointer-events:none!important;left:50%/);
 
-assert.match(driver,/ChegaJá 14\.33\.10/);
+assert.match(driver,/ChegaJá 14\.33\.15/);
 assert.match(driver,/onlineBusy:false/);
 assert.match(driver,/start\.disabled=false;start\.removeAttribute\('disabled'\)/);
 assert.match(driver,/start\.onclick=toggleOnline/);
 assert.match(driver,/async function toggleOnline\(\)/);
 assert.match(driver,/if\(A\.onlineBusy\|\|A\.decision\)return/);
+assert.match(driver,/LOCALIZANDO…/);
+assert.match(driver,/Buscando sua localização…/);
+assert.match(driver,/startGps\(\);const loc=await getPosition\(\)/);
 assert.match(driver,/watchPosition/);
 assert.match(driver,/getCurrentPosition/);
+assert.match(driver,/enableHighAccuracy:false,maximumAge:180000,timeout:8000/);
+assert.match(driver,/enableHighAccuracy:true,maximumAge:60000,timeout:60000/);
+assert.match(driver,/if\(e\?\.code===1\)/);
 assert.match(driver,/\/api\/app\/map\/location/);
 assert.match(driver,/\/api\/app\/driver\/online/);
-assert.match(driver,/A\.online=true;handleGpsPosition\(p\);await pushLocation\(loc,true\);startGps\(true\)/);
+assert.match(driver,/A\.online=true;await pushLocation\(loc,true\);startGps\(\)/);
+assert.match(driver,/ensureApp\(content\);startGps\(\);try\{await ensureMap\(\)/);
 assert.match(driver,/const NAV_ZOOM=18\.5/);
 assert.match(driver,/ACEITAR ENTREGA/);
 assert.match(driver,/CHEGUEI NA COLETA/);
@@ -54,4 +61,4 @@ assert.match(mapSafe,/d\.current_lat IS NOT NULL AND d\.current_lng IS NOT NULL/
 assert.doesNotMatch(appIndex,/UPDATE drivers SET online=0 WHERE online=1 AND datetime\(last_seen_at\)/);
 assert.match(navigation,/platformV32Routes\.post\('\/v32\/driver\/sos'/);
 
-console.log('ChegaJá 14.33.14: v217 é o único controlador do botão online/offline e do GPS.');
+console.log('ChegaJá 14.33.15: iniciar imediato, GPS resiliente e controlador único validados.');
