@@ -1,234 +1,160 @@
-/* ChegaJá 14.31.2 — rota azul persistente, zoom manual respeitado e navegação vertical/horizontal */
+/* ChegaJá 14.33.5 — GPS resiliente, SOS imediato e botão online persistente */
 (()=>{
 'use strict';
-if(window.__CJ232_NAV_FINAL_14312__)return;
-window.__CJ232_NAV_FINAL_14312__=true;
+if(window.__CJ232_DRIVER_CRITICAL_14335__)return;
+window.__CJ232_DRIVER_CRITICAL_14335__=true;
 
-const $=(selector,root=document)=>root.querySelector(selector);
-const R={map:null,casing:null,line:null,key:'',points:[],busy:false,lastFetch:0,lastSuccess:0,manual:false,programmatic:false,interacting:false,savedView:null,osrmAt:0};
-const active=()=>window.ChegaJaDriverActiveDelivery||null;
-const home=()=>window.state?.user?.role==='driver'&&window.state?.page==='dashboard'&&!!$('#cj199-app');
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
 const token=()=>String(window.state?.token||localStorage.getItem('lg_token')||'').trim();
-const valid=p=>Number.isFinite(Number(p?.lat))&&Number.isFinite(Number(p?.lng))&&Math.abs(Number(p.lat))<=90&&Math.abs(Number(p.lng))<=180;
-const point=(lat,lng)=>({lat:Number(lat),lng:Number(lng)});
+const isDriver=()=>window.state?.user?.role==='driver';
+const home=()=>isDriver()&&window.state?.page==='dashboard';
+const valid=(lat,lng)=>Number.isFinite(Number(lat))&&Number.isFinite(Number(lng))&&Math.abs(Number(lat))<=90&&Math.abs(Number(lng))<=180&&(Math.abs(Number(lat))+Math.abs(Number(lng))>.001);
+const R={watch:null,last:null,lastAt:0,sosBusy:false,onlineBusy:false,online:null,menuBound:false};
 
-function distance(a,b){
- if(!valid(a)||!valid(b))return Infinity;
- const rad=value=>value*Math.PI/180,earth=6371000;
- const dLat=rad(Number(b.lat)-Number(a.lat)),dLng=rad(Number(b.lng)-Number(a.lng));
- const q=Math.sin(dLat/2)**2+Math.cos(rad(Number(a.lat)))*Math.cos(rad(Number(b.lat)))*Math.sin(dLng/2)**2;
- return 2*earth*Math.asin(Math.min(1,Math.sqrt(q)));
-}
-function gps(){
- const raw=window.ChegaJaLastDriverLocation;
- const value=point(raw?.lat??raw?.latitude,raw?.lng??raw?.longitude);
- return valid(value)?value:null;
-}
-function destination(){
- const item=active();if(!item)return null;
- const delivery=['picked_up','in_route','problem'].includes(String(item.status));
- const value=point(delivery?item.delivery_lat:item.pickup_lat,delivery?item.delivery_lng:item.pickup_lng);
- return valid(value)?value:null;
-}
-function decodePolyline(encoded,precision=5){
- if(typeof encoded!=='string'||encoded.length<4)return[];
- const out=[];let index=0,lat=0,lng=0;const factor=10**precision;
+async function request(path,opt={}){
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),opt.timeout||7000);
  try{
-  while(index<encoded.length){
-   let result=0,shift=0,byte;
-   do{byte=encoded.charCodeAt(index++)-63;result|=(byte&31)<<shift;shift+=5}while(byte>=32&&index<=encoded.length);
-   lat+=(result&1)?~(result>>1):(result>>1);
-   result=0;shift=0;
-   do{byte=encoded.charCodeAt(index++)-63;result|=(byte&31)<<shift;shift+=5}while(byte>=32&&index<=encoded.length);
-   lng+=(result&1)?~(result>>1):(result>>1);
-   out.push([lat/factor,lng/factor]);
-  }
- }catch{return[]}
- return out;
-}
-function collectPairs(value){
- let raw=value;
- for(let i=0;i<3&&typeof raw==='string';i++){
-  try{raw=JSON.parse(raw)}catch{return decodePolyline(raw)}
- }
- if(raw?.type==='Feature')raw=raw.geometry;
- if(raw?.geometry&&raw?.type!=='LineString'&&raw?.type!=='MultiLineString')raw=raw.geometry;
- if(raw?.coordinates)raw=raw.coordinates;
- const pairs=[];
- const walk=node=>{
-  if(!Array.isArray(node))return;
-  if(node.length>=2&&Number.isFinite(Number(node[0]))&&Number.isFinite(Number(node[1]))){pairs.push([Number(node[0]),Number(node[1])]);return}
-  for(const child of node)walk(child);
- };
- walk(raw);
- return pairs;
-}
-function routePairs(payload){
- const route=payload?.route||payload||{};
- const sources=[
-  route.geometry,route.geojson,route.path,route.coordinates,
-  route.routes?.[0]?.geometry,
-  route.legs?.flatMap?.(leg=>(leg.steps||[]).map(step=>step.geometry)),
-  payload?.geometry,payload?.geojson,payload?.path,payload?.coordinates
- ];
- for(const source of sources){
-  const pairs=collectPairs(source);
-  if(pairs.length>=2)return pairs;
- }
- const items=payload?.items||route?.items||[];
- const itemPairs=items.map(item=>[Number(item?.lat??item?.latitude),Number(item?.lng??item?.longitude)]).filter(item=>Number.isFinite(item[0])&&Number.isFinite(item[1]));
- return itemPairs.length>=2?itemPairs:[];
-}
-function normalize(pairs){
- if(!Array.isArray(pairs)||pairs.length<2)return[];
- const current=gps(),target=destination();
- const options=[
-  pairs.map(item=>point(item[0],item[1])).filter(valid),
-  pairs.map(item=>point(item[1],item[0])).filter(valid)
- ].filter(list=>list.length>=2);
- if(!options.length)return[];
- const nearest=(list,value)=>{
-  if(!valid(value))return 0;
-  let best=Infinity;const step=Math.max(1,Math.floor(list.length/180));
-  for(let i=0;i<list.length;i+=step)best=Math.min(best,distance(list[i],value));
-  return best;
- };
- let list=options[0],score=Infinity;
- for(const option of options){
-  const value=nearest(option,current)+(valid(target)?Math.min(distance(option[0],target),distance(option.at(-1),target))*.35:0);
-  if(value<score){score=value;list=option}
- }
- if(valid(target)&&distance(list.at(-1),target)>distance(list[0],target))list=[...list].reverse();
- else if(valid(current)&&distance(list[0],current)>distance(list.at(-1),current))list=[...list].reverse();
- return list;
-}
-function routeKey(points){
- if(points.length<2)return'';
- const first=points[0],last=points.at(-1);
- return`${points.length}:${first.lat.toFixed(5)}:${first.lng.toFixed(5)}:${last.lat.toFixed(5)}:${last.lng.toFixed(5)}`;
-}
-function removeRoute(){
- for(const layer of[R.line,R.casing])if(layer)try{layer.remove()}catch{}
- R.line=R.casing=null;R.key='';
-}
-function ensurePane(){
- if(!R.map)return;
- if(!R.map.getPane('cj232RoutePane')){
-  const pane=R.map.createPane('cj232RoutePane');
-  pane.style.zIndex='620';pane.style.pointerEvents='none';
- }
-}
-function draw(points,force=false){
- if(!R.map||typeof L==='undefined'||points.length<2)return;
- const key=routeKey(points),visible=R.line&&R.casing&&R.map.hasLayer?.(R.line)&&R.map.hasLayer?.(R.casing);
- if(!force&&key===R.key&&visible)return;
- removeRoute();ensurePane();R.points=points;R.key=key;
- const latlngs=points.map(item=>[item.lat,item.lng]);
- R.casing=L.polyline(latlngs,{pane:'cj232RoutePane',color:'#fff',weight:14,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.45}).addTo(R.map);
- R.line=L.polyline(latlngs,{pane:'cj232RoutePane',color:'#1459ff',weight:8,opacity:1,lineCap:'round',lineJoin:'round',interactive:false,smoothFactor:.45}).addTo(R.map);
- for(const layer of[R.casing,R.line]){
-  layer._cj222StableRoute=true;layer._cjSmoothRoute=true;layer._cj231Route=true;layer._cj232Route=true;
- }
- R.casing.bringToFront?.();R.line.bringToFront?.();
-}
-function rememberView(){
- if(!R.map)return;
- try{
-  const center=R.map.getCenter(),zoom=R.map.getZoom();
-  R.savedView={center:[center.lat,center.lng],zoom:Number(zoom)};
- }catch{}
-}
-function bindMap(){
- const map=window.ChegaJaDriverMap?.map;if(!map)return false;
- if(R.map===map)return true;
- R.map=map;removeRoute();
- map.on('dragstart',()=>{if(!R.programmatic){R.interacting=true;R.manual=true}});
- map.on('zoomstart',()=>{if(!R.programmatic){R.interacting=true;R.manual=true}});
- map.on('dragend',()=>{R.interacting=false;rememberView()});
- map.on('zoomend',()=>{R.interacting=false;rememberView()});
- map.on('moveend',()=>{if(R.manual&&!R.programmatic&&!R.interacting)rememberView()});
- setTimeout(()=>{try{map.invalidateSize(false)}catch{};if(R.points.length)draw(R.points,true)},100);
- return true;
-}
-function stopLegacyFollow(){
- try{window.ChegaJaDriverMap?.follow?.(false)}catch{}
-}
-function centralize(){
- if(!bindMap())return;
- const current=gps();if(!valid(current))return;
- R.manual=false;R.programmatic=true;R.savedView=null;
- stopLegacyFollow();
- try{R.map.stop?.()}catch{}
- try{R.map.invalidateSize(false)}catch{}
- const comfortable=innerWidth>innerHeight?17.5:18;
- try{R.map.setView([current.lat,current.lng],comfortable,{animate:false,noMoveStart:true})}catch{}
- setTimeout(()=>{R.programmatic=false;rememberView()},500);
-}
-function preserveAcrossOrientation(){
- if(!bindMap())return;
- rememberView();const saved=R.savedView;
- for(const delay of[80,240,520])setTimeout(()=>{
-  document.body.classList.remove('cj222-landscape-blocked');$('#cj222-portrait-lock')?.remove();
-  try{R.map.invalidateSize(false)}catch{}
-  if(saved){
-   R.programmatic=true;
-   try{R.map.setView(saved.center,saved.zoom,{animate:false,noMoveStart:true})}catch{}
-   setTimeout(()=>{R.programmatic=false},80);
-  }
-  if(R.points.length)draw(R.points,true);
- },delay);
-}
-async function osrmFallback(){
- const current=gps(),target=destination();
- if(!valid(current)||!valid(target)||Date.now()-R.osrmAt<15000)return[];
- R.osrmAt=Date.now();
- try{
-  const url=`https://router.project-osrm.org/route/v1/driving/${current.lng},${current.lat};${target.lng},${target.lat}?overview=full&geometries=geojson&steps=false`;
-  const response=await fetch(url,{cache:'no-store'});const data=await response.json().catch(()=>({}));
-  return normalize(routePairs(data?.routes?.[0]||data));
- }catch{return[]}
-}
-async function fetchRoute(force=false){
- if(!active()||!token()||R.busy||document.hidden)return;
- const now=Date.now();if(!force&&now-R.lastFetch<3500)return;
- R.lastFetch=now;R.busy=true;
- try{
-  const response=await fetch('/api/app/v32/driver/navigation',{headers:{Authorization:`Bearer ${token()}`},cache:'no-store'});
+  const response=await fetch(path,{method:opt.method||'GET',headers:{...(token()?{Authorization:`Bearer ${token()}`}:{}) ,...(opt.body?{'Content-Type':'application/json'}:{})},body:opt.body?JSON.stringify(opt.body):undefined,cache:'no-store',signal:controller.signal});
   const data=await response.json().catch(()=>({}));
-  let points=response.ok&&data?.ok!==false?normalize(routePairs(data)):[];
-  if(points.length<2)points=await osrmFallback();
-  if(points.length>=2){R.lastSuccess=Date.now();draw(points,true)}
- }catch{
-  const points=await osrmFallback();if(points.length>=2)draw(points,true);
- }finally{R.busy=false}
+  if(!response.ok||data.ok===false)throw new Error(data.error||`Erro ${response.status}`);
+  return data;
+ }finally{clearTimeout(timer)}
 }
-function handleNavigation(event){
- const points=normalize(routePairs(event.detail||{}));
- if(points.length>=2){R.lastSuccess=Date.now();draw(points,true)}
+function remember(coords){
+ const lat=Number(coords?.latitude??coords?.lat),lng=Number(coords?.longitude??coords?.lng);
+ if(!valid(lat,lng))return null;
+ const value={lat,lng,accuracy:Number(coords?.accuracy)||null,heading:Number.isFinite(Number(coords?.heading))?Number(coords.heading):null,speed:Number.isFinite(Number(coords?.speed))?Number(coords.speed):null};
+ R.last=value;R.lastAt=Date.now();window.ChegaJaLastDriverLocation=value;
+ try{window.ChegaJaDriverMap?.move?.(value)}catch{}
+ return value;
+}
+async function serverLocation(){
+ try{
+  const data=await request('/api/app/driver/live',{timeout:5000}),d=data.driver||{};
+  const value=remember({lat:d.current_lat,lng:d.current_lng,accuracy:null});
+  if(value)return value;
+ }catch{}
+ return null;
+}
+function startGps(){
+ if(!isDriver()||!navigator.geolocation||R.watch!=null)return;
+ const cached=window.ChegaJaLastDriverLocation;
+ if(cached)remember(cached);
+ R.watch=navigator.geolocation.watchPosition(
+  p=>remember(p.coords),
+  ()=>{},
+  {enableHighAccuracy:true,maximumAge:15000,timeout:20000}
+ );
+ if(!R.last)serverLocation();
+}
+async function currentLocation(){
+ const cached=R.last||window.ChegaJaLastDriverLocation;
+ if(cached&&valid(cached.lat??cached.latitude,cached.lng??cached.longitude)&&Date.now()-R.lastAt<180000)return remember(cached);
+ if(navigator.geolocation){
+  try{
+   const p=await new Promise((resolve,reject)=>navigator.geolocation.getCurrentPosition(resolve,reject,{enableHighAccuracy:true,maximumAge:120000,timeout:7000}));
+   const value=remember(p.coords);if(value)return value;
+  }catch{}
+ }
+ const saved=await serverLocation();
+ if(saved)return saved;
+ throw new Error('Ainda não consegui obter sua localização. Mantenha a localização do celular ativada e tente novamente.');
+}
+function toastMessage(text,type='success'){
+ try{if(typeof window.toast==='function'){window.toast(text,type==='error'?'error':undefined);return}}catch{}
+ let node=$('#cj232-feedback');if(!node){node=document.createElement('div');node.id='cj232-feedback';document.body.appendChild(node)}
+ node.textContent=text;node.className=`show ${type}`;clearTimeout(node._t);node._t=setTimeout(()=>node.className='',5000);
+}
+function closeAnyModal(){
+ try{if(typeof window.closeModal==='function'){window.closeModal();return}}catch{}
+ const modal=$('#modal');if(modal)modal.classList.add('hidden');document.body.classList.remove('modal-open');
+}
+function openSos(){
+ if(R.sosBusy)return;
+ const html=`<form id="cj232-sos-form" class="form-grid"><div class="full notice cj232-sos-note"><strong>SOCORRO COOPEX</strong><br>O alerta será enviado ao local da sua escala atual e aos cooperados online. A localização será anexada automaticamente.</div><label class="full">O que aconteceu?<textarea name="occurrence" maxlength="800" required placeholder="Ex.: pneu furou, problema na moto, preciso de apoio..."></textarea></label><div class="form-actions full"><button class="btn danger" type="submit">ENVIAR SOCORRO</button></div></form>`;
+ try{if(typeof window.openModal==='function')window.openModal('PEDIDO DE SOCORRO',html);else{
+   const modal=$('#modal'),body=$('#modal-body'),title=$('#modal-title');if(!modal||!body)return;
+   if(title)title.textContent='PEDIDO DE SOCORRO';body.innerHTML=html;modal.classList.remove('hidden');document.body.classList.add('modal-open');
+ }}catch{return}
+ const form=$('#cj232-sos-form');if(form)form.onsubmit=sendSos;
+}
+async function sendSos(event){
+ event?.preventDefault?.();
+ if(R.sosBusy)return;
+ const form=event?.currentTarget?.matches?.('#cj232-sos-form')?event.currentTarget:$('#cj232-sos-form');
+ const occurrence=String(form?.elements?.occurrence?.value||'Solicitação de ajuda enviada pelo aplicativo.').trim()||'Solicitação de ajuda enviada pelo aplicativo.';
+ const button=form?.querySelector('button[type="submit"]');
+ R.sosBusy=true;if(button){button.disabled=true;button.textContent='ENVIANDO…'}
+ try{
+  const loc=await currentLocation();
+  const data=await request('/api/app/v32/driver/sos',{method:'POST',body:{occurrence,latitude:loc.lat,longitude:loc.lng,accuracy:loc.accuracy},timeout:10000});
+  closeAnyModal();
+  const place=data.location_name||'o local da sua escala';
+  toastMessage(`Socorro enviado para ${place} e para os cooperados online.`);
+ }catch(error){toastMessage(error.message||'Não foi possível enviar o socorro.','error')}
+ finally{R.sosBusy=false;if(button?.isConnected){button.disabled=false;button.textContent='ENVIAR SOCORRO'}}
+}
+function ensureSosMenu(){
+ const nav=$('#cj199-drawer nav');if(!nav||$('#cj232-sos-menu'))return;
+ const logout=nav.querySelector('[data-logout]');
+ const button=document.createElement('button');button.id='cj232-sos-menu';button.type='button';button.className='cj232-sos-menu';button.textContent='Socorro';button.onclick=()=>{$('#cj199-drawer')?.classList.remove('open');openSos()};
+ if(logout)nav.insertBefore(button,logout);else nav.appendChild(button);
+}
+async function syncOnline(force=false){
+ if(!isDriver()||!token()||R.onlineBusy)return;
+ R.onlineBusy=true;
+ try{
+  const data=await request('/api/app/driver/live',{timeout:5500}),online=Boolean(Number(data.driver?.online||0));
+  R.online=online;localStorage.setItem('cj_driver_online',online?'1':'0');
+  if(window.state){window.state.online=online;if(window.state.user)window.state.user.online=online?1:0}
+  paintOnline();
+ }catch{if(force)paintOnline()}finally{R.onlineBusy=false}
+}
+function paintOnline(){
+ const button=$('#cj199-start');if(!button)return;
+ button.hidden=false;button.classList.remove('compact');
+ let online=R.online;
+ if(online==null){const persisted=localStorage.getItem('cj_driver_online');if(persisted==='1'||persisted==='0')online=persisted==='1';else if(window.state?.user?.online!=null)online=Boolean(Number(window.state.user.online))}
+ if(online==null)return;
+ button.classList.toggle('online',online);
+ const label=button.querySelector('span');if(label)label.textContent=online?'PARAR':'INICIAR';
+ const status=$('#cj199-online');if(status)status.textContent=online?'Você está online':'Você está offline';
+}
+function suppressFalseGpsNotice(){
+ const n=$('#cj217-notice');if(!n)return;
+ if(/Aguardando a localização do GPS/i.test(n.textContent||'')){n.className='';n.textContent=''}
 }
 function tick(){
- document.body.classList.remove('cj222-landscape-blocked');$('#cj222-portrait-lock')?.remove();
- if(!home())return;
- if(!bindMap())return;
- stopLegacyFollow();
- if(active()){
-  if(R.points.length){
-   const visible=R.line&&R.casing&&R.map.hasLayer?.(R.line)&&R.map.hasLayer?.(R.casing);
-   if(!visible)draw(R.points,true);
-  }
-  if(R.points.length<2||Date.now()-R.lastSuccess>10000)fetchRoute(R.points.length<2);
- }else{R.points=[];removeRoute()}
+ if(!isDriver())return;
+ startGps();
+ if(home()){
+  ensureSosMenu();paintOnline();suppressFalseGpsNotice();
+  document.body.classList.remove('cj222-landscape-blocked');$('#cj222-portrait-lock')?.remove();
+ }
 }
 
+// Captura todas as versões antigas do botão interno de SOS para usar o mesmo
+// fluxo resiliente e não deixar o cooperado preso em uma tela de envio.
 document.addEventListener('click',event=>{
- const button=event.target?.closest?.('#cj222-recenter,#cj199-center');
- if(!button)return;
- event.preventDefault();event.stopImmediatePropagation();centralize();
+ const target=event.target?.closest?.('#cj143-send-sos,#v32-send-internal-sos,#v31-internal-sos,#cj232-sos-menu');
+ if(!target)return;
+ if(target.id==='cj232-sos-menu')return;
+ event.preventDefault();event.stopImmediatePropagation();openSos();
 },{capture:true});
-window.addEventListener('cj:driver-navigation',handleNavigation);
-window.addEventListener('orientationchange',preserveAcrossOrientation);
-window.addEventListener('resize',preserveAcrossOrientation);
-document.addEventListener('visibilitychange',()=>{if(!document.hidden){preserveAcrossOrientation();fetchRoute(true)}});
-setInterval(tick,400);
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',tick,{once:true});else tick();
+document.addEventListener('submit',event=>{
+ if(!event.target?.matches?.('#v21-sos-form'))return;
+ event.preventDefault();event.stopImmediatePropagation();
+ const old=event.target,occurrence=String(old.elements?.occurrence?.value||'').trim();
+ closeAnyModal();openSos();setTimeout(()=>{const form=$('#cj232-sos-form');if(form&&occurrence)form.elements.occurrence.value=occurrence},0);
+},{capture:true});
+document.addEventListener('click',event=>{
+ const b=event.target?.closest?.('#cj199-start');if(!b)return;
+ setTimeout(()=>syncOnline(true),700);
+},{capture:true});
+window.addEventListener('pageshow',()=>{startGps();syncOnline(true);setTimeout(tick,100)});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden){startGps();syncOnline(true);tick()}});
+setInterval(tick,700);
+setInterval(()=>syncOnline(false),5000);
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',()=>{startGps();tick();syncOnline(true)},{once:true});else{startGps();tick();syncOnline(true)}
 })();
