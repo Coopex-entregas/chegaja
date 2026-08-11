@@ -93,7 +93,7 @@ assert.match(driverCritical,/Autorize a localização do celular para continuar/
 assert.match(driverCritical,/event\?\.stopImmediatePropagation/);
 assert.match(driverCritical,/activeDelivery/);
 assert.match(driverCritical,/Você permanecerá online até finalizar/);
-assert.match(driverCritical,/data-cj232-locked/);
+assert.match(driverCritical,/dataset\.cj232Locked/);
 assert.match(driverCritical,/\/api\/app\/driver\/online/);
 assert.match(driverCritical,/body:\{online:true,latitude:loc\.lat/);
 assert.match(driverCritical,/serverLocation/);
