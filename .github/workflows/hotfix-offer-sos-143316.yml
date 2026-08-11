@@ -1,4 +1,4 @@
-name: Consolidar painel único e GPS 14.33.17
+name: Consolidar oferta full-screen 14.33.18
 
 on:
   push:
@@ -20,11 +20,23 @@ jobs:
           fetch-depth: 0
       - name: Aplicar consolidação
         run: python3 scripts/consolidate-driver-143317.py
+      - name: Ajustar teste para cache atual
+        run: sed -i 's/recovery=143317/recovery=143318/g' scripts/test-v14153-logo-google-maps.mjs
       - name: Validar JavaScript principal
         run: |
           node --check public/chegaja-v217-driver-navigation.js
           node --check public/app.js
           node --check public/chegaja-v201-operational.js
+      - name: Validar oferta full-screen
+        run: |
+          grep -q 'cj217-offer-screen' public/chegaja-v217-driver-navigation.js
+          grep -q 'cj217-offer-accept' public/chegaja-v217-driver-navigation.js
+          grep -q 'cj217-offer-decline' public/chegaja-v217-driver-navigation.js
+          grep -q 'setInterval(fire,3000)' public/chegaja-v217-driver-navigation.js
+          grep -q 'z-index:2147483000' public/chegaja-v217-driver-navigation.css
+          grep -q '#16a34a' public/chegaja-v217-driver-navigation.css
+          grep -q '#d92525' public/chegaja-v217-driver-navigation.css
+          grep -q 'app-version" content="14.33.18"' public/index.html
       - name: Rodar teste regressivo
         run: node scripts/test-v14153-logo-google-maps.mjs
       - name: Gravar na main
@@ -36,5 +48,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/index.html public/app.js public/chegaja-v201-operational.js public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: painel único oferta full-screen e gps contínuo 14.33.17"
+          git commit -m "fix: oferta full-screen real e toque persistente 14.33.18"
           git push origin HEAD:main
