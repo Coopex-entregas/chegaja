@@ -1,14 +1,15 @@
-/* ChegaJá 14.33.11 — filtro de toasts, mapas e estabilização do online/GPS do cooperado */
+/* ChegaJá 14.33.12 — online/GPS acionados diretamente pelo toque do cooperado */
 (()=>{
 'use strict';
-if(window.__CJ230_TOAST_FILTER_143311__)return;
-window.__CJ230_TOAST_FILTER_143311__=true;
+if(window.__CJ230_DRIVER_GPS_143312__)return;
+window.__CJ230_DRIVER_GPS_143312__=true;
 
 const isDriver=()=>window.state?.user?.role==='driver';
-const isDriverHome=()=>isDriver()&&window.state?.page==='dashboard';
+const driverPanelVisible=()=>isDriver()&&Boolean(document.querySelector('#cj199-start'))&&document.body.classList.contains('cj199-driver');
 const token=()=>String(window.state?.token||localStorage.getItem('lg_token')||'').trim();
 const presenceText=text=>/^\s*Cooperado\s+(online|offline)\b/i.test(String(text||''));
 const offerText=text=>/(nova\s+entrega|entrega\s+dispon[ií]vel|nova\s+chamada|entrega\s+recebida)/i.test(String(text||''));
+const ACTIVE_STATUSES=new Set(['assigned','accepted','to_pickup','at_pickup','picked_up','in_route','problem']);
 
 let driverWatch=null;
 let driverBusy=false;
@@ -49,7 +50,10 @@ function driverNotice(text,error=false){
   node._cj230Timer=setTimeout(()=>node.className='',4200);
 }
 
-function currentActiveDelivery(live){return Boolean(live?.active||live?.call||window.ChegaJaDriverActiveDelivery)}
+function currentActiveDelivery(live){
+  const candidates=[live?.active,live?.call,window.ChegaJaDriverActiveDelivery];
+  return candidates.some(item=>item&&ACTIVE_STATUSES.has(String(item.status||'')));
+}
 
 function unlockDriverButton(){
   const button=document.querySelector('#cj199-start');
@@ -108,11 +112,11 @@ function startDriverTracking(force=false){
       if(error?.code===1){
         if(driverWatch!=null)try{navigator.geolocation.clearWatch(driverWatch)}catch{}
         driverWatch=null;
-        driverNotice('Permita o acesso à localização do celular para usar o rastreamento.',true);
+        driverNotice('A localização está bloqueada para este site. Autorize nas permissões do navegador.',true);
       }
-      // TIMEOUT/posição temporariamente indisponível não encerram o rastreamento.
+      // TIMEOUT e indisponibilidade temporária NÃO desligam o rastreamento.
     },
-    {enableHighAccuracy:true,maximumAge:30000,timeout:30000}
+    {enableHighAccuracy:true,maximumAge:60000,timeout:60000}
   );
   return true;
 }
@@ -122,41 +126,46 @@ function stopDriverTracking(){
   driverWatch=null;
 }
 
-function waitForWatchPosition(timeout=12000){
-  if(lastPosition&&Date.now()-lastPosition.at<120000)return Promise.resolve(lastPosition.position);
+function waitForWatchPosition(timeout=15000){
+  if(lastPosition&&Date.now()-lastPosition.at<180000)return Promise.resolve(lastPosition.position);
   return new Promise((resolve,reject)=>{
     const waiter={resolve,reject};
     positionWaiters.add(waiter);
-    setTimeout(()=>{if(positionWaiters.delete(waiter))reject(new Error('A localização ainda não respondeu. O GPS continuará tentando.'))},timeout);
+    setTimeout(()=>{if(positionWaiters.delete(waiter))reject(new Error('GPS ainda sem posição.'))},timeout);
   });
 }
 
-function quickPosition(){
-  return new Promise((resolve,reject)=>{
-    if(!navigator.geolocation)return reject(new Error('GPS indisponível neste aparelho.'));
-    navigator.geolocation.getCurrentPosition(resolve,error=>{
-      if(error?.code===1)return reject(new Error('Permita a localização precisa para continuar.'));
-      if(error?.code===3)return reject(new Error('O GPS demorou para responder. O rastreamento continuará tentando.'));
-      reject(new Error('Não foi possível obter a localização agora. O rastreamento continuará tentando.'));
-    },{enableHighAccuracy:false,maximumAge:120000,timeout:7000});
-  });
-}
-
-async function acquireDeviceLocation(){
+function requestPositionFromTap(){
+  if(!navigator.geolocation)return Promise.reject(new Error('GPS indisponível neste aparelho.'));
+  // IMPORTANTE: esta chamada é criada diretamente dentro do evento de toque/click,
+  // antes de qualquer consulta ao servidor, preservando o gesto do usuário no celular.
   startDriverTracking();
-  const attempts=[quickPosition(),waitForWatchPosition(12000)];
+  return new Promise((resolve,reject)=>{
+    navigator.geolocation.getCurrentPosition(
+      position=>{rememberPosition(position);resolve(position)},
+      error=>{
+        if(error?.code===1)return reject(new Error('Autorize a localização para ficar online.'));
+        if(lastPosition&&Date.now()-lastPosition.at<180000)return resolve(lastPosition.position);
+        reject(new Error(error?.code===3?'O GPS demorou para responder. Tente novamente.':'O celular ainda não forneceu sua localização.'));
+      },
+      {enableHighAccuracy:false,maximumAge:180000,timeout:8000}
+    );
+  });
+}
+
+async function resolveTapLocation(tapPromise){
   try{
-    const position=await Promise.any(attempts);
+    const position=await Promise.any([tapPromise,waitForWatchPosition(15000)]);
     rememberPosition(position);
     return payloadFromPosition(position);
   }catch{
     if(lastPosition&&Date.now()-lastPosition.at<180000)return lastPosition.loc;
-    throw new Error('GPS ativado, mas ainda aguardando uma posição do celular.');
+    throw new Error('Não recebi uma posição válida do celular. Verifique a permissão de localização.');
   }
 }
 
 async function syncDriverPresence(showError=false){
-  if(!isDriverHome()||!token())return null;
+  if(!driverPanelVisible()||!token())return null;
   try{
     const live=await driverApi('/api/app/driver/live',{timeout:7000});
     const online=Boolean(Number(live.driver?.online));
@@ -168,43 +177,18 @@ async function syncDriverPresence(showError=false){
   }catch(error){if(showError)driverNotice(error.message||'Não foi possível verificar seu status.',true);return null}
 }
 
-async function toggleDriverPresence(){
-  if(driverBusy||!isDriverHome())return;
+async function toggleDriverPresence(tapPositionPromise){
+  if(driverBusy||!driverPanelVisible())return;
   driverBusy=true;
   const button=unlockDriverButton();
   button?.classList.add('busy');
   try{
     const live=await syncDriverPresence(true);
-    if(!live)return;
+    if(!live)throw new Error('Não foi possível consultar seu status agora.');
     const active=currentActiveDelivery(live);
     const online=Boolean(Number(live.driver?.online));
 
-    if(active){
-      // Durante entrega ativa nunca permite ficar offline. O toque serve para recuperar/forçar o GPS.
-      if(!online){
-        const loc=await acquireDeviceLocation();
-        await driverApi('/api/app/driver/online',{method:'POST',body:{online:true,...loc},timeout:9000});
-        driverOnline=true;
-        paintDriverButton(true,true);
-        await sendDriverLocation(loc,true);
-        startDriverTracking(true);
-        driverNotice('Você está online. Rastreamento ativo durante a entrega.');
-        return;
-      }
-      driverOnline=true;
-      paintDriverButton(true,true);
-      startDriverTracking(true);
-      try{
-        const loc=await acquireDeviceLocation();
-        await sendDriverLocation(loc,true);
-        driverNotice('Localização atualizada. Rastreamento ativo.');
-      }catch{
-        driverNotice('GPS ligado. Aguardando o celular atualizar sua posição.');
-      }
-      return;
-    }
-
-    if(online){
+    if(online&&!active){
       await driverApi('/api/app/driver/online',{method:'POST',body:{online:false},timeout:8000});
       driverOnline=false;
       stopDriverTracking();
@@ -213,13 +197,26 @@ async function toggleDriverPresence(){
       return;
     }
 
-    const loc=await acquireDeviceLocation();
-    await driverApi('/api/app/driver/online',{method:'POST',body:{online:true,...loc},timeout:9000});
+    // Para entrar online OU recuperar GPS durante uma entrega, usamos a requisição
+    // de localização que começou no instante exato do toque.
+    const loc=await resolveTapLocation(tapPositionPromise);
+
+    if(!online){
+      await driverApi('/api/app/driver/online',{method:'POST',body:{online:true,...loc},timeout:9000});
+      driverOnline=true;
+      paintDriverButton(true,active);
+      await sendDriverLocation(loc,true);
+      startDriverTracking(true);
+      driverNotice(active?'Você está online. Rastreamento ativo durante a entrega.':'Você está online. Rastreamento ativo.');
+      return;
+    }
+
+    // Entrega ativa: nunca fica offline; o toque apenas renova a localização.
     driverOnline=true;
-    paintDriverButton(true,false);
+    paintDriverButton(true,true);
     await sendDriverLocation(loc,true);
     startDriverTracking(true);
-    driverNotice('Você está online. Rastreamento ativo.');
+    driverNotice('Localização atualizada. Rastreamento ativo.');
   }catch(error){
     driverNotice(error.message||'Não foi possível atualizar seu status.',true);
   }finally{
@@ -232,7 +229,7 @@ async function toggleDriverPresence(){
 
 function schedulePresenceSync(){
   clearTimeout(syncTimer);
-  syncTimer=setTimeout(()=>syncDriverPresence(false),180);
+  syncTimer=setTimeout(()=>syncDriverPresence(false),220);
 }
 
 function restoreOtherMaps(){
@@ -245,9 +242,7 @@ function restoreOtherMaps(){
   }
   if(!isDriver()){
     document.querySelectorAll('.leaflet-container').forEach(node=>{
-      node.style.removeProperty('display');
-      node.style.removeProperty('visibility');
-      node.style.removeProperty('opacity');
+      node.style.removeProperty('display');node.style.removeProperty('visibility');node.style.removeProperty('opacity');
       try{node._leaflet_map?.invalidateSize?.(false)}catch{}
     });
   }
@@ -271,48 +266,49 @@ function clearFilteredToasts(root=document){
 
 function patchToast(){
   const original=window.toast;
-  if(typeof original!=='function'||original.__cj230Filtered143311)return;
+  if(typeof original!=='function'||original.__cj230Filtered143312)return;
   const filtered=function(message,type='success',...args){
     if(presenceText(message))return;
     if(isDriver()&&(offerText(message)||String(type||'success').toLowerCase()==='success'))return;
     return original.call(this,message,type,...args);
   };
-  filtered.__cj230Filtered143311=true;
+  filtered.__cj230Filtered143312=true;
   filtered.__cj230Original=original;
   window.toast=filtered;
 }
 
 function boot(){
-  restoreOtherMaps();
-  patchToast();
-  clearFilteredToasts();
+  restoreOtherMaps();patchToast();clearFilteredToasts();
 
   document.addEventListener('click',event=>{
     const target=event.target?.closest?.('#cj199-start');
-    if(!target||!isDriverHome())return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    toggleDriverPresence();
+    if(!target||!isDriver())return;
+    // A solicitação do GPS nasce aqui, de forma síncrona, dentro do clique.
+    const tapPositionPromise=requestPositionFromTap();
+    // Evita rejeição não tratada caso o botão estivesse ocupado.
+    tapPositionPromise.catch(()=>{});
+    event.preventDefault();event.stopPropagation();event.stopImmediatePropagation();
+    toggleDriverPresence(tapPositionPromise);
   },true);
 
   const toastHost=document.querySelector('#toast-container')||document.body;
   new MutationObserver(records=>{
-    restoreOtherMaps();
-    patchToast();
+    restoreOtherMaps();patchToast();
     for(const record of records)for(const node of record.addedNodes)clearFilteredToasts(node);
   }).observe(toastHost,{childList:true,subtree:true});
 
+  // Observa somente o próprio botão. Não varre o mapa inteiro, evitando lentidão.
+  const attachButtonGuard=()=>{
+    const button=unlockDriverButton();
+    if(!button||button.__cj230Guard)return;
+    button.__cj230Guard=true;
+    new MutationObserver(()=>unlockDriverButton()).observe(button,{attributes:true,attributeFilter:['disabled','hidden']});
+  };
   new MutationObserver(records=>{
-    let relevant=false;
-    for(const record of records){
-      if(record.target?.id==='cj199-start'||record.addedNodes?.length){relevant=true;break}
-    }
-    if(relevant){unlockDriverButton();schedulePresenceSync()}
-  }).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['disabled','hidden']});
+    if(records.some(record=>[...record.addedNodes].some(node=>node?.nodeType===1&&(node.id==='cj199-start'||node.querySelector?.('#cj199-start'))))){attachButtonGuard();schedulePresenceSync()}
+  }).observe(document.body,{childList:true,subtree:true});
 
-  setTimeout(schedulePresenceSync,500);
-  setTimeout(schedulePresenceSync,1800);
+  attachButtonGuard();setTimeout(schedulePresenceSync,500);setTimeout(schedulePresenceSync,1800);
 }
 
 window.addEventListener('resize',restoreOtherMaps);
