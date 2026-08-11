@@ -20,8 +20,11 @@ jobs:
           fetch-depth: 0
       - name: Aplicar consolidação
         run: python3 scripts/consolidate-driver-143317.py
-      - name: Ajustar teste para cache atual
-        run: sed -i 's/recovery=143317/recovery=143318/g' scripts/test-v14153-logo-google-maps.mjs
+      - name: Ajustar guard e teste para 14.33.18
+        run: |
+          sed -i 's/__CJ_DRIVER_LEAFLET_143317__/__CJ_DRIVER_LEAFLET_143318__/g' public/chegaja-v217-driver-navigation.js
+          sed -i 's/recovery=143317/recovery=143318/g' scripts/test-v14153-logo-google-maps.mjs
+          sed -i 's/setInterval\\(fire,3400\\)/setInterval\\(fire,3000\\)/g' scripts/test-v14153-logo-google-maps.mjs
       - name: Validar JavaScript principal
         run: |
           node --check public/chegaja-v217-driver-navigation.js
@@ -33,6 +36,8 @@ jobs:
           grep -q 'cj217-offer-accept' public/chegaja-v217-driver-navigation.js
           grep -q 'cj217-offer-decline' public/chegaja-v217-driver-navigation.js
           grep -q 'setInterval(fire,3000)' public/chegaja-v217-driver-navigation.js
+          grep -q '__CJ_DRIVER_LEAFLET_143318__=true' public/chegaja-v217-driver-navigation.js
+          ! grep -q '__CJ_DRIVER_LEAFLET_143317__' public/chegaja-v217-driver-navigation.js
           grep -q 'z-index:2147483000' public/chegaja-v217-driver-navigation.css
           grep -q '#16a34a' public/chegaja-v217-driver-navigation.css
           grep -q '#d92525' public/chegaja-v217-driver-navigation.css
