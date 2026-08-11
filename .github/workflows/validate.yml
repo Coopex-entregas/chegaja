@@ -50,6 +50,7 @@ jobs:
           node --check public/chegaja-v205-driver-fixes.js
           node --check public/chegaja-v217-driver-navigation.js
           node --check public/chegaja-v227-address-search.js
+          node --check public/chegaja-v232-navigation-final.js
           node --check public/sw.js
 
       - name: Verificar mapas, permissões e produção
