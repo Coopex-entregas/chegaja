@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/fix-driver-route-rotation-143341.py'
+      - 'scripts/fix-driver-route-rotation-test-143341.py'
       - '.github/workflows/fix-driver-route-rotation-143341.yml'
   workflow_dispatch:
 
@@ -34,6 +35,8 @@ jobs:
           test -s public/vendor/leaflet/leaflet-rotate.js
       - name: Aplicar 14.33.41
         run: python3 scripts/fix-driver-route-rotation-143341.py
+      - name: Normalizar regressão 14.33.41
+        run: python3 scripts/fix-driver-route-rotation-test-143341.py
       - name: Validar JavaScript
         run: |
           node --check public/chegaja-v217-driver-navigation.js
