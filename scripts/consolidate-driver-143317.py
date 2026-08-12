@@ -42,7 +42,9 @@ if 'ChegaJá 14.33.21' not in js:
         '/* ChegaJá 14.33.21 — rota azul dedicada e alerta reforçado de nova entrega */',
         'versão do painel',
     )
-    js = js.replace('__CJ_DRIVER_LEAFLET_143320__', '__CJ_DRIVER_LEAFLET_143321__', 1)
+    # O guard aparece duas vezes na mesma linha: na checagem e na atribuição.
+    # As duas precisam mudar juntas para impedir instalação duplicada do painel.
+    js = js.replace('__CJ_DRIVER_LEAFLET_143320__', '__CJ_DRIVER_LEAFLET_143321__')
     js = replace_once(
         js,
         "audio:null,navTarget:null};",
