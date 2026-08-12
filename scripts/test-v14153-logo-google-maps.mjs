@@ -12,13 +12,13 @@ const navigation=read('src/routes/platform-v32.ts');
 const v28=read('src/routes/platform-v28.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.27"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.27&recovery=143327/);
-assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.27&recovery=143327/);
+assert.match(index,/app-version" content="14\.33\.28"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.28&recovery=143328/);
+assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.28&recovery=143328/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.27/);
+assert.match(driver,/ChegaJá 14\.33\.28/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
@@ -128,3 +128,9 @@ assert.match(app,/targetPage=freshDriver\?'dashboard'/);
 assert.match(index,/\/app\.js\?v=14\.33\.25&recovery=143325/);
 assert.match(driver,/L\.marker\(ll/);
 assert.match(driver,/L\.polyline\(ll,\{color:'#075dff'/);
+
+
+assert.match(driver,/function mapRotationForHeading\(heading\)/);
+assert.match(driver,/normAngle\(360-h\)/);
+assert.match(driver,/wanted=target==null\?0:mapRotationForHeading\(target\)/);
+assert.match(driver,/angle=h==null\?0:normAngle\(h\+mapBearing\)/);
