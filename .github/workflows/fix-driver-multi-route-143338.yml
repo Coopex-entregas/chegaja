@@ -27,6 +27,19 @@ jobs:
         run: npm ci
       - name: Aplicar 14.33.38
         run: python3 scripts/fix-driver-multi-route-143338.py
+      - name: Normalizar versão e teste
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('public/index.html'); s=p.read_text()
+          s=s.replace('content="14.33.37"','content="14.33.38"',1).replace('content="14.33.36"','content="14.33.38"',1)
+          s=s.replace('/chegaja-v217-driver-navigation.js?v=14.33.36&recovery=143336','/chegaja-v217-driver-navigation.js?v=14.33.38&recovery=143338')
+          p.write_text(s)
+          p=Path('scripts/test-v14153-logo-google-maps.mjs'); s=p.read_text()
+          s=s.replace('14\\.33\\.36','14\\.33\\.38').replace('recovery=143336','recovery=143338')
+          s=s.replace('ChegaJá 14\\.33\\.35','ChegaJá 14\\.33\\.38')
+          p.write_text(s)
+          PY
       - name: Validar JavaScript
         run: node --check public/chegaja-v217-driver-navigation.js
       - name: Validar TypeScript
@@ -44,7 +57,7 @@ jobs:
             'coleta em andamento travada':'pickup_in_progress' in nav,
             'sincronização multi-entrega':'function syncDetailToNavigation(next)' in driver,
             'lista ativa':'function basicFromLive(live)' in driver,
-            'versão pública':'14.33.38' in index and '143338' in index,
+            'versão pública':'app-version" content="14.33.38"' in index and 'v=14.33.38&recovery=143338' in index,
           }
           missing=[name for name,ok in checks.items() if not ok]
           if missing: raise SystemExit('Falhou: '+', '.join(missing))
