@@ -1,4 +1,5 @@
 name: Consolidar áudio do cooperado 14.33.22
+# Publicação direta da versão 14.33.22 após validação completa.
 
 on:
   push:
