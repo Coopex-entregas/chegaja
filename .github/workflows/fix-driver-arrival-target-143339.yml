@@ -1,0 +1,69 @@
+name: Consolidar chegada correta 14.33.39
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-driver-arrival-target-143339.py'
+      - '.github/workflows/fix-driver-arrival-target-143339.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Aplicar 14.33.39
+        run: python3 scripts/fix-driver-arrival-target-143339.py
+      - name: Validar JavaScript
+        run: node --check public/chegaja-v217-driver-navigation.js
+      - name: Validar TypeScript
+        run: npm run typecheck
+      - name: Validar chegada vinculada
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          v28=Path('src/routes/platform-v28.ts').read_text()
+          nav=Path('src/routes/platform-v32.ts').read_text()
+          driver=Path('public/chegaja-v217-driver-navigation.js').read_text()
+          index=Path('public/index.html').read_text()
+          checks={
+            'raio backend 100':'DRIVER_ARRIVAL_RADIUS_METERS=100' in v28,
+            'delivery_id backend':'requestedDeliveryId=cleanText(body.delivery_id,80)' in v28,
+            'consulta pelo id':'AND id=? LIMIT 1' in v28,
+            'raio navegação 100':'ARRIVAL_RADIUS_METERS=100' in nav,
+            'pickup com id':"stage:'pickup',delivery_id:A.detail.id" in driver,
+            'delivery com id':"stage:'delivery',delivery_id:A.detail.id" in driver,
+            'gps automático com id':'body:{...loc,delivery_id:A.detail.id}' in driver,
+            'sem falso chegou':"chosenType==='arrive'&&!nav.arrived" in driver,
+            'cache 14.33.39':'14.33.39' in index and '143339' in index,
+          }
+          missing=[name for name,ok in checks.items() if not ok]
+          if missing: raise SystemExit('Falhou: '+', '.join(missing))
+          print('Chegada validada:', ', '.join(checks))
+          PY
+      - name: Teste regressivo do cooperado
+        run: node scripts/test-v14153-logo-google-maps.mjs
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then
+            echo 'Sem alterações pendentes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/platform-v28.ts src/routes/platform-v32.ts public/chegaja-v217-driver-navigation.js public/index.html scripts/test-v14153-logo-google-maps.mjs
+          git commit -m 'fix: chegada vinculada à entrega atual 14.33.39'
+          git push origin main
