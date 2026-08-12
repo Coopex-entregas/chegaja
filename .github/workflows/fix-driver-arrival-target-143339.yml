@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/fix-driver-arrival-target-143339.py'
+      - 'scripts/fix-driver-arrival-test-143339.py'
       - '.github/workflows/fix-driver-arrival-target-143339.yml'
   workflow_dispatch:
 
@@ -27,6 +28,8 @@ jobs:
         run: npm ci
       - name: Aplicar 14.33.39
         run: python3 scripts/fix-driver-arrival-target-143339.py
+      - name: Normalizar regressão 14.33.39
+        run: python3 scripts/fix-driver-arrival-test-143339.py
       - name: Validar JavaScript
         run: node --check public/chegaja-v217-driver-navigation.js
       - name: Validar TypeScript
@@ -39,6 +42,7 @@ jobs:
           nav=Path('src/routes/platform-v32.ts').read_text()
           driver=Path('public/chegaja-v217-driver-navigation.js').read_text()
           index=Path('public/index.html').read_text()
+          test=Path('scripts/test-v14153-logo-google-maps.mjs').read_text()
           checks={
             'raio backend 100':'DRIVER_ARRIVAL_RADIUS_METERS=100' in v28,
             'delivery_id backend':'requestedDeliveryId=cleanText(body.delivery_id,80)' in v28,
@@ -49,6 +53,7 @@ jobs:
             'gps automático com id':'body:{...loc,delivery_id:A.detail.id}' in driver,
             'sem falso chegou':"chosenType==='arrive'&&!nav.arrived" in driver,
             'cache 14.33.39':'14.33.39' in index and '143339' in index,
+            'regressão 14.33.39':r'14\.33\.39' in test and 'recovery=143339' in test,
           }
           missing=[name for name,ok in checks.items() if not ok]
           if missing: raise SystemExit('Falhou: '+', '.join(missing))
