@@ -1,0 +1,55 @@
+name: Consolidar prioridade de rotas 14.33.38
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-driver-multi-route-143338.py'
+      - '.github/workflows/fix-driver-multi-route-143338.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Aplicar 14.33.38
+        run: python3 scripts/fix-driver-multi-route-143338.py
+      - name: Validar JavaScript
+        run: node --check public/chegaja-v217-driver-navigation.js
+      - name: Validar TypeScript
+        run: npm run typecheck
+      - name: Validar prioridade das paradas
+        run: |
+          grep -q 'DELIVERY_TIE_METERS=300' src/routes/platform-v32.ts
+          grep -q "selectionReason='delivery_priority_tie'" src/routes/platform-v32.ts
+          grep -q "selectionReason='pickup_in_progress'" src/routes/platform-v32.ts
+          grep -q 'function basicFromLive(live)' public/chegaja-v217-driver-navigation.js
+          grep -q 'function syncDetailToNavigation(next)' public/chegaja-v217-driver-navigation.js
+          grep -q 'app-version" content="14.33.38"' public/index.html
+          grep -q 'chegaja-v217-driver-navigation.js?v=14.33.38&recovery=143338' public/index.html
+      - name: Teste regressivo do cooperado
+        run: node scripts/test-v14153-logo-google-maps.mjs
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then
+            echo 'Sem alterações pendentes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/platform-v32.ts public/chegaja-v217-driver-navigation.js public/index.html scripts/test-v14153-logo-google-maps.mjs
+          git commit -m 'fix: prioridade clara entre coleta e entrega 14.33.38'
+          git push origin main
