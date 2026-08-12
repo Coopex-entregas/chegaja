@@ -2,141 +2,133 @@ from pathlib import Path
 
 ROOT = Path('.')
 
+
 def read(path):
     return (ROOT / path).read_text(encoding='utf-8')
 
+
 def write(path, text):
     (ROOT / path).write_text(text, encoding='utf-8')
+
 
 def replace_once(text, old, new, label):
     if old not in text:
         raise RuntimeError(f'Bloco não encontrado: {label}')
     return text.replace(old, new, 1)
 
-# 14.33.20: um único fluxo de oferta no v217, assigned sempre exige decisão,
-# nenhum banner legado e navegação usa também o alvo retornado pelo backend.
+
+def replace_line(text, prefix, new_line, label):
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        if line.startswith(prefix):
+            lines[i] = new_line
+            return '\n'.join(lines) + ('\n' if text.endswith('\n') else '')
+    raise RuntimeError(f'Linha não encontrada: {label}')
+
+
+# ChegaJá 14.33.21
+# 1) A rota é pedida ao backend com a posição GPS atual do aparelho.
+# 2) A linha azul usa um pane/renderer SVG dedicado acima dos tiles do mapa.
+# 3) Enquanto a rota viária é calculada, uma linha imediata já fica visível.
+# 4) O alerta de nova entrega usa pulsos quadrados/serrilhados mais perceptíveis,
+#    sempre limitado pelo volume físico/configuração do próprio aparelho.
 
 js_path = 'public/chegaja-v217-driver-navigation.js'
 js = read(js_path)
-if 'ChegaJá 14.33.20' not in js:
-    js = replace_once(js,
-        '/* ChegaJá 14.33.19 — aceite volta ao mapa, seta visível e rota garantida */',
+if 'ChegaJá 14.33.21' not in js:
+    js = replace_once(
+        js,
         '/* ChegaJá 14.33.20 — oferta única full-screen e rota resiliente coleta/entrega */',
-        'versão do painel')
-    js = js.replace('__CJ_DRIVER_LEAFLET_143319__', '__CJ_DRIVER_LEAFLET_143320__')
-    js = replace_once(js,
-        "sheetKey:'',touchY:null,audio:null};",
-        "sheetKey:'',touchY:null,audio:null,navTarget:null};",
-        'estado de alvo da navegação')
-    js = replace_once(js,
-        "function clearRoute(){A.casing?.remove();A.line?.remove();A.casing=A.line=null;A.routePoints=[];A.lastRouteOrigin=A.lastRouteTarget=null;A.routeFitKey=''}",
-        "function clearRoute(){A.casing?.remove();A.line?.remove();A.casing=A.line=null;A.routePoints=[];A.lastRouteOrigin=A.lastRouteTarget=null;A.routeFitKey='';A.navTarget=null}",
-        'limpeza da rota')
-    js = replace_once(js,
-        "function targetPoint(){const x=A.detail;if(!x)return null;const delivery=targetKind()==='delivery',p=point(delivery?x.delivery_lat:x.pickup_lat,delivery?x.delivery_lng:x.pickup_lng);return valid(p)?p:null}",
-        "function targetPoint(){const x=A.detail;if(!x)return null;const delivery=targetKind()==='delivery',p=point(delivery?x.delivery_lat:x.pickup_lat,delivery?x.delivery_lng:x.pickup_lng);return valid(p)?p:(valid(A.navTarget)?A.navTarget:null)}",
-        'fallback do alvo')
-    js = replace_once(js,
-        "const p=point(x.pickup_lat,x.pickup_lng),d=point(x.delivery_lat,x.delivery_lng);",
-        "const rawP=point(x.pickup_lat,x.pickup_lng),rawD=point(x.delivery_lat,x.delivery_lng),p=valid(rawP)?rawP:(targetKind()==='pickup'&&valid(A.navTarget)?A.navTarget:rawP),d=valid(rawD)?rawD:(targetKind()==='delivery'&&valid(A.navTarget)?A.navTarget:rawD);",
-        'marcadores com alvo da navegação')
-    js = replace_once(js,
-        "function offerRequired(x){return Boolean(x)&&(['offered','assigned'].includes(String(x.status))||Boolean(x.requires_acceptance))&&!x.accepted_at}",
-        "function offerRequired(x){if(!x)return false;const status=String(x.status||'');if(status==='offered'||status==='assigned')return true;return Boolean(x.requires_acceptance)&&!x.accepted_at}",
-        'assigned sempre pendente')
-    js = replace_once(js,
-        "if(!offer){host.hidden=true;host.innerHTML='';return}const routeMeters=",
-        "if(!offer){host.hidden=true;host.innerHTML='';return}document.body.classList.add('cj217-pending-offer');$('#toast-container')?.replaceChildren();$('#chegaja-ringing')?.remove();const routeMeters=",
-        'oferta elimina avisos antigos')
+        '/* ChegaJá 14.33.21 — rota azul dedicada e alerta reforçado de nova entrega */',
+        'versão do painel',
+    )
+    js = js.replace('__CJ_DRIVER_LEAFLET_143320__', '__CJ_DRIVER_LEAFLET_143321__', 1)
+    js = replace_once(
+        js,
+        "audio:null,navTarget:null};",
+        "audio:null,navTarget:null,routeRenderer:null};",
+        'renderer dedicado da rota',
+    )
 
-    old_route = "async function updateRoute(force=false){if(!A.detail||!['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(String(A.detail.status))||A.routeBusy||document.hidden||!routeDue(force))return;const origin=A.gps,target=targetPoint();if(!valid(origin)||!valid(target))return;A.routeBusy=true;A.lastRouteAt=Date.now();try{let pts=[];try{const d=await api('/api/app/v32/driver/navigation',{timeout:8000});pts=normalizeGeometry(d.route?.geometry)}catch{}if(pts.length>=2){let nearest=Infinity;for(const p of pts)nearest=Math.min(nearest,distance(origin,p));const endpoint=Math.min(distance(target,pts[0]),distance(target,pts.at(-1)));if(nearest>130||endpoint>180)pts=[]}if(pts.length<2)pts=await osrm(origin,target);if(pts.length<2)pts=[{...origin},{...target}];if(pts.length>=2){A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(pts);trimRouteToGps();ensureSelf();if(navigationActive()&&!A.manualView&&A.following)followGps();else fitRouteOnce()}}finally{A.routeBusy=false}}"
-    new_route = "async function updateRoute(force=false){if(!A.detail||!['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(String(A.detail.status))||A.routeBusy||document.hidden)return;const origin=A.gps;if(!valid(origin))return;let target=targetPoint();if(valid(target)&&!routeDue(force))return;if(!force&&!valid(target)&&Date.now()-A.lastRouteAt<5000)return;A.routeBusy=true;A.lastRouteAt=Date.now();try{let pts=[];try{const nav=await api('/api/app/v32/driver/navigation',{timeout:8000}),serverTarget=point(nav.next?.lat,nav.next?.lng);if(valid(serverTarget)){A.navTarget={...serverTarget};if(!valid(target))target=serverTarget;updateStops()}pts=normalizeGeometry(nav.route?.geometry)}catch{}if(!valid(target)&&valid(A.navTarget))target=A.navTarget;if(!valid(target))return;if(pts.length>=2){let nearest=Infinity;for(const p of pts)nearest=Math.min(nearest,distance(origin,p));const endpoint=Math.min(distance(target,pts[0]),distance(target,pts.at(-1)));if(nearest>130||endpoint>180)pts=[]}if(pts.length<2)pts=await osrm(origin,target);if(pts.length<2)pts=[{...origin},{...target}];A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(pts);trimRouteToGps();ensureSelf();updateStops();if(navigationActive()&&!A.manualView&&A.following)followGps();else fitRouteOnce()}finally{A.routeBusy=false}}"
-    js = replace_once(js, old_route, new_route, 'rota resiliente')
+    ensure_prefix = 'async function ensureMap()'
+    lines = js.splitlines()
+    found = False
+    for i, line in enumerate(lines):
+        if line.startswith(ensure_prefix):
+            found = True
+            line = line.replace(
+                'A.map=A.self=A.pickup=A.delivery=A.casing=A.line=null}',
+                'A.map=A.self=A.pickup=A.delivery=A.casing=A.line=null;A.routeRenderer=null}',
+                1,
+            )
+            marker = ";A.tile=L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png'"
+            if marker not in line:
+                raise RuntimeError('Bloco não encontrado: criação dos tiles do mapa')
+            pane_setup = ";const routePane=A.map.getPane('cj217-route-pane')||A.map.createPane('cj217-route-pane');routePane.style.zIndex='625';routePane.style.pointerEvents='none';A.routeRenderer=typeof L.svg==='function'?L.svg({pane:'cj217-route-pane',padding:.5}):null"
+            line = line.replace(marker, pane_setup + marker, 1)
+            lines[i] = line
+            break
+    if not found:
+        raise RuntimeError('Linha não encontrada: ensureMap')
+    js = '\n'.join(lines) + ('\n' if js.endswith('\n') else '')
 
-    old_accept = "const d=await acceptCall(x,loc||{});stopOfferAlert();A.detail={...x,status:String(d.status||'accepted'),accepted_at:new Date().toISOString(),requires_acceptance:false,updated_at:new Date().toISOString()};"
-    new_accept = "const d=await acceptCall(x,loc||{});stopOfferAlert();const rawAcceptedStatus=String(d.status||d.delivery?.status||''),acceptedStatus=['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(rawAcceptedStatus)?rawAcceptedStatus:'accepted';A.detail={...x,status:acceptedStatus,accepted_at:new Date().toISOString(),requires_acceptance:false,updated_at:new Date().toISOString()};"
-    js = replace_once(js, old_accept, new_accept, 'normalização do aceite')
+    draw_route = "function drawRoute(points){if(!A.map||!Array.isArray(points)||points.length<2)return;const path=points.map(p=>point(p.lat,p.lng)).filter(valid);if(path.length<2)return;A.routePoints=path;const pane=A.map.getPane('cj217-route-pane')||A.map.createPane('cj217-route-pane');pane.style.zIndex='625';pane.style.pointerEvents='none';if(!A.routeRenderer&&typeof L.svg==='function')A.routeRenderer=L.svg({pane:'cj217-route-pane',padding:.5});const ll=path.map(p=>[p.lat,p.lng]),renderer=A.routeRenderer||undefined;if(!A.casing)A.casing=L.polyline(ll,{pane:'cj217-route-pane',renderer,color:'#fff',weight:16,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(A.map);else A.casing.setLatLngs(ll);if(!A.line)A.line=L.polyline(ll,{pane:'cj217-route-pane',renderer,color:'#075dff',weight:10,opacity:1,lineCap:'round',lineJoin:'round',interactive:false}).addTo(A.map);else A.line.setLatLngs(ll);A.casing.bringToFront?.();A.line.bringToFront?.();A.self?.bringToFront?.()}"
+    js = replace_line(js, 'function drawRoute(points)', draw_route, 'desenho da rota')
+
+    update_route = "async function updateRoute(force=false){if(!A.detail||!['accepted','to_pickup','at_pickup','picked_up','in_route','problem'].includes(String(A.detail.status))||A.routeBusy||document.hidden)return;const origin=A.gps;if(!valid(origin))return;let target=targetPoint();if(valid(target)&&!routeDue(force))return;if(!force&&!valid(target)&&Date.now()-A.lastRouteAt<5000)return;A.routeBusy=true;A.lastRouteAt=Date.now();try{let pts=[];if(valid(target)){drawRoute([{...origin},{...target}]);ensureSelf()}try{const nav=await api(`/api/app/v32/driver/navigation?lat=${encodeURIComponent(origin.lat)}&lng=${encodeURIComponent(origin.lng)}`,{timeout:9000}),serverTarget=point(nav.next?.lat,nav.next?.lng);if(valid(serverTarget)){A.navTarget={...serverTarget};target=serverTarget;updateStops();if(A.routePoints.length<2)drawRoute([{...origin},{...target}])}pts=normalizeGeometry(nav.route?.geometry)}catch{}if(!valid(target)&&valid(A.navTarget))target=A.navTarget;if(!valid(target))return;if(pts.length>=2){let nearest=Infinity;for(const p of pts)nearest=Math.min(nearest,distance(origin,p));const endpoint=Math.min(distance(target,pts[0]),distance(target,pts.at(-1)));if(nearest>220||endpoint>260)pts=[]}if(pts.length<2)pts=await osrm(origin,target);if(pts.length<2)pts=[{...origin},{...target}];A.lastRouteOrigin={...origin};A.lastRouteTarget={...target};drawRoute(pts);trimRouteToGps();ensureSelf();updateStops();if(navigationActive()&&!A.manualView&&A.following)followGps();else fitRouteOnce()}finally{A.routeBusy=false}}"
+    js = replace_line(js, 'async function updateRoute(force=false)', update_route, 'atualização da rota')
+
+    phone_tone = "function phoneTone(c,at=0,duration=1.15){try{const start=c.currentTime+at,master=c.createGain(),compressor=c.createDynamicsCompressor();compressor.threshold.setValueAtTime(-12,start);compressor.knee.setValueAtTime(8,start);compressor.ratio.setValueAtTime(10,start);compressor.attack.setValueAtTime(.003,start);compressor.release.setValueAtTime(.12,start);master.gain.setValueAtTime(.0001,start);master.gain.exponentialRampToValueAtTime(.78,start+.012);master.gain.setValueAtTime(.78,start+duration-.04);master.gain.exponentialRampToValueAtTime(.0001,start+duration);master.connect(compressor);compressor.connect(c.destination);const tones=[{freq:820,type:'square',gain:.29},{freq:1180,type:'sawtooth',gain:.23},{freq:1560,type:'square',gain:.18}];for(let pulse=0;pulse<6;pulse++){const ps=start+pulse*.18,pe=Math.min(start+duration,ps+.13);for(const tone of tones){const o=c.createOscillator(),g=c.createGain();o.type=tone.type;o.frequency.setValueAtTime(tone.freq+(pulse%2?170:-60),ps);o.frequency.linearRampToValueAtTime(tone.freq+(pulse%2?-90:220),pe);g.gain.setValueAtTime(.0001,ps);g.gain.exponentialRampToValueAtTime(tone.gain,ps+.008);g.gain.setValueAtTime(tone.gain,Math.max(ps+.009,pe-.025));g.gain.exponentialRampToValueAtTime(.0001,pe);o.connect(g);g.connect(master);o.start(ps);o.stop(pe+.025)}}}catch{}}"
+    js = replace_line(js, 'function phoneTone(c,at=0,duration=', phone_tone, 'toque reforçado')
+
+    ring_line = "async function ring(){navigator.vibrate?.([650,70,650,70,650,180]);const c=unlockAudio();if(!c)return;try{if(c.state!=='running')await c.resume()}catch{}if(c.state!=='running')return;phoneTone(c,0,1.15);phoneTone(c,1.28,1.15)}"
+    js = replace_line(js, 'async function ring()', ring_line, 'padrão do alerta')
+    js = js.replace('setInterval(fire,3000)', 'setInterval(fire,2700)')
     write(js_path, js)
 
-# Remove o segundo fluxo antigo de chamada/balloon do arquivo global.
-final_path = 'public/chegaja-final.js'
-final = read(final_path)
-final = replace_once(final,
-    "function ringBanner(){let el=$id('chegaja-ringing');if(!el){el=document.createElement('div');el.id='chegaja-ringing';el.className='chegaja-ringing';el.textContent='☎ Nova entrega — toque em Aceitar';document.body.append(el)}return el}",
-    "function ringBanner(){return null}",
-    'banner legado')
-old_start = """function startRing(deliveryId){
-    if(state?.user?.role!=='driver')return;
-    if(CJ.ringDeliveryId===deliveryId&&CJ.ringTimer)return;
-    stopRing();CJ.ringDeliveryId=deliveryId||'assigned';ringBanner();oldPhoneBurst();CJ.ringTimer=setInterval(oldPhoneBurst,2400);
-  }"""
-new_start = """function startRing(deliveryId){
-    stopRing();
-    return;
-  }"""
-final = replace_once(final, old_start, new_start, 'som legado')
-final = replace_once(final,
-    "if(state.user.role==='driver'&&item.event_type==='delivery_assigned')startRing(item.delivery_id);",
-    "if(state.user.role==='driver'&&item.event_type==='delivery_assigned'){stopRing();continue;}",
-    'notificação legada do cooperado')
-write(final_path, final)
+# Backend: usa a coordenada atual enviada apenas para calcular a navegação.
+nav_path = 'src/routes/platform-v32.ts'
+nav = read(nav_path)
+if "c.req.query('lat')" not in nav:
+    nav = replace_once(
+        nav,
+        " const lat=Number(driver?.current_lat),lng=Number(driver?.current_lng);\n if(!valid(lat,lng))return c.json({ok:true,online:Boolean(Number(driver?.online||0)),items:[],next:null,route:null,arrived:false,arrival_radius_meters:ARRIVAL_RADIUS_METERS});",
+        " const requestedLat=Number(c.req.query('lat')),requestedLng=Number(c.req.query('lng')),storedLat=Number(driver?.current_lat),storedLng=Number(driver?.current_lng);\n const useRequested=valid(requestedLat,requestedLng),lat=useRequested?requestedLat:storedLat,lng=useRequested?requestedLng:storedLng;\n if(!valid(lat,lng))return c.json({ok:true,online:Boolean(Number(driver?.online||0)),items:[],next:null,route:null,arrived:false,arrival_radius_meters:ARRIVAL_RADIUS_METERS});",
+        'GPS atual na rota backend',
+    )
+nav = nav.replace("'User-Agent':'ChegaJa/14.33.5'", "'User-Agent':'ChegaJa/14.33.21'")
+write(nav_path, nav)
 
-# Backend: status assigned é sempre uma oferta ainda não decidida, mesmo se um dado
-# legado tiver preenchido accepted_at incorretamente.
-v28_path = 'src/routes/platform-v28.ts'
-v28 = read(v28_path)
-v28 = replace_once(v28,
-    """function needsAcceptance(item:Row,driverId:string){
-  if(item.status==='offered'&&!item.assigned_driver_id)return true;
-  return item.assigned_driver_id===driverId&&!item.accepted_at&&['assigned','accepted','to_pickup','at_pickup'].includes(String(item.status));
-}""",
-    """function needsAcceptance(item:Row,driverId:string){
-  if(item.status==='offered'&&!item.assigned_driver_id)return true;
-  if(item.status==='assigned'&&item.assigned_driver_id===driverId)return true;
-  return item.assigned_driver_id===driverId&&!item.accepted_at&&['accepted','to_pickup','at_pickup'].includes(String(item.status));
-}""",
-    'regra backend assigned')
-v28 = replace_once(v28,
-    "WHERE id=? AND cooperative_id=? AND accepted_at IS NULL AND ((status='offered' AND assigned_driver_id IS NULL) OR (assigned_driver_id=? AND status IN ('assigned','accepted','to_pickup','at_pickup')))`)",
-    "WHERE id=? AND cooperative_id=? AND ((status='offered' AND assigned_driver_id IS NULL AND accepted_at IS NULL) OR (status='assigned' AND assigned_driver_id=?) OR (assigned_driver_id=? AND accepted_at IS NULL AND status IN ('accepted','to_pickup','at_pickup')))`)",
-    'where do aceite')
-v28 = replace_once(v28,
-    ".bind(auth.driverId,nextStatus,item.id,auth.cooperativeId,auth.driverId).run();",
-    ".bind(auth.driverId,nextStatus,item.id,auth.cooperativeId,auth.driverId,auth.driverId).run();",
-    'bind do aceite')
-write(v28_path, v28)
-
-# CSS: durante oferta não existe qualquer balão/toast concorrente.
-css_path = 'public/chegaja-v217-driver-navigation.css'
-css = read(css_path)
-css = css.replace('/* ChegaJá 14.33.19 — ÚNICA folha do painel do cooperado. */','/* ChegaJá 14.33.20 — ÚNICA folha do painel do cooperado. */',1)
-if '14.33.20 — sem balão legado' not in css:
-    css += """
-
-/* ChegaJá 14.33.20 — sem balão legado; oferta é somente full-screen */
-body.cj199-driver #chegaja-ringing{display:none!important;visibility:hidden!important;pointer-events:none!important}
-body.cj217-pending-offer #toast-container,body.cj217-pending-offer .toast-container,body.cj217-pending-offer .toast,body.cj217-pending-offer #chegaja-ringing{display:none!important;visibility:hidden!important;opacity:0!important;pointer-events:none!important}
-body.cj217-pending-offer #cj217-offer-screen{display:block!important;visibility:visible!important;opacity:1!important;pointer-events:auto!important}
-"""
-write(css_path, css)
-
-# Cache da página: inclusive chegaja-final.js, porque o fluxo legado foi removido dele.
+# Bump de cache para impedir que o iPhone continue usando o JS anterior.
 index_path = 'public/index.html'
 index = read(index_path)
-index = index.replace('app-version" content="14.33.19"','app-version" content="14.33.20"')
-index = index.replace('chegaja-v217-driver-navigation.css?v=14.33.19&recovery=143319','chegaja-v217-driver-navigation.css?v=14.33.20&recovery=143320')
-index = index.replace('chegaja-v217-driver-navigation.js?v=14.33.19&recovery=143319','chegaja-v217-driver-navigation.js?v=14.33.20&recovery=143320')
-index = index.replace('chegaja-final.js?v=14.15.9&recovery=143314','chegaja-final.js?v=14.33.20&recovery=143320')
+index = index.replace('app-version" content="14.33.20"', 'app-version" content="14.33.21"')
+index = index.replace('chegaja-v217-driver-navigation.css?v=14.33.20&recovery=143320', 'chegaja-v217-driver-navigation.css?v=14.33.21&recovery=143321')
+index = index.replace('chegaja-v217-driver-navigation.js?v=14.33.20&recovery=143320', 'chegaja-v217-driver-navigation.js?v=14.33.21&recovery=143321')
+index = index.replace('chegaja-final.js?v=14.33.20&recovery=143320', 'chegaja-final.js?v=14.33.21&recovery=143321')
 write(index_path, index)
 
-# Regressão específica desta correção.
+css_path = 'public/chegaja-v217-driver-navigation.css'
+css = read(css_path).replace('/* ChegaJá 14.33.20 — ÚNICA folha do painel do cooperado. */', '/* ChegaJá 14.33.21 — ÚNICA folha do painel do cooperado. */', 1)
+write(css_path, css)
+
+# Atualiza a regressão existente e adiciona verificações específicas.
 test_path = 'scripts/test-v14153-logo-google-maps.mjs'
 test = read(test_path)
-test = test.replace("const navigation=read('src/routes/platform-v32.ts');", "const navigation=read('src/routes/platform-v32.ts');\nconst v28=read('src/routes/platform-v28.ts');\nconst finalJs=read('public/chegaja-final.js');")
-test = test.replace('14\\.33\\.19','14\\.33\\.20').replace('143319','143320')
-test = test.replace("assert.match(driver,/ChegaJá 14\\.33\\.19/);", "assert.match(driver,/ChegaJá 14\\.33\\.20/);")
-test = test.replace("assert.match(driver,/const NAV_ZOOM=18\\.5/);", "assert.match(driver,/const NAV_ZOOM=18\\.5/);\nassert.match(driver,/status==='offered'\\|\\|status==='assigned'/);\nassert.match(driver,/nav\\.next\\?\\.lat/);\nassert.match(driver,/acceptedStatus=\\['accepted','to_pickup'/);\nassert.doesNotMatch(finalJs,/Nova entrega — toque em Aceitar/);\nassert.match(finalJs,/delivery_assigned'\\)\\{stopRing\\(\\);continue;/);\nassert.match(v28,/item\\.status==='assigned'.*return true/);\nassert.match(index,/chegaja-final\\.js\\?v=14\\.33\\.20&recovery=143320/);")
-test = test.replace("console.log('ChegaJá 14.33.19: aceite retorna ao mapa, seta e rota validados.');", "console.log('ChegaJá 14.33.20: oferta full-screen única, aceite e rota coleta/entrega validados.');")
+test = test.replace('14\\.33\\.20', '14\\.33\\.21').replace('143320', '143321')
+test = test.replace('14.33.20', '14.33.21')
+test = test.replace('setInterval\\(fire,3000\\)', 'setInterval\\(fire,2700\\)')
+marker = "assert.match(driver,/const NAV_ZOOM=18\\.5/);"
+extra = """assert.match(driver,/createPane\\('cj217-route-pane'\\)/);
+assert.match(driver,/L\\.svg\\(\\{pane:'cj217-route-pane'/);
+assert.match(driver,/navigation\\?lat=/);
+assert.match(driver,/type:'square'/);
+assert.match(driver,/type:'sawtooth'/);
+assert.match(driver,/setInterval\\(fire,2700\\)/);
+assert.match(navigation,/c\\.req\\.query\\('lat'\\)/);
+assert.match(navigation,/c\\.req\\.query\\('lng'\\)/);"""
+if "createPane\\('cj217-route-pane'" not in test:
+    test = replace_once(test, marker, marker + '\n' + extra, 'asserts da rota e alerta')
 write(test_path, test)
 
-print('ChegaJá 14.33.20 aplicado.')
+print('ChegaJá 14.33.21 aplicado.')
