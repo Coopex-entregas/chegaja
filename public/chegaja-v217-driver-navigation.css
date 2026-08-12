@@ -236,3 +236,17 @@ body.cj199-driver #cj199-map .leaflet-overlay-pane svg{display:block!important;v
 body.cj199-driver #cj199-map path.cj217-route-casing{stroke:#fff!important;stroke-width:14px!important;stroke-opacity:.98!important;fill:none!important}
 body.cj199-driver #cj199-map path.cj217-route-line{stroke:#075dff!important;stroke-width:8px!important;stroke-opacity:1!important;fill:none!important}
 body.cj199-driver #cj199-map path.cj217-current-position{stroke:#fff!important;stroke-width:3px!important;fill:#1459ff!important;fill-opacity:1!important;stroke-opacity:1!important}
+
+
+/* ChegaJá 14.33.26 — navegação heading-up e visual mais limpo */
+body.cj199-driver #cj199-map .leaflet-tile-pane{filter:saturate(.68) brightness(1.04) contrast(.92)!important}
+#cj217-bearing{position:absolute;z-index:22;right:18px;top:178px;width:56px;height:56px;border:0;border-radius:50%;background:#fff;color:#0d45d8;box-shadow:0 8px 24px #0d214f30;display:grid;place-content:center;gap:0;text-align:center;font-weight:950}
+#cj217-bearing span{font-size:22px;line-height:18px;transform:rotate(-90deg)}#cj217-bearing small{font-size:7px;line-height:10px;letter-spacing:.08em}#cj217-bearing.north span{color:#667085}#cj217-bearing.north small{color:#667085}
+body.cj199-driver #cj199-map .cj217-self-icon{background:transparent!important;border:0!important;overflow:visible!important}
+body.cj199-driver #cj199-map .cj217-self-marker{position:relative!important;display:block!important;width:28px!important;height:34px!important;background:#1459ff!important;clip-path:polygon(50% 0,94% 100%,50% 78%,6% 100%)!important;border:2px solid #fff!important;filter:drop-shadow(0 4px 5px rgba(7,24,58,.68))!important;transform-origin:50% 50%!important;transition:transform .18s linear!important}
+body.cj199-driver #cj199-map .cj217-self-marker i{position:absolute!important;left:50%!important;top:50%!important;width:5px!important;height:5px!important;transform:translate(-50%,-50%)!important;border-radius:50%!important;background:#fff!important}
+body.cj199-driver #cj199-map .cj217-route-direction-icon{background:transparent!important;border:0!important;pointer-events:none!important}
+body.cj199-driver #cj199-map .cj217-route-direction-icon span{width:20px;height:20px;display:grid;place-items:center;color:#075dff;font-size:15px;line-height:1;text-shadow:-1px -1px 0 #fff,1px -1px 0 #fff,-1px 1px 0 #fff,1px 1px 0 #fff;transform-origin:50% 50%}
+body.cj199-driver #cj199-map .cj217-maneuver-icon{background:transparent!important;border:0!important;pointer-events:none!important}
+body.cj199-driver #cj199-map .cj217-maneuver-icon span{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#075dff;border:2px solid #075dff;box-shadow:0 4px 12px rgba(7,24,58,.28);font:950 19px/1 system-ui,sans-serif}
+@media(max-width:390px){#cj217-bearing{right:12px;top:158px;width:50px;height:50px}}
