@@ -1,5 +1,6 @@
 name: Consolidar áudio do cooperado 14.33.34
 
+# Push direto para garantir que a Cloudflare publique a versão 14.33.34.
 on:
   push:
     branches: [main]
