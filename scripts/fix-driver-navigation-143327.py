@@ -19,7 +19,7 @@ test_path='scripts/test-v14153-logo-google-maps.mjs'
 js=read(js_path)
 if 'ChegaJá 14.33.27' not in js:
     js=js.replace('/* ChegaJá 14.33.26 — navegação heading-up com bússola, seta e manobras */','/* ChegaJá 14.33.27 — navegação automática, próxima manobra e mapa limpo */',1)
-    js=js.replace('__CJ_DRIVER_LEAFLET_143326__','__CJ_DRIVER_LEAFLET_143327__',1)
+    js=js.replace('__CJ_DRIVER_LEAFLET_143326__','__CJ_DRIVER_LEAFLET_143327__')
 
     js=replace_line(js,'function applyMapBearing(',"function applyMapBearing(force=false){if(!A.map||typeof A.map.setBearing!=='function')return;if(navigationActive())A.headingUp=true;const b=$('#cj217-bearing');if(b){b.classList.remove('north');const small=b.querySelector('small');if(small)small.textContent='AUTO'}const target=A.headingUp&&navigationActive()?effectiveHeading():0;if(target==null&&!force)return;const wanted=target==null?0:target,current=currentMapBearing(),delta=angleDelta(current,wanted);if(!force&&Math.abs(delta)<1.2)return;const next=force?wanted:normAngle(current+delta*.30);try{A.map.setBearing(next)}catch{}paintHeading();refreshRouteArrowAngles()}",'bearing automático')
     js=replace_line(js,'function toggleBearingMode(',"function toggleBearingMode(){A.headingUp=true;A.manualView=false;A.following=true;requestOrientationPermission().catch(()=>{});applyMapBearing(true);if(navigationActive())frameNavigation(true)}",'botão auto')
