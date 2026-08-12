@@ -4,7 +4,7 @@ on:
   push:
     branches: [main]
     paths:
-      - 'scripts/fix-driver-heading-navigation-143326.py'
+      - 'scripts/consolidate-driver-navigation-143326.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Aplicar somente a versão atual
-        run: python3 scripts/fix-driver-heading-navigation-143326.py
+        run: python3 scripts/consolidate-driver-navigation-143326.py
 
       - name: Validar JavaScript e TypeScript
         run: |
