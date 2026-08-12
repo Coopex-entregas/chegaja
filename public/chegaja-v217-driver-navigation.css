@@ -1,4 +1,4 @@
-/* ChegaJá 14.33.22 — ÚNICA folha do painel do cooperado. */
+/* ChegaJá 14.33.23 — ÚNICA folha do painel do cooperado. */
 /* ChegaJá 14.22.0 — visual aprovado do cooperado, responsivo e clicável */
 :root{--cj-blue:#0d45d8;--cj-blue-dark:#0a2f96;--cj-orange:#ff7a00;--cj-white:#fff;--cj-ink:#0d214f}
 html,body{max-width:100%;}
@@ -206,6 +206,16 @@ body.cj199-driver #cj199-map .cj217-self-marker{width:38px!important;height:44px
 body.cj199-driver #cj199-map .leaflet-overlay-pane{z-index:450!important}
 body.cj199-driver #cj199-map .leaflet-marker-pane{z-index:650!important}
 
+
+/* ChegaJá 14.33.23 — localização e destino destacados na navegação */
+body.cj199-driver #cj199-map .cj217-self-icon:before{content:'';position:absolute;left:50%;top:50%;width:58px;height:58px;transform:translate(-50%,-50%);border-radius:50%;background:rgba(20,89,255,.16);border:2px solid rgba(20,89,255,.38);box-shadow:0 0 0 8px rgba(20,89,255,.08);pointer-events:none}
+body.cj199-driver #cj199-map .cj217-self-marker{width:42px!important;height:48px!important;filter:drop-shadow(0 6px 8px rgba(7,24,58,.72))!important}
+body.cj199-driver #cj199-map .cj217-stop-icon{overflow:visible!important}
+body.cj199-driver #cj199-map .cj217-stop-icon span{width:42px!important;height:42px!important;font-size:14px!important;box-shadow:0 6px 18px rgba(7,24,58,.42)!important}
+body.cj199-driver #cj199-map .cj217-stop-icon:after{position:absolute;left:50%;top:46px;transform:translateX(-50%);padding:5px 8px;border-radius:999px;background:#fff;color:#0b2f9b;box-shadow:0 4px 12px rgba(7,24,58,.25);font:900 9px/1 Inter,system-ui,sans-serif;letter-spacing:.06em;white-space:nowrap;pointer-events:none}
+body.cj199-driver #cj199-map .cj217-stop-icon.pickup:after{content:'COLETA'}
+body.cj199-driver #cj199-map .cj217-stop-icon.delivery:after{content:'ENTREGA';color:#b63b00}
+body.cj217-active-delivery #cj199-map .leaflet-control-zoom{margin-top:178px!important}
 
 /* ChegaJá 14.33.20 — sem balão legado; oferta é somente full-screen */
 body.cj199-driver #chegaja-ringing{display:none!important;visibility:hidden!important;pointer-events:none!important}
