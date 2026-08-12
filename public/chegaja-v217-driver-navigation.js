@@ -1,7 +1,7 @@
-/* ChegaJá 14.33.28 — bearing corrigido: direção da marcha para cima */
+/* ChegaJá 14.33.29 — câmera alinhada à rua e instrução compacta */
 (()=>{
 'use strict';
-if(window.__CJ_DRIVER_LEAFLET_143328__)return;window.__CJ_DRIVER_LEAFLET_143328__=true;
+if(window.__CJ_DRIVER_LEAFLET_143329__)return;window.__CJ_DRIVER_LEAFLET_143329__=true;
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>'"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt',"'":'&#39;','"':'&quot;'}[c]));
 const money=v=>new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL'}).format(Number(v||0)/100);
@@ -22,7 +22,7 @@ function stopIcon(kind){return L.divIcon({className:`cj217-stop-icon ${kind}`,ht
 function normAngle(v){const n=Number(v);return Number.isFinite(n)?((n%360)+360)%360:null}
 function angleDelta(a,b){return((Number(b)-Number(a)+540)%360)-180}
 function smoothAngle(old,next,f=.22){const n=normAngle(next);if(n==null)return old;const o=normAngle(old);return o==null?n:normAngle(o+angleDelta(o,n)*f)}
-function effectiveHeading(){const speed=Number(A.lastSpeed||window.ChegaJaLastDriverLocation?.speed||0),gps=normAngle(A.lastHeading),device=normAngle(A.deviceHeading);if(speed>=1&&gps!=null)return gps;if(device!=null)return device;return gps}
+function effectiveHeading(){const speed=Number(A.lastSpeed||window.ChegaJaLastDriverLocation?.speed||0),gps=normAngle(A.lastHeading),device=normAngle(A.deviceHeading),raw=speed>=1&&gps!=null?gps:(device!=null?device:gps),road=routeHeadingNearGps();if(raw==null)return road;if(road==null)return raw;const delta=angleDelta(raw,road),gap=Math.abs(delta);if(gap<=18)return road;if(gap<=32&&speed<2.2)return normAngle(raw+delta*.55);return raw}
 function orientationReading(e){let h=Number(e?.webkitCompassHeading);if(!Number.isFinite(h)&&Number.isFinite(Number(e?.alpha)))h=360-Number(e.alpha);h=normAngle(h);if(h==null)return;A.deviceHeading=smoothAngle(A.deviceHeading,h,.18);applyMapBearing(false);paintHeading()}
 function installOrientationListeners(){if(A.orientationBound)return;A.orientationBound=true;window.addEventListener('deviceorientationabsolute',orientationReading,true);window.addEventListener('deviceorientation',orientationReading,true)}
 async function requestOrientationPermission(){installOrientationListeners();try{if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){const r=await DeviceOrientationEvent.requestPermission();return r==='granted'}return true}catch{return false}}
@@ -31,6 +31,7 @@ function mapRotationForHeading(heading){const h=normAngle(heading);return h==nul
 function applyMapBearing(force=false){if(!A.map||typeof A.map.setBearing!=='function')return;if(navigationActive())A.headingUp=true;const b=$('#cj217-bearing');if(b){b.classList.remove('north');const small=b.querySelector('small');if(small)small.textContent='AUTO'}const target=A.headingUp&&navigationActive()?effectiveHeading():0;if(target==null&&!force)return;const wanted=target==null?0:mapRotationForHeading(target),current=currentMapBearing(),delta=angleDelta(current,wanted);if(!force&&Math.abs(delta)<1.2)return;const next=force?wanted:normAngle(current+delta*.30);try{A.map.setBearing(next)}catch{}paintHeading();refreshRouteArrowAngles()}
 function toggleBearingMode(){A.headingUp=true;A.manualView=false;A.following=true;requestOrientationPermission().catch(()=>{});applyMapBearing(true);if(navigationActive())frameNavigation(true)}
 function segmentBearing(a,b){if(!valid(a)||!valid(b))return 0;const lat1=a.lat*Math.PI/180,lat2=b.lat*Math.PI/180,dLon=(b.lng-a.lng)*Math.PI/180,y=Math.sin(dLon)*Math.cos(lat2),x=Math.cos(lat1)*Math.sin(lat2)-Math.sin(lat1)*Math.cos(lat2)*Math.cos(dLon);return normAngle(Math.atan2(y,x)*180/Math.PI)||0}
+function routeHeadingNearGps(){if(!navigationActive()||!valid(A.gps)||!Array.isArray(A.routePoints)||A.routePoints.length<2)return null;let best=0,bestD=Infinity;for(let i=0;i<A.routePoints.length;i++){const d=distance(A.gps,A.routePoints[i]);if(d<bestD){bestD=d;best=i}}if(bestD>70)return null;const anchor=A.routePoints[best];let ahead=null;for(let i=best+1;i<A.routePoints.length;i++){if(distance(anchor,A.routePoints[i])>=8){ahead=A.routePoints[i];break}}if(!ahead&&best>0)return segmentBearing(A.routePoints[best-1],anchor);return valid(ahead)?segmentBearing(anchor,ahead):null}
 function clearGuidance(){for(const m of A.routeArrows.splice(0))try{m.remove()}catch{}for(const m of A.maneuverMarkers.splice(0))try{m.remove()}catch{}A.navSteps=[];A.nextInstruction=null}
 function routeArrowIcon(angle){return L.divIcon({className:'cj217-route-direction-icon',html:`<span style="transform:rotate(${angle}deg)">▲</span>`,iconSize:[20,20],iconAnchor:[10,10]})}
 function refreshRouteArrowAngles(){const mapBearing=currentMapBearing();for(const m of A.routeArrows){const angle=normAngle(Number(m.__routeBearing||0)-mapBearing)||0;const el=m.getElement?.()?.querySelector('span');if(el)el.style.transform=`rotate(${angle}deg)`}paintHeading()}
