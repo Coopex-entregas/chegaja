@@ -174,6 +174,8 @@ assert.match(v28,/COALESCE\(bx\.fuel_price_cents,0\)>0/);
 
 assert.match(v28,/COALESCE\(bx\.fuel_price_cents,0\)>0/);
 
+assert.match(v28,/COALESCE\(bx\.fuel_price_cents,0\)>0/);
+
 // 14.33.36 — combustível usa diretamente a precificação das Bases.
 assert.doesNotMatch(v28,/FROM cooperatives cx/);
 assert.doesNotMatch(v16,/UPDATE cooperatives SET fuel_km_per_liter/);
