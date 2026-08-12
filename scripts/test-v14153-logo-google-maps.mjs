@@ -171,3 +171,6 @@ assert.match(v28,/totalDistance\/1000\/kmPerLiter/);
 
 assert.match(v28,/SELECT NULLIF\(cx\.fuel_km_per_liter,0\) FROM cooperatives/);
 assert.match(v28,/COALESCE\(bx\.fuel_price_cents,0\)>0/);
+
+assert.match(v28,/SELECT NULLIF\(cx\.fuel_km_per_liter,0\) FROM cooperatives/);
+assert.match(v28,/COALESCE\(bx\.fuel_price_cents,0\)>0/);
