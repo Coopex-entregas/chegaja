@@ -1,0 +1,45 @@
+name: Consolidar áudio do cooperado 14.33.34
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-driver-audio-143334.py'
+      - '.github/workflows/fix-driver-audio-143334.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Instalar dependências
+        run: npm ci
+      - name: Aplicar rearme do áudio
+        run: python3 scripts/fix-driver-audio-143334.py
+      - name: Validar JavaScript e TypeScript
+        run: |
+          node --check public/chegaja-v217-driver-navigation.js
+          npx tsc --noEmit
+      - name: Validar áudio persistente
+        run: |
+          grep -q "Alerta ChegaJá" public/chegaja-v217-driver-navigation.js
+          grep -q "firstOnlineGesture=A.online&&!A.audioArmed" public/chegaja-v217-driver-navigation.js
+          grep -q "SpeechSynthesisUtterance('Nova entrega')" public/chegaja-v217-driver-navigation.js
+          grep -q 'chegaja-v217-driver-navigation.js?v=14.33.34&recovery=143334' public/index.html
+          grep -q 'content="14.33.34"' public/index.html
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then
+            echo "Sem alterações pendentes."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/chegaja-v217-driver-navigation.js public/index.html
+          git commit -m "fix: rearmar Alerta ChegaJá no iPhone 14.33.34"
+          git push origin HEAD:main
