@@ -71,11 +71,12 @@ index=index.replace('<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/le
 index=re.sub(r'/chegaja-v201-operational\.js\?v=[^"&]+&recovery=\d+','/chegaja-v201-operational.js?v=14.33.41&recovery=143341',index,count=1)
 index=re.sub(r'/chegaja-v217-driver-navigation\.js\?v=[^"&]+&recovery=\d+','/chegaja-v217-driver-navigation.js?v=14.33.41&recovery=143341',index,count=1)
 
-# Regressão: rota padrão e versão atual.
+# Regressão: rota padrão, versão atual e plugin local.
 test=test.replace("assert.match(driver,/L\\.polyline\\(ll,\\{pane:'cj217-route-pane',renderer:A\\.routeRenderer,color:'#075dff'/);","assert.match(driver,/L\\.polyline\\(ll,\\{color:'#075dff'/);")
 test=test.replace('14\\.33\\.40','14\\.33\\.41')
 test=test.replace('14.33.40&recovery=143340','14.33.41&recovery=143341')
 test=test.replace('143340','143341')
+test=test.replace("assert.match(index,/leaflet-rotate@0\\.2\\.8\\/dist\\/leaflet-rotate\\.js/);","assert.match(index,/vendor\\/leaflet\\/leaflet-rotate\\.js\\?v=0\\.2\\.8&recovery=143341/);")
 
 DRIVER.write_text(driver)
 OP.write_text(op)
