@@ -6,6 +6,7 @@ import { queueWebhookEvent } from '../lib/webhooks';
 
 export const platformV28Routes = new Hono<AppBindings>();
 type Row = Record<string, any>;
+const DRIVER_ARRIVAL_RADIUS_METERS=100;
 
 function validPoint(lat:number,lng:number){
   return Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&Math.abs(lat)+Math.abs(lng)>0.01;
@@ -109,12 +110,18 @@ platformV28Routes.post('/v28/driver/calls/:id/decline',async c=>{
 platformV28Routes.post('/v28/driver/auto-location',async c=>{
   const auth=c.get('auth');assertRole(auth,['driver']);
   if(!auth.cooperativeId||!auth.driverId)return c.json({ok:false,error:'Cooperado não vinculado.'},403);
-  const body=await bodyJson<Row>(c),lat=Number(body.latitude),lng=Number(body.longitude),accuracy=body.accuracy==null?null:Number(body.accuracy),manual=truthy(body.manual),requestedStage=cleanText(body.stage,20);
+  const body=await bodyJson<Row>(c),lat=Number(body.latitude),lng=Number(body.longitude),accuracy=body.accuracy==null?null:Number(body.accuracy),manual=truthy(body.manual),requestedStage=cleanText(body.stage,20),requestedDeliveryId=cleanText(body.delivery_id,80);
   if(!validPoint(lat,lng))return c.json({ok:false,error:'Localização inválida.'},400);
   await c.env.DB.prepare(`UPDATE drivers SET current_lat=?,current_lng=?,location_accuracy=?,location_updated_at=CURRENT_TIMESTAMP,last_seen_at=CURRENT_TIMESTAMP WHERE id=? AND cooperative_id=? AND online=1`).bind(lat,lng,accuracy,auth.driverId,auth.cooperativeId).run();
-  const item=await c.env.DB.prepare(`SELECT id,display_code,status,pickup_lat,pickup_lng,delivery_lat,delivery_lng,establishment_id FROM deliveries WHERE cooperative_id=? AND assigned_driver_id=? AND accepted_at IS NOT NULL AND deleted_at IS NULL AND status IN ('accepted','to_pickup','at_pickup','picked_up','in_route','problem') ORDER BY created_at LIMIT 1`).bind(auth.cooperativeId,auth.driverId).first<Row>();
-  if(!item)return c.json({ok:true,status:null});
-  const gpsTolerance=Math.max(100,Math.min(160,Number.isFinite(Number(accuracy))&&Number(accuracy)>0?Number(accuracy)*1.5:100));
+  const activeSql=`SELECT id,display_code,status,pickup_lat,pickup_lng,delivery_lat,delivery_lng,establishment_id FROM deliveries WHERE cooperative_id=? AND assigned_driver_id=? AND accepted_at IS NOT NULL AND deleted_at IS NULL AND status IN ('accepted','to_pickup','at_pickup','picked_up','in_route','problem')`;
+  const item=requestedDeliveryId
+    ? await c.env.DB.prepare(`${activeSql} AND id=? LIMIT 1`).bind(auth.cooperativeId,auth.driverId,requestedDeliveryId).first<Row>()
+    : await c.env.DB.prepare(`${activeSql} ORDER BY created_at LIMIT 1`).bind(auth.cooperativeId,auth.driverId).first<Row>();
+  if(!item){
+    if(requestedDeliveryId)return c.json({ok:false,error:'Esta entrega não está ativa para este cooperado.'},409);
+    return c.json({ok:true,status:null});
+  }
+  const gpsTolerance=Math.max(DRIVER_ARRIVAL_RADIUS_METERS,Math.min(160,Number.isFinite(Number(accuracy))&&Number(accuracy)>0?Number(accuracy)*1.5:DRIVER_ARRIVAL_RADIUS_METERS));
 
   if(['accepted','to_pickup','at_pickup'].includes(String(item.status))&&validPoint(Number(item.pickup_lat),Number(item.pickup_lng))){
     const distance=distanceMeters(lat,lng,Number(item.pickup_lat),Number(item.pickup_lng));let next:string|null=null;

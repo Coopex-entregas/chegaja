@@ -9,7 +9,7 @@ type Stop = {delivery_id:string;display_code:string;kind:'pickup'|'delivery';lab
 type Step = {instruction:string;street:string;distance_meters:number;duration_seconds:number;maneuver_type:string;maneuver_modifier:string;location:[number,number]|null};
 type Route = {distance_meters:number;duration_seconds:number;geometry:[number,number][];steps:Step[];source:'openstreetmap'};
 
-const ARRIVAL_RADIUS_METERS=35;
+const ARRIVAL_RADIUS_METERS=100;
 const DELIVERY_TIE_METERS=300;
 const ROUTE_COMPARE_LIMIT=4;
 const valid=(lat:number,lng:number)=>Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&(Math.abs(lat)+Math.abs(lng)>0.001);

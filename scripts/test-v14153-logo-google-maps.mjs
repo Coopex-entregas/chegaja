@@ -13,13 +13,13 @@ const v28=read('src/routes/platform-v28.ts');
 const v16=read('src/routes/platform-v16.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.38"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.38&recovery=143338/);
+assert.match(index,/app-version" content="14\.33\.39"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.39&recovery=143339/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.33&recovery=143333/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.38/);
+assert.match(driver,/ChegaJá 14\.33\.39/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
@@ -191,3 +191,14 @@ assert.match(driver,/activeItems:\[\]/);
 assert.match(driver,/function basicFromLive\(live\)/);
 assert.match(driver,/function syncDetailToNavigation\(next\)/);
 assert.match(driver,/ENTREGA':'COLETA'/);
+
+// 14.33.39 — chegada sempre vinculada à entrega que está na tela.
+assert.match(v28,/DRIVER_ARRIVAL_RADIUS_METERS=100/);
+assert.match(v28,/requestedDeliveryId=cleanText\(body\.delivery_id,80\)/);
+assert.match(v28,/AND id=\? LIMIT 1/);
+assert.match(navigation,/ARRIVAL_RADIUS_METERS=100/);
+assert.match(driver,/stage:'pickup',delivery_id:A\.detail\.id/);
+assert.match(driver,/stage:'delivery',delivery_id:A\.detail\.id/);
+assert.match(driver,/body:\{\.\.\.loc,delivery_id:A\.detail\.id\}/);
+assert.match(driver,/chosenType==='arrive'&&!nav\.arrived/);
+assert.match(driver,/text=`\$\{label\} a \$\{meters\} m`/);
