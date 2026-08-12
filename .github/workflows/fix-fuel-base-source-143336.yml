@@ -1,5 +1,6 @@
 name: Consolidar combustível da Base 14.33.36
 
+# Publicação direta para acionar a Cloudflare após a consolidação funcional.
 on:
   push:
     branches: [main]
