@@ -1,0 +1,53 @@
+name: Consolidar áudio e combustível 14.33.35
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-driver-audio-fuel-143335.py'
+      - '.github/workflows/fix-driver-audio-fuel-143335.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Aplicar 14.33.35
+        run: python3 scripts/fix-driver-audio-fuel-143335.py
+      - name: Validar JavaScript
+        run: node --check public/chegaja-v217-driver-navigation.js
+      - name: Validar TypeScript
+        run: npm run typecheck
+      - name: Validar áudio e combustível
+        run: |
+          grep -q 'ensureInstantAlarmBus' public/chegaja-v217-driver-navigation.js
+          grep -q 'poll(false),2500' public/chegaja-v217-driver-navigation.js
+          grep -q 'UPDATE cooperatives SET fuel_km_per_liter' src/routes/platform-v16.ts
+          grep -q 'FROM cooperatives cx' src/routes/platform-v28.ts
+          grep -q 'app-version" content="14.33.35"' public/index.html
+      - name: Teste regressivo do cooperado
+        run: node scripts/test-v14153-logo-google-maps.mjs
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then
+            echo 'Sem alterações pendentes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/chegaja-v217-driver-navigation.js public/index.html src/routes/platform-v16.ts src/routes/platform-v28.ts scripts/test-v14153-logo-google-maps.mjs
+          git commit -m 'fix: alerta imediato e combustível global 14.33.35'
+          git push origin main
