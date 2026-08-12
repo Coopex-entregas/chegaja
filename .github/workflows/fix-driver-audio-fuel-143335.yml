@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/fix-driver-audio-fuel-143335.py'
+      - 'scripts/fix-driver-audio-fuel-test-143335.py'
       - '.github/workflows/fix-driver-audio-fuel-143335.yml'
   workflow_dispatch:
 
@@ -26,7 +27,9 @@ jobs:
       - name: Instalar dependências
         run: npm ci
       - name: Aplicar 14.33.35
-        run: python3 scripts/fix-driver-audio-fuel-143335.py
+        run: |
+          python3 scripts/fix-driver-audio-fuel-143335.py
+          python3 scripts/fix-driver-audio-fuel-test-143335.py
       - name: Validar JavaScript
         run: node --check public/chegaja-v217-driver-navigation.js
       - name: Validar TypeScript
