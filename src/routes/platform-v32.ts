@@ -11,6 +11,16 @@ type Route = {distance_meters:number;duration_seconds:number;geometry:[number,nu
 
 const ARRIVAL_RADIUS_METERS=35;
 const valid=(lat:number,lng:number)=>Number.isFinite(lat)&&Number.isFinite(lng)&&Math.abs(lat)<=90&&Math.abs(lng)<=180&&(Math.abs(lat)+Math.abs(lng)>0.001);
+const geocodeCache=new Map<string,{at:number,value:{lat:number;lng:number}|null}>();
+async function geocodeAddress(address:string){
+ const key=String(address||'').trim().toLowerCase();if(!key)return null;
+ const cached=geocodeCache.get(key);if(cached&&Date.now()-cached.at<10*60*1000)return cached.value;
+ const queries=[String(address||'').trim(),`${String(address||'').trim()}, Rio Grande do Norte, Brasil`];
+ for(const q of queries){
+  try{const url=`https://nominatim.openstreetmap.org/search?format=jsonv2&limit=1&countrycodes=br&addressdetails=0&q=${encodeURIComponent(q)}`;const r=await fetch(url,{headers:{'User-Agent':'ChegaJa/14.33.24 (COOPEX Entregas RN)','Accept-Language':'pt-BR,pt;q=0.9'}});if(!r.ok)continue;const data=await r.json<any[]>().catch(()=>[]),first=data?.[0],lat=Number(first?.lat),lng=Number(first?.lon);if(valid(lat,lng)){const value={lat,lng};geocodeCache.set(key,{at:Date.now(),value});return value}}catch{}
+ }
+ geocodeCache.set(key,{at:Date.now(),value:null});return null;
+}
 
 function instruction(type:string,modifier:string,street:string){
  const road=street?` na ${street}`:'';
@@ -31,7 +41,7 @@ async function openStreetMapRoute(env:AppBindings['Bindings'],origin:{lat:number
  try{
   const base=(env.ROUTER_URL||'https://router.project-osrm.org/route/v1/driving').replace(/\/$/,'');
   const coordinates=`${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
-  const response=await fetch(`${base}/${coordinates}?overview=full&geometries=geojson&steps=true&annotations=false`,{headers:{'User-Agent':'ChegaJa/14.33.21'}});
+  const response=await fetch(`${base}/${coordinates}?overview=full&geometries=geojson&steps=true&annotations=false`,{headers:{'User-Agent':'ChegaJa/14.33.24'}});
   if(!response.ok)return null;
   const payload=await response.json<any>().catch(()=>null),route=payload?.routes?.[0];if(!route)return null;
   const geometry=(route.geometry?.coordinates||[]).map((p:number[])=>[Number(p[1]),Number(p[0])] as [number,number]).filter((p:[number,number])=>valid(p[0],p[1]));
@@ -52,11 +62,15 @@ platformV32Routes.get('/v32/driver/navigation',async c=>{
  const useRequested=valid(requestedLat,requestedLng),lat=useRequested?requestedLat:storedLat,lng=useRequested?requestedLng:storedLng;
  if(!valid(lat,lng))return c.json({ok:true,online:Boolean(Number(driver?.online||0)),items:[],next:null,route:null,arrived:false,arrival_radius_meters:ARRIVAL_RADIUS_METERS});
  const rows=await c.env.DB.prepare(`SELECT id,display_code,status,pickup_address,pickup_lat,pickup_lng,delivery_address,delivery_lat,delivery_lng,accepted_at,created_at FROM deliveries WHERE cooperative_id=? AND assigned_driver_id=? AND deleted_at IS NULL AND status IN ('accepted','to_pickup','at_pickup','picked_up','in_route','problem') ORDER BY created_at LIMIT 20`).bind(auth.cooperativeId,auth.driverId).all<Row>();
- const stops:Stop[]=[];
+ const stops:Stop[]=[];let geocodeBudget=1;
  for(const item of rows.results||[]){
   const beforePickup=['accepted','to_pickup','at_pickup','problem'].includes(String(item.status));
-  if(beforePickup&&valid(Number(item.pickup_lat),Number(item.pickup_lng)))stops.push({delivery_id:item.id,display_code:item.display_code,kind:'pickup',label:'Coleta',address:item.pickup_address||'',lat:Number(item.pickup_lat),lng:Number(item.pickup_lng),status:item.status});
-  else if(valid(Number(item.delivery_lat),Number(item.delivery_lng)))stops.push({delivery_id:item.id,display_code:item.display_code,kind:'delivery',label:'Entrega',address:item.delivery_address||'',lat:Number(item.delivery_lat),lng:Number(item.delivery_lng),status:item.status});
+  const kind=beforePickup?'pickup':'delivery',address=String(beforePickup?item.pickup_address:item.delivery_address||'').trim();
+  let targetLat=Number(beforePickup?item.pickup_lat:item.delivery_lat),targetLng=Number(beforePickup?item.pickup_lng:item.delivery_lng);
+  if(!valid(targetLat,targetLng)&&address&&geocodeBudget>0){
+   geocodeBudget--;const geo=await geocodeAddress(address);if(geo){targetLat=geo.lat;targetLng=geo.lng;if(beforePickup)await c.env.DB.prepare(`UPDATE deliveries SET pickup_lat=?,pickup_lng=?,updated_at=datetime('now') WHERE id=? AND cooperative_id=?`).bind(targetLat,targetLng,item.id,auth.cooperativeId).run();else await c.env.DB.prepare(`UPDATE deliveries SET delivery_lat=?,delivery_lng=?,updated_at=datetime('now') WHERE id=? AND cooperative_id=?`).bind(targetLat,targetLng,item.id,auth.cooperativeId).run()}
+  }
+  if(valid(targetLat,targetLng))stops.push({delivery_id:item.id,display_code:item.display_code,kind,label:beforePickup?'Coleta':'Entrega',address,lat:targetLat,lng:targetLng,status:item.status});
  }
  stops.sort((a,b)=>distanceMeters(lat,lng,a.lat,a.lng)-distanceMeters(lat,lng,b.lat,b.lng));
  const next=stops[0]||null;
