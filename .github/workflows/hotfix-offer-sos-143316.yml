@@ -1,10 +1,10 @@
-name: Consolidar entrada e fuso 14.33.30
+name: Consolidar fluxo de coleta 14.33.31
 
 on:
   push:
     branches: [main]
     paths:
-      - 'scripts/fix-driver-navigation-143329.py'
+      - 'scripts/fix-driver-pickup-143331.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Aplicar somente a versão atual
-        run: python3 scripts/fix-driver-navigation-143329.py
+        run: python3 scripts/fix-driver-pickup-143331.py
 
       - name: Validar JavaScript e TypeScript
         run: |
@@ -31,23 +31,24 @@ jobs:
           node --check public/app.js
           npx tsc --noEmit
 
-      - name: Validar login no Início e fuso do Brasil
+      - name: Validar coleta, entrada e fuso
         run: |
           python3 - <<'PY'
           from pathlib import Path
           app=Path('public/app.js').read_text(encoding='utf-8')
-          index=Path('public/index.html').read_text(encoding='utf-8')
           driver=Path('public/chegaja-v217-driver-navigation.js').read_text(encoding='utf-8')
+          v28=Path('src/routes/platform-v28.ts').read_text(encoding='utf-8')
+          index=Path('public/index.html').read_text(encoding='utf-8')
           checks={
-            'app version':'app-version" content="14.33.30"' in index,
-            'painel preservado':'ChegaJá 14.33.29' in driver and '__CJ_DRIVER_LEAFLET_143329__=true' in driver,
-            'fuso':'APP_TIME_ZONE=\'America/Sao_Paulo\'' in app,
-            'sql utc':'sqlUtc.test(text)' in app and "text.replace(' ','T')+'Z'" in app,
-            'login marca sessão':"sessionStorage.setItem('cj_driver_fresh_login','1')" in app,
-            'login força dashboard':"state.page='dashboard'" in app and "freshDriver?'dashboard'" in app,
-            'limpa marcador':"sessionStorage.removeItem('cj_driver_fresh_login')" in app,
-            'cache app':'/app.js?v=14.33.30&recovery=143330' in index,
-            'cache final':'/chegaja-final.js?v=14.33.30&recovery=143330' in index,
+            'versão':'app-version" content="14.33.31"' in index,
+            'driver':'ChegaJá 14.33.31' in driver and '__CJ_DRIVER_LEAFLET_143331__=true' in driver,
+            'chegada transacional':"manual:true,stage:'pickup'" in driver and 'Confirme COLETA REALIZADA somente depois de retirar o pedido' in driver,
+            'sem coleta GPS':"item.status==='at_pickup'&&distance>=200" not in v28 and 'Nunca avançar at_pickup -> in_route por GPS' in v28,
+            'estabelecimento sem wait':"delivery_type||'')!=='establishment'" in driver,
+            'fuso':"APP_TIME_ZONE='America/Sao_Paulo'" in app and 'APP_SQL_UTC.test(text)' in app,
+            'login inicio':"sessionStorage.setItem('cj_driver_fresh_login','1')" in app and "freshDriver?'dashboard'" in app,
+            'cache app':'/app.js?v=14.33.31&recovery=143331' in index,
+            'cache driver':'chegaja-v217-driver-navigation.js?v=14.33.31&recovery=143331' in index,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -59,12 +60,12 @@ jobs:
 
       - name: Gravar na main
         run: |
-          if git diff --quiet -- public/index.html public/app.js scripts/test-v14153-logo-google-maps.mjs; then
+          if git diff --quiet -- public/index.html public/app.js public/chegaja-v217-driver-navigation.js src/routes/platform-v28.ts scripts/test-v14153-logo-google-maps.mjs; then
             echo "Sem alterações pendentes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/index.html public/app.js scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: iniciar cooperado no mapa e corrigir fuso 14.33.30"
+          git add public/index.html public/app.js public/chegaja-v217-driver-navigation.js src/routes/platform-v28.ts scripts/test-v14153-logo-google-maps.mjs
+          git commit -m "fix: tornar chegada e coleta consistentes 14.33.31"
           git push origin HEAD:main
