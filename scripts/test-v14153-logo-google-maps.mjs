@@ -12,13 +12,13 @@ const navigation=read('src/routes/platform-v32.ts');
 const v28=read('src/routes/platform-v28.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.31"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.31&recovery=143331/);
+assert.match(index,/app-version" content="14\.33\.32"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.32&recovery=143332/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.29&recovery=143329/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.31/);
+assert.match(driver,/ChegaJá 14\.33\.32/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
@@ -36,7 +36,7 @@ assert.match(driver,/async function locationHeartbeat/);
 assert.match(driver,/maximumAge:2500,timeout:6500/);
 assert.match(driver,/A\.locationTimer=setInterval\(\(\)=>locationHeartbeat\(\),7000\)/);
 assert.match(driver,/await forceDriverHome\(\)/);
-assert.match(driver,/pts=\[\{\.\.\.origin\},\{\.\.\.target\}\]/);
+assert.doesNotMatch(driver,/pts=\[\{\.\.\.origin\},\{\.\.\.target\}\]/);
 assert.match(driver,/oldDeliveries/);
 assert.match(driver,/page==='deliveries'.*ChegaJaDriverActiveDelivery/);
 assert.match(driver,/\/api\/app\/v32\/driver\/sos/);
@@ -149,3 +149,7 @@ assert.match(driver,/manual:true,stage:'pickup'/);
 assert.match(driver,/Confirme COLETA REALIZADA somente depois de retirar o pedido/);
 assert.doesNotMatch(v28,/item\.status==='at_pickup'&&distance>=200/);
 assert.match(v28,/Nunca avançar at_pickup -> in_route por GPS/);
+
+assert.doesNotMatch(driver,/drawRoute\(\[\{\.\.\.origin\},\{\.\.\.target\}\]\)/);
+assert.match(driver,/routeRetryTimer/);
+assert.match(driver,/setTimeout\(\(\)=>\{A\.routeRetryTimer=null;updateRoute\(true\)\},2500\)/);
