@@ -250,3 +250,14 @@ body.cj199-driver #cj199-map .cj217-route-direction-icon span{width:20px;height:
 body.cj199-driver #cj199-map .cj217-maneuver-icon{background:transparent!important;border:0!important;pointer-events:none!important}
 body.cj199-driver #cj199-map .cj217-maneuver-icon span{width:32px;height:32px;display:grid;place-items:center;border-radius:50%;background:#fff;color:#075dff;border:2px solid #075dff;box-shadow:0 4px 12px rgba(7,24,58,.28);font:950 19px/1 system-ui,sans-serif}
 @media(max-width:390px){#cj217-bearing{right:12px;top:158px;width:50px;height:50px}}
+
+
+/* ChegaJá 14.33.27 — navegação limpa e instrução legível */
+body.cj199-driver #cj199-map .cj217-route-direction-icon{display:none!important;visibility:hidden!important}
+#cj217-bearing small{color:#0d45d8!important}
+#cj217-bearing span{color:#0d45d8!important}
+#cj199-metric.cj217-navigation-card{min-height:104px!important;padding:13px 18px 12px!important;align-content:center!important}
+#cj199-metric.cj217-navigation-card strong{font-size:clamp(24px,6.6vw,33px)!important;line-height:1.02!important;white-space:normal!important;overflow:hidden!important;text-overflow:clip!important;display:-webkit-box!important;-webkit-line-clamp:2!important;-webkit-box-orient:vertical!important;overflow-wrap:anywhere!important}
+#cj199-metric.cj217-navigation-card span{font-size:13px!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
+body.cj199-driver #cj199-map .cj217-maneuver-icon span{width:30px!important;height:30px!important;font-size:17px!important;border-width:2px!important}
+@media(max-width:390px){#cj199-metric.cj217-navigation-card{min-height:94px!important;padding:11px 14px!important}#cj199-metric.cj217-navigation-card strong{font-size:clamp(22px,6.5vw,29px)!important}}
