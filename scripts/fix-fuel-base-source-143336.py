@@ -27,7 +27,7 @@ v28 = re.sub(
 )
 
 # Salvar somente na Base. Isto mantém a configuração compatível com o banco atual
-# e a mesma Base passa a ser a referência global/fallback para qualquer estabelecimento.
+# e a mesma Base passa a ser a referência/fallback para qualquer estabelecimento.
 v16 = re.sub(
     r",c\.env\.DB\.prepare\(`UPDATE cooperatives SET fuel_km_per_liter=\?,fuel_price_cents=\?,updated_at=CURRENT_TIMESTAMP WHERE id=\?`\)\.bind\(fuelKm,fuelPrice,auth\.cooperativeId\)",
     "",
@@ -39,15 +39,49 @@ v16 = re.sub(
 index = index.replace('app-version" content="14.33.35"', 'app-version" content="14.33.36"')
 index = index.replace('chegaja-v217-driver-navigation.js?v=14.33.35&recovery=143335', 'chegaja-v217-driver-navigation.js?v=14.33.36&recovery=143336')
 
-# Ajustar teste regressivo sem depender das colunas globais de cooperatives.
-test = test.replace(r'app-version\" content=\"14\.33\.35\"', r'app-version\" content=\"14\.33\.36\"')
-test = test.replace(r'chegaja-v217-driver-navigation\.js\?v=14\.33\.35&recovery=143335', r'chegaja-v217-driver-navigation\.js\?v=14\.33\.36&recovery=143336')
-test = re.sub(r"^assert\.match\(v28,/SELECT NULLIF\\\(cx\\\.fuel_km_per_liter,0\\\) FROM cooperatives/\);\n?", "", test, flags=re.M)
-test = re.sub(r"^assert\.match\(v28,/.*FROM cooperatives.*fuel.*\);\n?", "", test, flags=re.M)
-test = re.sub(r"^assert\.match\(v16,/UPDATE cooperatives SET fuel_km_per_liter.*\);\n?", "", test, flags=re.M)
-marker = "\n// 14.33.36 — combustível usa diretamente a precificação das Bases.\nassert.doesNotMatch(v28,/FROM cooperatives cx/);\nassert.doesNotMatch(v16,/UPDATE cooperatives SET fuel_km_per_liter/);\nassert.match(v28,/FROM bases bx/);\nassert.match(v28,/COALESCE\\(bx\\.fuel_price_cents,0\\)>0/);\n"
-if '14.33.36 — combustível usa diretamente' not in test:
-    test += marker
+# Ajustar o teste regressivo à versão do index. O arquivo JS continua sendo a
+# implementação 14.33.35; só o query string muda para invalidar o cache.
+test = test.replace(
+    'assert.match(index,/app-version\\" content=\\"14\\.33\\.35\\"/);',
+    'assert.match(index,/app-version\\" content=\\"14\\.33\\.36\\"/);'
+)
+test = test.replace(
+    'assert.match(index,/chegaja-v217-driver-navigation\\.js\\?v=14\\.33\\.35&recovery=143335/);',
+    'assert.match(index,/chegaja-v217-driver-navigation\\.js\\?v=14\\.33\\.36&recovery=143336/);'
+)
+
+# O novo teste também lê a rota de salvamento da Base.
+if "const v16=read('src/routes/platform-v16.ts');" not in test:
+    test = test.replace(
+        "const v28=read('src/routes/platform-v28.ts');",
+        "const v28=read('src/routes/platform-v28.ts');\nconst v16=read('src/routes/platform-v16.ts');"
+    )
+
+# Remover expectativas antigas que obrigavam a existência dos campos globais.
+lines = []
+for line in test.splitlines():
+    if 'SELECT NULLIF\\(cx\\.fuel_km_per_liter,0\\) FROM cooperatives' in line:
+        continue
+    if 'UPDATE cooperatives SET fuel_km_per_liter' in line and line.strip().startswith('assert.match'):
+        continue
+    if '14.33.36 — combustível usa diretamente' in line:
+        continue
+    if line.strip() in {
+        'assert.doesNotMatch(v28,/FROM cooperatives cx/);',
+        'assert.doesNotMatch(v16,/UPDATE cooperatives SET fuel_km_per_liter/);',
+        'assert.match(v28,/FROM bases bx/);'
+    }:
+        continue
+    lines.append(line)
+test = '\n'.join(lines).rstrip() + '\n'
+
+test += """
+// 14.33.36 — combustível usa diretamente a precificação das Bases.
+assert.doesNotMatch(v28,/FROM cooperatives cx/);
+assert.doesNotMatch(v16,/UPDATE cooperatives SET fuel_km_per_liter/);
+assert.match(v28,/FROM bases bx/);
+assert.match(v28,/COALESCE\\(bx\\.fuel_price_cents,0\\)>0/);
+"""
 
 if 'FROM cooperatives cx' in v28:
     raise SystemExit('platform-v28 ainda depende de cooperatives para combustível')
@@ -57,6 +91,10 @@ if 'FROM bases bx' not in v28 or 'fuel_price_cents' not in v28:
     raise SystemExit('fallback de combustível por Base não encontrado')
 if 'app-version" content="14.33.36"' not in index:
     raise SystemExit('versão 14.33.36 não aplicada no index')
+if 'app-version\\" content=\\"14\\.33\\.36\\"' not in test:
+    raise SystemExit('teste ainda não valida a versão 14.33.36')
+if "const v16=read('src/routes/platform-v16.ts');" not in test:
+    raise SystemExit('teste não carrega platform-v16')
 
 v28_path.write_text(v28, encoding='utf-8')
 v16_path.write_text(v16, encoding='utf-8')
