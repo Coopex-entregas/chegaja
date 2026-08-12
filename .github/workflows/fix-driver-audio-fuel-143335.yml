@@ -54,3 +54,5 @@ jobs:
           git add public/chegaja-v217-driver-navigation.js public/index.html src/routes/platform-v16.ts src/routes/platform-v28.ts scripts/test-v14153-logo-google-maps.mjs
           git commit -m 'fix: alerta imediato e combustível global 14.33.35'
           git push origin main
+
+# Push direto para garantir publicação da 14.33.35 pela integração Cloudflare.
