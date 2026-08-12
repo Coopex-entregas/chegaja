@@ -1,4 +1,4 @@
-/* ChegaJá 14.33.24 — ÚNICA folha do painel do cooperado. */
+/* ChegaJá 14.33.25 — ÚNICA folha do painel do cooperado. */
 /* ChegaJá 14.22.0 — visual aprovado do cooperado, responsivo e clicável */
 :root{--cj-blue:#0d45d8;--cj-blue-dark:#0a2f96;--cj-orange:#ff7a00;--cj-white:#fff;--cj-ink:#0d214f}
 html,body{max-width:100%;}
@@ -228,3 +228,11 @@ body.cj199-driver #cj199-map .cj217-self-marker{width:22px!important;height:27px
 body.cj199-driver #cj199-map .cj217-self-marker i{width:4px!important;height:4px!important}
 body.cj199-driver #cj199-map .cj217-stop-icon span{width:30px!important;height:30px!important;font-size:11px!important;border-width:2px!important}
 body.cj199-driver #cj199-map .cj217-stop-icon:after{top:34px!important;font-size:8px!important;padding:4px 6px!important}
+
+
+/* ChegaJá 14.33.25 — rota Leaflet padrão, sempre acima do mapa */
+body.cj199-driver #cj199-map .leaflet-overlay-pane{z-index:500!important;display:block!important;visibility:visible!important;opacity:1!important}
+body.cj199-driver #cj199-map .leaflet-overlay-pane svg{display:block!important;visibility:visible!important;opacity:1!important;overflow:visible!important}
+body.cj199-driver #cj199-map path.cj217-route-casing{stroke:#fff!important;stroke-width:14px!important;stroke-opacity:.98!important;fill:none!important}
+body.cj199-driver #cj199-map path.cj217-route-line{stroke:#075dff!important;stroke-width:8px!important;stroke-opacity:1!important;fill:none!important}
+body.cj199-driver #cj199-map path.cj217-current-position{stroke:#fff!important;stroke-width:3px!important;fill:#1459ff!important;fill-opacity:1!important;stroke-opacity:1!important}

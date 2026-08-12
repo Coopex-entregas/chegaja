@@ -12,13 +12,13 @@ const navigation=read('src/routes/platform-v32.ts');
 const v28=read('src/routes/platform-v28.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.24"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.24&recovery=143324/);
-assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.24&recovery=143324/);
+assert.match(index,/app-version" content="14\.33\.25"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.25&recovery=143325/);
+assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.25&recovery=143325/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.24/);
+assert.match(driver,/ChegaJá 14\.33\.25/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
@@ -43,8 +43,9 @@ assert.match(driver,/\/api\/app\/v32\/driver\/sos/);
 assert.match(driver,/id="cj217-sos"/);
 assert.match(driver,/router\.project-osrm\.org/);
 assert.match(driver,/const NAV_ZOOM=18\.5/);
-assert.match(driver,/createPane\('cj217-route-pane'\)/);
-assert.match(driver,/L\.svg\(\{pane:'cj217-route-pane'/);
+assert.match(driver,/preferCanvas:false/);
+assert.match(driver,/L\.circleMarker\(ll/);
+assert.match(driver,/className:'cj217-route-line'/);
 assert.match(driver,/navigation\?lat=/);
 assert.match(driver,/function frameNavigation\(force=false\)/);
 assert.match(driver,/fitBounds\(bounds/);
@@ -102,4 +103,11 @@ assert.match(driverCss,/#cj217-offer-decline\{background:#d92525!important\}/);
 assert.match(driverCss,/#cj217-offer-accept\{background:#16a34a!important\}/);
 assert.match(driverCss,/body\.cj217-pending-offer #toast-container/);
 
-console.log('ChegaJá 14.33.24: oferta full-screen única, aceite e rota coleta/entrega validados.');
+console.log('ChegaJá 14.33.25: oferta full-screen única, aceite e rota coleta/entrega validados.');
+
+assert.match(app,/state\.freshLogin=true/);
+assert.match(app,/freshDriver=.*state\.freshLogin/);
+assert.match(app,/targetPage=freshDriver\?'dashboard'/);
+assert.match(index,/\/app\.js\?v=14\.33\.25&recovery=143325/);
+assert.match(driver,/L\.circleMarker\(ll/);
+assert.match(driver,/L\.polyline\(ll,\{color:'#075dff'/);
