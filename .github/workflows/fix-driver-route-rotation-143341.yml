@@ -1,0 +1,80 @@
+name: Consolidar rota e rotação 14.33.41
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-driver-route-rotation-143341.py'
+      - '.github/workflows/fix-driver-route-rotation-143341.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Fixar leaflet-rotate 0.2.8 localmente
+        run: |
+          mkdir -p public/vendor/leaflet
+          curl --fail --location --silent --show-error \
+            https://raw.githubusercontent.com/Raruto/leaflet-rotate/v0.2.8/dist/leaflet-rotate.js \
+            -o public/vendor/leaflet/leaflet-rotate.js
+          test -s public/vendor/leaflet/leaflet-rotate.js
+      - name: Aplicar 14.33.41
+        run: python3 scripts/fix-driver-route-rotation-143341.py
+      - name: Validar JavaScript
+        run: |
+          node --check public/chegaja-v217-driver-navigation.js
+          node --check public/chegaja-v201-operational.js
+          node --check public/vendor/leaflet/leaflet-rotate.js
+      - name: Validar TypeScript
+        run: npm run typecheck
+      - name: Validar rota, rotação e isolamento administrativo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          driver=Path('public/chegaja-v217-driver-navigation.js').read_text()
+          op=Path('public/chegaja-v201-operational.js').read_text()
+          index=Path('public/index.html').read_text()
+          rotate=Path('public/vendor/leaflet/leaflet-rotate.js').read_text()
+          checks={
+            'linha azul overlay padrão':"L.polyline(ll,{color:'#075dff'" in driver,
+            'sem renderer customizado na linha':"pane:'cj217-route-pane',renderer:A.routeRenderer,color:'#075dff'" not in driver,
+            'rearma orientação no gesto':'armOrientationFromGesture' in driver,
+            'permite rotação após refresh':"orientationPermission==='granted'" in driver,
+            'base bloqueia Polyline':'__cjAdminPolylineBlocked' in op and 'layer instanceof L.Polyline' in op,
+            'base remove paths de qualquer pane':"$$('.leaflet-pane svg path',host)" in op,
+            'plugin local':'/vendor/leaflet/leaflet-rotate.js?v=0.2.8&recovery=143341' in index,
+            'sem unpkg':'unpkg.com/leaflet-rotate' not in index,
+            'plugin possui setBearing':'setBearing' in rotate,
+            'cache 14.33.41':'14.33.41' in index and '143341' in index,
+          }
+          missing=[name for name,ok in checks.items() if not ok]
+          if missing: raise SystemExit('Falhou: '+', '.join(missing))
+          print('Validado:', ', '.join(checks))
+          PY
+      - name: Teste regressivo do cooperado
+        run: node scripts/test-v14153-logo-google-maps.mjs
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then
+            echo 'Sem alterações pendentes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add public/chegaja-v217-driver-navigation.js public/chegaja-v201-operational.js public/index.html public/vendor/leaflet/leaflet-rotate.js scripts/test-v14153-logo-google-maps.mjs
+          git commit -m 'fix: rota exclusiva do cooperado e rotação estável 14.33.41'
+          git push origin main
