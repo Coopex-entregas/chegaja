@@ -13,13 +13,13 @@ const v28=read('src/routes/platform-v28.ts');
 const v16=read('src/routes/platform-v16.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.40"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.40&recovery=143340/);
+assert.match(index,/app-version" content="14\.33\.41"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.41&recovery=143341/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.33&recovery=143333/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.40/);
+assert.match(driver,/ChegaJá 14\.33\.41/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
@@ -59,7 +59,7 @@ assert.doesNotMatch(driver,/fitBounds\(bounds/);
 assert.match(driver,/function ptBrVoice\(\)/);
 assert.match(driver,/lang='pt-BR'/);
 assert.match(driver,/function maybeSpeakNavigation\(nav\)/);
-assert.match(index,/leaflet-rotate@0\.2\.8\/dist\/leaflet-rotate\.js/);
+assert.match(index,/vendor\/leaflet\/leaflet-rotate\.js\?v=0\.2\.8&recovery=143341/);
 assert.match(driver,/function applyMapBearing\(force=false\)/);
 assert.match(driver,/DeviceOrientationEvent\.requestPermission/);
 assert.match(driver,/webkitCompassHeading/);
@@ -131,7 +131,7 @@ assert.match(app,/freshDriver=.*state\.freshLogin/);
 assert.match(app,/targetPage=freshDriver\?'dashboard'/);
 assert.match(index,/\/app\.js\?v=14\.33\.31&recovery=143331/);
 assert.match(driver,/L\.marker\(ll/);
-assert.match(driver,/L\.polyline\(ll,\{pane:'cj217-route-pane',renderer:A\.routeRenderer,color:'#075dff'/);
+assert.match(driver,/L\.polyline\(ll,\{color:'#075dff'/);
 
 
 assert.match(driver,/function mapRotationForHeading\(heading\)/);
@@ -211,5 +211,5 @@ assert.match(driver,/text:'CHEGUEI NA COLETA'/);
 assert.match(driver,/text:'COLETA REALIZADA'/);
 assert.match(driver,/performPrimaryAction/);
 assert.match(driver,/delivery_id:A\.detail\.id/);
-assert.match(driver,/pane:'cj217-route-pane'/);
+assert.doesNotMatch(driver,/pane:'cj217-route-pane',renderer:A\.routeRenderer,color:'#075dff'/);
 assert.match(driver,/targetKind\(\)==='delivery'.*route_geometry/);

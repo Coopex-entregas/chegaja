@@ -1,7 +1,7 @@
-/* ChegaJá 14.33.37 — mapa operacional sem rota administrativa; linha azul somente no cooperado */
+/* ChegaJá 14.33.41 — nenhuma rota na Base/estabelecimento; rota somente no cooperado */
 (()=>{
 'use strict';
-if(window.__cj201Operational143337)return;window.__cj201Operational143337=true;
+if(window.__cj201Operational143341)return;window.__cj201Operational143341=true;
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
 const valid=p=>Number.isFinite(p?.lat)&&Number.isFinite(p?.lng)&&Math.abs(p.lat)<=90&&Math.abs(p.lng)<=180;
 const point=(a,b)=>Array.isArray(a)?{lat:Number(a[0]),lng:Number(a[1])}:{lat:Number(a?.lat??a?.latitude??a),lng:Number(a?.lng??a?.longitude??b)};
@@ -20,6 +20,12 @@ function stripAdapterRoutes(adapter,host){
   const addPolyline=adapter.addPolyline?.bind(adapter),addGeoJSON=adapter.addGeoJSON?.bind(adapter);
   if(addPolyline)adapter.addPolyline=(values,opt={})=>administrativeRole()&&administrativeMapHost(host||adapter.host)?null:addPolyline(values,opt);
   if(addGeoJSON)adapter.addGeoJSON=(raw,opt={})=>administrativeRole()&&administrativeMapHost(host||adapter.host)?null:addGeoJSON(raw,opt);
+  const raw=adapter.raw;
+  if(raw?.addLayer&&!raw.addLayer.__cjAdminPolylineBlocked){
+   const rawAdd=raw.addLayer.bind(raw);
+   const guardedLayer=(layer,...rest)=>{if(administrativeRole()&&administrativeMapHost(host||adapter.host)&&window.L&&layer instanceof L.Polyline&&!(layer instanceof L.Polygon)){try{layer.remove?.()}catch{}return raw}return rawAdd(layer,...rest)};
+   guardedLayer.__cjAdminPolylineBlocked=true;raw.addLayer=guardedLayer;
+  }
  }
 }
 function protectMapEngineRoutes(){
@@ -43,7 +49,7 @@ function protectRouteRenderer(){
 function clearDirectLeafletRoutes(){
  if(!administrativeRole())return;
  for(const host of $$(ADMIN_MAP_SELECTORS)){
-  for(const path of $$('.leaflet-overlay-pane svg path',host))try{path.remove()}catch{}
+  for(const path of $$('.leaflet-pane svg path',host))try{path.remove()}catch{}
   const adapter=window.ChegaJaLeafletEngine?.instances?.get?.(host);if(adapter)stripAdapterRoutes(adapter,host);
  }
 }
