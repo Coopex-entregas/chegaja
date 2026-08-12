@@ -1,4 +1,4 @@
-name: Consolidar painel do cooperado 14.33.29
+name: Consolidar entrada e fuso 14.33.30
 
 on:
   push:
@@ -31,24 +31,23 @@ jobs:
           node --check public/app.js
           npx tsc --noEmit
 
-      - name: Validar alinhamento da rua e card
+      - name: Validar login no Início e fuso do Brasil
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          driver=Path('public/chegaja-v217-driver-navigation.js').read_text(encoding='utf-8')
-          css=Path('public/chegaja-v217-driver-navigation.css').read_text(encoding='utf-8')
+          app=Path('public/app.js').read_text(encoding='utf-8')
           index=Path('public/index.html').read_text(encoding='utf-8')
+          driver=Path('public/chegaja-v217-driver-navigation.js').read_text(encoding='utf-8')
           checks={
-            'versão':'ChegaJá 14.33.29' in driver,
-            'guard':'__CJ_DRIVER_LEAFLET_143329__=true' in driver,
-            'map matching':'function routeHeadingNearGps()' in driver and 'gap<=18)return road' in driver,
-            'correção suave':'gap<=32&&speed<2.2' in driver,
-            'rotação correta':'function mapRotationForHeading(heading)' in driver and 'normAngle(360-h)' in driver,
-            'card menor':'font-size:clamp(18px,5.15vw,25px)' in css,
-            'três linhas':'-webkit-line-clamp:3' in css,
-            'app version':'app-version" content="14.33.29"' in index,
-            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.29&recovery=143329' in index,
-            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.29&recovery=143329' in index,
+            'app version':'app-version" content="14.33.30"' in index,
+            'painel preservado':'ChegaJá 14.33.29' in driver and '__CJ_DRIVER_LEAFLET_143329__=true' in driver,
+            'fuso':'APP_TIME_ZONE=\'America/Sao_Paulo\'' in app,
+            'sql utc':'sqlUtc.test(text)' in app and "text.replace(' ','T')+'Z'" in app,
+            'login marca sessão':"sessionStorage.setItem('cj_driver_fresh_login','1')" in app,
+            'login força dashboard':"state.page='dashboard'" in app and "freshDriver?'dashboard'" in app,
+            'limpa marcador':"sessionStorage.removeItem('cj_driver_fresh_login')" in app,
+            'cache app':'/app.js?v=14.33.30&recovery=143330' in index,
+            'cache final':'/chegaja-final.js?v=14.33.30&recovery=143330' in index,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -60,12 +59,12 @@ jobs:
 
       - name: Gravar na main
         run: |
-          if git diff --quiet -- public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs; then
+          if git diff --quiet -- public/index.html public/app.js scripts/test-v14153-logo-google-maps.mjs; then
             echo "Sem alterações pendentes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: alinhar câmera à rua e compactar instruções 14.33.29"
+          git add public/index.html public/app.js scripts/test-v14153-logo-google-maps.mjs
+          git commit -m "fix: iniciar cooperado no mapa e corrigir fuso 14.33.30"
           git push origin HEAD:main
