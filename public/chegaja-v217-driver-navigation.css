@@ -1,4 +1,4 @@
-/* ChegaJá 14.33.25 — ÚNICA folha do painel do cooperado. */
+/* ChegaJá 14.33.33 — ÚNICA folha do painel do cooperado. */
 /* ChegaJá 14.22.0 — visual aprovado do cooperado, responsivo e clicável */
 :root{--cj-blue:#0d45d8;--cj-blue-dark:#0a2f96;--cj-orange:#ff7a00;--cj-white:#fff;--cj-ink:#0d214f}
 html,body{max-width:100%;}
@@ -268,3 +268,12 @@ body.cj199-driver #cj199-map .cj217-maneuver-icon span{width:30px!important;heig
 #cj199-metric.cj217-navigation-card strong{font-size:clamp(18px,5.15vw,25px)!important;line-height:1.06!important;letter-spacing:-.025em!important;white-space:normal!important;display:-webkit-box!important;-webkit-line-clamp:3!important;-webkit-box-orient:vertical!important;overflow:hidden!important;text-overflow:clip!important;overflow-wrap:anywhere!important}
 #cj199-metric.cj217-navigation-card span{font-size:12px!important;line-height:1.15!important;white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important}
 @media(max-width:390px){#cj199-metric.cj217-navigation-card{min-height:98px!important;padding:10px 13px!important}#cj199-metric.cj217-navigation-card strong{font-size:clamp(17px,5vw,22px)!important}}
+
+
+/* ChegaJá 14.33.33 — estimativa de combustível do cooperado */
+.cj217-offer-stats .cj217-fuel-stat{background:#eefaf2!important;border:1px solid #c9ead4!important}
+.cj217-offer-stats .cj217-fuel-stat strong{color:#14753b!important}
+.cj217-offer-stats .cj217-fuel-stat span{font-size:9px!important;line-height:1.25!important;color:#52705e!important;font-weight:750!important;overflow-wrap:anywhere!important}
+.cj217-values>span.cj217-fuel-value{grid-column:1/-1;background:#eaf8ef;border:1px solid #c8e8d3}
+.cj217-values .cj217-fuel-value b{color:#14753b;font-size:15px}
+.cj217-values .cj217-fuel-value em{font-style:normal;font-size:9px;line-height:1.25;color:#567164;font-weight:750;white-space:normal;overflow-wrap:anywhere}
