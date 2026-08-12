@@ -65,8 +65,10 @@ old="""    if(['accepted','to_pickup'].includes(String(item.status))&&distance<=
     else if(item.status==='at_pickup'&&distance>=200)next='in_route';"""
 new="""    if(['accepted','to_pickup'].includes(String(item.status))&&distance<=gpsTolerance)next='at_pickup';
     // Nunca avançar at_pickup -> in_route por GPS. A coleta precisa ser confirmada explicitamente pelo cooperado."""
-if old not in v28: raise RuntimeError('Transição automática at_pickup -> in_route não encontrada')
-v28=v28.replace(old,new,1)
+if old in v28:
+    v28=v28.replace(old,new,1)
+elif 'Nunca avançar at_pickup -> in_route por GPS' not in v28:
+    raise RuntimeError('Transição automática at_pickup -> in_route não encontrada nem corrigida')
 write(v28_path,v28)
 
 # 4) Cache/versionamento.
