@@ -1,10 +1,10 @@
-name: Consolidar painel do cooperado 14.33.27
+name: Consolidar painel do cooperado 14.33.28
 
 on:
   push:
     branches: [main]
     paths:
-      - 'scripts/fix-driver-navigation-143327.py'
+      - 'scripts/fix-driver-navigation-143328.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Aplicar somente a versão atual
-        run: python3 scripts/fix-driver-navigation-143327.py
+        run: python3 scripts/fix-driver-navigation-143328.py
 
       - name: Validar JavaScript e TypeScript
         run: |
@@ -31,7 +31,7 @@ jobs:
           node --check public/app.js
           npx tsc --noEmit
 
-      - name: Validar navegação automática e visual
+      - name: Validar orientação correta da navegação
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -39,20 +39,18 @@ jobs:
           css=Path('public/chegaja-v217-driver-navigation.css').read_text(encoding='utf-8')
           index=Path('public/index.html').read_text(encoding='utf-8')
           checks={
-            'versão':'ChegaJá 14.33.27' in driver,
-            'guard':'__CJ_DRIVER_LEAFLET_143327__=true' in driver,
-            'auto obrigatório':'function toggleBearingMode(){A.headingUp=true' in driver and 'A.headingUp=!A.headingUp' not in driver,
-            'bearing automático':'if(navigationActive())A.headingUp=true' in driver,
+            'versão':'ChegaJá 14.33.28' in driver,
+            'guard':'__CJ_DRIVER_LEAFLET_143328__=true' in driver,
+            'rotação inversa':'function mapRotationForHeading(heading)' in driver and 'normAngle(360-h)' in driver,
+            'bearing usa rotação':'wanted=target==null?0:mapRotationForHeading(target)' in driver,
+            'seta compensada':'angle=h==null?0:normAngle(h+mapBearing)' in driver,
+            'auto obrigatório':'function toggleBearingMode(){A.headingUp=true' in driver,
             'próxima manobra':"if(type==='depart')continue" in driver and 'próxima manobra' in driver,
-            'câmera próxima':'d<100?18.8:d<400?18.5:18.1' in driver,
-            'sem setas repetidas':"function drawRouteArrows(){for(const m of A.routeArrows.splice(0))" in driver,
-            'manobras úteis':'function drawManeuvers(steps)' in driver and 'length>=4' in driver,
-            'card legível':'cj217-navigation-card strong' in css,
-            'ícone repetido oculto':'cj217-route-direction-icon{display:none!important' in css,
+            'rota limpa':'cj217-route-direction-icon{display:none!important' in css,
             'leaflet rotate':'leaflet-rotate@0.2.8/dist/leaflet-rotate.js' in index,
-            'app version':'app-version" content="14.33.27"' in index,
-            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.27&recovery=143327' in index,
-            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.27&recovery=143327' in index,
+            'app version':'app-version" content="14.33.28"' in index,
+            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.28&recovery=143328' in index,
+            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.28&recovery=143328' in index,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -71,5 +69,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: corrigir navegação visual 14.33.27"
+          git commit -m "fix: corrigir sentido da câmera 14.33.28"
           git push origin HEAD:main
