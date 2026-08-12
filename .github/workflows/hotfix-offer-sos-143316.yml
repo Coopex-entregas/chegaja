@@ -28,6 +28,7 @@ jobs:
         run: |
           python3 scripts/fix-driver-audio-143322.py
           python3 scripts/fix-driver-audio-test-143322.py
+          sed -i "s/replace_line(js, 'async function updateRoute()'/replace_line(js, 'async function updateRoute('/" scripts/fix-driver-navigation-143323.py
           python3 scripts/fix-driver-navigation-143323.py
 
       - name: Validar JavaScript e TypeScript
@@ -72,8 +73,8 @@ jobs:
 
       - name: Gravar na main
         run: |
-          if git diff --quiet; then
-            echo "Sem alterações pendentes."
+          if git diff --quiet -- public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs; then
+            echo "Sem alterações pendentes nos arquivos de produção."
             exit 0
           fi
           git config user.name "github-actions[bot]"
