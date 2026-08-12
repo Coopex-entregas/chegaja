@@ -1,5 +1,4 @@
-name: Consolidar áudio do cooperado 14.33.22
-# Publicação direta da versão 14.33.22 após validação completa.
+name: Consolidar painel do cooperado 14.33.23
 
 on:
   push:
@@ -7,6 +6,7 @@ on:
     paths:
       - 'scripts/fix-driver-audio-143322.py'
       - 'scripts/fix-driver-audio-test-143322.py'
+      - 'scripts/fix-driver-navigation-143323.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -24,10 +24,11 @@ jobs:
       - name: Instalar dependências
         run: npm ci --ignore-scripts
 
-      - name: Aplicar correção 14.33.22
+      - name: Aplicar correções do painel único
         run: |
           python3 scripts/fix-driver-audio-143322.py
           python3 scripts/fix-driver-audio-test-143322.py
+          python3 scripts/fix-driver-navigation-143323.py
 
       - name: Validar JavaScript e TypeScript
         run: |
@@ -35,26 +36,31 @@ jobs:
           node --check public/chegaja-final.js
           npx tsc --noEmit
 
-      - name: Validar áudio persistente
+      - name: Validar navegação visual e áudio
         run: |
           python3 - <<'PY'
           from pathlib import Path
           driver=Path('public/chegaja-v217-driver-navigation.js').read_text(encoding='utf-8')
+          css=Path('public/chegaja-v217-driver-navigation.css').read_text(encoding='utf-8')
           index=Path('public/index.html').read_text(encoding='utf-8')
           checks={
-            'versão':'ChegaJá 14.33.22' in driver,
-            'guard':'__CJ_DRIVER_LEAFLET_143322__=true' in driver,
+            'versão':'ChegaJá 14.33.23' in driver,
+            'guard':'__CJ_DRIVER_LEAFLET_143323__=true' in driver,
+            'frame':'function frameNavigation(force=false)' in driver,
+            'fit bounds':'fitBounds(bounds' in driver,
+            'padding topo':'paddingTopLeft:[24,132]' in driver,
+            'padding inferior':'paddingBottomRight:[24,148]' in driver,
+            'zoom navegação':'maxZoom:17' in driver,
+            'origem frame':'navFrameOrigin' in driver,
+            'destino frame':'navFrameTarget' in driver,
+            'halo posição':'cj217-self-icon:before' in css,
+            'coleta':'content:\'COLETA\'' in css,
+            'entrega':'content:\'ENTREGA\'' in css,
             'wav':'function alarmWavUrl()' in driver,
             'audio element':'new Audio()' in driver,
-            'preparo':'function primeAlarmMedia(test=false)' in driver,
-            'gesto':'installAudioArm()' in driver,
-            'teste iniciar':'primeAlarmMedia(!A.online)' in driver,
-            'desmutar':'media.muted=false' in driver,
-            'fallback webaudio':"type:'square'" in driver and "type:'sawtooth'" in driver,
-            'repetição':'setInterval(fire,2700)' in driver,
-            'app version':'app-version" content="14.33.22"' in index,
-            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.22&recovery=143322' in index,
-            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.22&recovery=143322' in index,
+            'app version':'app-version" content="14.33.23"' in index,
+            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.23&recovery=143323' in index,
+            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.23&recovery=143323' in index,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -73,5 +79,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: áudio persistente desbloqueado no iniciar 14.33.22"
+          git commit -m "fix: navegação mostra cooperado rota e destino 14.33.23"
           git push origin HEAD:main
