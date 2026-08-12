@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/fix-driver-navigation-143324.py'
+      - 'scripts/remove-driver-halo-143324.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -23,7 +24,9 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Aplicar navegação real
-        run: python3 scripts/fix-driver-navigation-143324.py
+        run: |
+          python3 scripts/fix-driver-navigation-143324.py
+          python3 scripts/remove-driver-halo-143324.py
 
       - name: Validar JavaScript e TypeScript
         run: |
@@ -45,7 +48,7 @@ jobs:
             'destino backend':'nav.next?.lat' in driver,
             'voz pt-BR':"u.lang='pt-BR'" in driver,
             'seleção pt-BR':"toLowerCase()==='pt-br'" in driver,
-            'sem halo grande':'cj217-self-icon:before{display:none!important' in css,
+            'sem halo legado':"cj217-self-icon:before{content:''" not in css,
             'seta compacta':'width:22px!important' in css,
             'geocodificação':'nominatim.openstreetmap.org/search' in nav,
             'salva coleta':'UPDATE deliveries SET pickup_lat=' in nav,
