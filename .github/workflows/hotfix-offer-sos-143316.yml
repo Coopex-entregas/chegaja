@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/fix-driver-audio-143322.py'
+      - 'scripts/fix-driver-audio-test-143322.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -23,7 +24,9 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Aplicar correção 14.33.22
-        run: python3 scripts/fix-driver-audio-143322.py
+        run: |
+          python3 scripts/fix-driver-audio-143322.py
+          python3 scripts/fix-driver-audio-test-143322.py
 
       - name: Validar JavaScript e TypeScript
         run: |
