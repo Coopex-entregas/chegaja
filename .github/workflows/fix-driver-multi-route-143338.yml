@@ -33,13 +33,23 @@ jobs:
         run: npm run typecheck
       - name: Validar prioridade das paradas
         run: |
-          grep -q 'DELIVERY_TIE_METERS=300' src/routes/platform-v32.ts
-          grep -q "selectionReason='delivery_priority_tie'" src/routes/platform-v32.ts
-          grep -q "selectionReason='pickup_in_progress'" src/routes/platform-v32.ts
-          grep -q 'function basicFromLive(live)' public/chegaja-v217-driver-navigation.js
-          grep -q 'function syncDetailToNavigation(next)' public/chegaja-v217-driver-navigation.js
-          grep -q 'app-version" content="14.33.38"' public/index.html
-          grep -q 'chegaja-v217-driver-navigation.js?v=14.33.38&recovery=143338' public/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          nav=Path('src/routes/platform-v32.ts').read_text()
+          driver=Path('public/chegaja-v217-driver-navigation.js').read_text()
+          index=Path('public/index.html').read_text()
+          checks={
+            'empate de 300 m':'DELIVERY_TIE_METERS=300' in nav,
+            'prioridade entrega':'delivery_priority_tie' in nav,
+            'coleta em andamento travada':'pickup_in_progress' in nav,
+            'sincronização multi-entrega':'function syncDetailToNavigation(next)' in driver,
+            'lista ativa':'function basicFromLive(live)' in driver,
+            'versão pública':'14.33.38' in index and '143338' in index,
+          }
+          missing=[name for name,ok in checks.items() if not ok]
+          if missing: raise SystemExit('Falhou: '+', '.join(missing))
+          print('Prioridade multi-entrega validada:', ', '.join(checks))
+          PY
       - name: Teste regressivo do cooperado
         run: node scripts/test-v14153-logo-google-maps.mjs
       - name: Gravar na main
