@@ -31,7 +31,7 @@ async function openStreetMapRoute(env:AppBindings['Bindings'],origin:{lat:number
  try{
   const base=(env.ROUTER_URL||'https://router.project-osrm.org/route/v1/driving').replace(/\/$/,'');
   const coordinates=`${origin.lng},${origin.lat};${destination.lng},${destination.lat}`;
-  const response=await fetch(`${base}/${coordinates}?overview=full&geometries=geojson&steps=true&annotations=false`,{headers:{'User-Agent':'ChegaJa/14.33.5'}});
+  const response=await fetch(`${base}/${coordinates}?overview=full&geometries=geojson&steps=true&annotations=false`,{headers:{'User-Agent':'ChegaJa/14.33.21'}});
   if(!response.ok)return null;
   const payload=await response.json<any>().catch(()=>null),route=payload?.routes?.[0];if(!route)return null;
   const geometry=(route.geometry?.coordinates||[]).map((p:number[])=>[Number(p[1]),Number(p[0])] as [number,number]).filter((p:[number,number])=>valid(p[0],p[1]));
@@ -48,7 +48,8 @@ platformV32Routes.get('/v32/driver/navigation',async c=>{
  const auth=c.get('auth');assertRole(auth,['driver']);
  if(!auth.cooperativeId||!auth.driverId)return c.json({ok:false,error:'Cooperado não vinculado.'},403);
  const driver=await c.env.DB.prepare(`SELECT current_lat,current_lng,online FROM drivers WHERE id=? AND cooperative_id=? AND deleted_at IS NULL LIMIT 1`).bind(auth.driverId,auth.cooperativeId).first<Row>();
- const lat=Number(driver?.current_lat),lng=Number(driver?.current_lng);
+ const requestedLat=Number(c.req.query('lat')),requestedLng=Number(c.req.query('lng')),storedLat=Number(driver?.current_lat),storedLng=Number(driver?.current_lng);
+ const useRequested=valid(requestedLat,requestedLng),lat=useRequested?requestedLat:storedLat,lng=useRequested?requestedLng:storedLng;
  if(!valid(lat,lng))return c.json({ok:true,online:Boolean(Number(driver?.online||0)),items:[],next:null,route:null,arrived:false,arrival_radius_meters:ARRIVAL_RADIUS_METERS});
  const rows=await c.env.DB.prepare(`SELECT id,display_code,status,pickup_address,pickup_lat,pickup_lng,delivery_address,delivery_lat,delivery_lng,accepted_at,created_at FROM deliveries WHERE cooperative_id=? AND assigned_driver_id=? AND deleted_at IS NULL AND status IN ('accepted','to_pickup','at_pickup','picked_up','in_route','problem') ORDER BY created_at LIMIT 20`).bind(auth.cooperativeId,auth.driverId).all<Row>();
  const stops:Stop[]=[];
