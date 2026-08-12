@@ -13,13 +13,13 @@ const v28=read('src/routes/platform-v28.ts');
 const v16=read('src/routes/platform-v16.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.36"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.36&recovery=143336/);
+assert.match(index,/app-version" content="14\.33\.38"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.38&recovery=143338/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.33&recovery=143333/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.35/);
+assert.match(driver,/ChegaJá 14\.33\.38/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
@@ -181,3 +181,13 @@ assert.doesNotMatch(v28,/FROM cooperatives cx/);
 assert.doesNotMatch(v16,/UPDATE cooperatives SET fuel_km_per_liter/);
 assert.match(v28,/FROM bases bx/);
 assert.match(v28,/COALESCE\(bx\.fuel_price_cents,0\)>0/);
+
+// 14.33.38 — múltiplas paradas: entrega vence empate curto; diferença grande usa menor rota.
+assert.match(navigation,/DELIVERY_TIE_METERS=300/);
+assert.match(navigation,/delivery_priority_tie/);
+assert.match(navigation,/pickup_in_progress/);
+assert.match(navigation,/picked_up_at/);
+assert.match(driver,/activeItems:\[\]/);
+assert.match(driver,/function basicFromLive\(live\)/);
+assert.match(driver,/function syncDetailToNavigation\(next\)/);
+assert.match(driver,/ENTREGA':'COLETA'/);
