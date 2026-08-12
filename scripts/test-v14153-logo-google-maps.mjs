@@ -12,16 +12,19 @@ const navigation=read('src/routes/platform-v32.ts');
 const v28=read('src/routes/platform-v28.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.33"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.33&recovery=143333/);
+assert.match(index,/app-version" content="14\.33\.35"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.35&recovery=143335/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.33&recovery=143333/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.33/);
+assert.match(driver,/ChegaJá 14\.33\.35/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
+assert.match(driver,/function ensureInstantAlarmBus\(test=false\)/);
+assert.match(driver,/function setInstantAlarm\(active\)/);
+assert.match(driver,/A\.pollTimer=setInterval\(\(\)=>poll\(false\),2500\)/);
 assert.match(driver,/function alarmWavUrl\(\)/);
 assert.match(driver,/new Audio\(\)/);
 assert.match(driver,/function primeAlarmMedia\(test=false\)/);
@@ -165,3 +168,6 @@ assert.match(driverCss,/cj217-fuel-stat/);
 assert.match(driverCss,/cj217-fuel-value/);
 assert.match(v28,/fuelCostCents/);
 assert.match(v28,/totalDistance\/1000\/kmPerLiter/);
+
+assert.match(v28,/SELECT NULLIF\(cx\.fuel_km_per_liter,0\) FROM cooperatives/);
+assert.match(v28,/COALESCE\(bx\.fuel_price_cents,0\)>0/);

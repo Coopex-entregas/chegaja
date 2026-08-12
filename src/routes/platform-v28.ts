@@ -19,11 +19,13 @@ function customerMessage(status:string){
 async function delivery(c:any,deliveryId:string,cooperativeId:string):Promise<Row|null>{
   return (await c.env.DB.prepare(`SELECT d.*,e.name establishment_name,b.name base_name,
       COALESCE(NULLIF(b.fuel_km_per_liter,0),(SELECT NULLIF(bx.fuel_km_per_liter,0) FROM bases bx
-        WHERE bx.cooperative_id=d.cooperative_id AND bx.active=1 AND bx.deleted_at IS NULL AND COALESCE(bx.fuel_km_per_liter,0)>0
-        ORDER BY CASE WHEN bx.id=d.base_id THEN 0 ELSE 1 END,bx.name LIMIT 1)) fuel_km_per_liter,
+        WHERE bx.cooperative_id=d.cooperative_id AND bx.deleted_at IS NULL AND COALESCE(bx.fuel_km_per_liter,0)>0 AND COALESCE(bx.fuel_price_cents,0)>0
+        ORDER BY CASE WHEN bx.id=d.base_id THEN 0 ELSE 1 END,datetime(COALESCE(bx.updated_at,bx.created_at)) DESC,bx.name LIMIT 1),
+        (SELECT NULLIF(cx.fuel_km_per_liter,0) FROM cooperatives cx WHERE cx.id=d.cooperative_id)) fuel_km_per_liter,
       COALESCE(NULLIF(b.fuel_price_cents,0),(SELECT NULLIF(bx.fuel_price_cents,0) FROM bases bx
-        WHERE bx.cooperative_id=d.cooperative_id AND bx.active=1 AND bx.deleted_at IS NULL AND COALESCE(bx.fuel_price_cents,0)>0
-        ORDER BY CASE WHEN bx.id=d.base_id THEN 0 ELSE 1 END,bx.name LIMIT 1)) fuel_price_cents,
+        WHERE bx.cooperative_id=d.cooperative_id AND bx.deleted_at IS NULL AND COALESCE(bx.fuel_km_per_liter,0)>0 AND COALESCE(bx.fuel_price_cents,0)>0
+        ORDER BY CASE WHEN bx.id=d.base_id THEN 0 ELSE 1 END,datetime(COALESCE(bx.updated_at,bx.created_at)) DESC,bx.name LIMIT 1),
+        (SELECT NULLIF(cx.fuel_price_cents,0) FROM cooperatives cx WHERE cx.id=d.cooperative_id)) fuel_price_cents,
       COALESCE(b.displacement_rate_cents_per_km,(SELECT bx.displacement_rate_cents_per_km FROM bases bx
         WHERE bx.cooperative_id=d.cooperative_id AND bx.active=1 AND bx.deleted_at IS NULL
         ORDER BY CASE WHEN bx.id=d.base_id THEN 0 ELSE 1 END,bx.name LIMIT 1),0) displacement_rate_cents_per_km,
