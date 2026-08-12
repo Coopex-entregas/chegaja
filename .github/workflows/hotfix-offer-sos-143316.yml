@@ -4,9 +4,6 @@ on:
   push:
     branches: [main]
     paths:
-      - 'scripts/fix-driver-navigation-143324.py'
-      - 'scripts/remove-driver-halo-143324.py'
-      - 'scripts/fix-driver-map-tabs-143325.py'
       - 'scripts/fix-driver-heading-navigation-143326.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
@@ -25,12 +22,8 @@ jobs:
       - name: Instalar dependências
         run: npm ci --ignore-scripts
 
-      - name: Aplicar mapa, rota, abas e orientação
-        run: |
-          python3 scripts/fix-driver-navigation-143324.py
-          python3 scripts/remove-driver-halo-143324.py
-          python3 scripts/fix-driver-map-tabs-143325.py
-          python3 scripts/fix-driver-heading-navigation-143326.py
+      - name: Aplicar somente a versão atual
+        run: python3 scripts/fix-driver-heading-navigation-143326.py
 
       - name: Validar JavaScript e TypeScript
         run: |
@@ -69,7 +62,6 @@ jobs:
             'app version':'app-version" content="14.33.26"' in index,
             'js cache':'chegaja-v217-driver-navigation.js?v=14.33.26&recovery=143326' in index,
             'css cache':'chegaja-v217-driver-navigation.css?v=14.33.26&recovery=143326' in index,
-            'app cache':'/app.js?v=14.33.25&recovery=143325' in index,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -81,12 +73,12 @@ jobs:
 
       - name: Gravar na main
         run: |
-          if git diff --quiet -- public/index.html public/app.js public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v32.ts scripts/test-v14153-logo-google-maps.mjs; then
+          if git diff --quiet -- public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs; then
             echo "Sem alterações pendentes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/index.html public/app.js public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v32.ts scripts/test-v14153-logo-google-maps.mjs
+          git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs
           git commit -m "fix: navegação gira com direção e mostra manobras 14.33.26"
           git push origin HEAD:main
