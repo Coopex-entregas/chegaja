@@ -1,0 +1,69 @@
+name: Consolidar fluxo do cooperado 14.33.40
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-driver-flow-143340.py'
+      - '.github/workflows/fix-driver-flow-143340.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Aplicar 14.33.40
+        run: python3 scripts/fix-driver-flow-143340.py
+      - name: Validar JavaScript
+        run: node --check public/chegaja-v217-driver-navigation.js
+      - name: Validar TypeScript
+        run: npm run typecheck
+      - name: Validar fluxo completo
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          v16=Path('src/routes/platform-v16.ts').read_text()
+          driver=Path('public/chegaja-v217-driver-navigation.js').read_text()
+          index=Path('public/index.html').read_text()
+          checks={
+            'geofence 200 m':'distance<=200||elapsed<20' in v16,
+            'sem coleta automática no stop':"snapshot.active.stage==='pickup')await c.env.DB.prepare(`UPDATE deliveries SET status='in_route'" not in v16,
+            'cronômetro estabelecimento':"delivery.delivery_type==='establishment'?0:300" in v16,
+            'cheguei visível':"text:'CHEGUEI NA COLETA'" in driver,
+            'coleta realizada visível':"text:'COLETA REALIZADA'" in driver,
+            'card principal': 'performPrimaryAction' in driver,
+            'geofence por entrega':"delivery_id:A.detail.id" in driver,
+            'pane da rota':"pane:'cj217-route-pane'" in driver,
+            'fallback rota armazenada':"targetKind()==='delivery'" in driver and 'route_geometry' in driver,
+            'cache 14.33.40':'14.33.40' in index and '143340' in index,
+          }
+          missing=[name for name,ok in checks.items() if not ok]
+          if missing: raise SystemExit('Falhou: '+', '.join(missing))
+          print('Fluxo validado:', ', '.join(checks))
+          PY
+      - name: Teste regressivo do cooperado
+        run: node scripts/test-v14153-logo-google-maps.mjs
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then
+            echo 'Sem alterações pendentes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/platform-v16.ts public/chegaja-v217-driver-navigation.js public/index.html scripts/test-v14153-logo-google-maps.mjs
+          git commit -m 'fix: fluxo completo de coleta e rota 14.33.40'
+          git push origin main
