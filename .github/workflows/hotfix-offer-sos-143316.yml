@@ -1,4 +1,4 @@
-name: Consolidar painel do cooperado 14.33.25
+name: Consolidar painel do cooperado 14.33.26
 
 on:
   push:
@@ -7,6 +7,7 @@ on:
       - 'scripts/fix-driver-navigation-143324.py'
       - 'scripts/remove-driver-halo-143324.py'
       - 'scripts/fix-driver-map-tabs-143325.py'
+      - 'scripts/fix-driver-heading-navigation-143326.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -24,11 +25,12 @@ jobs:
       - name: Instalar dependências
         run: npm ci --ignore-scripts
 
-      - name: Aplicar mapa, rota e abas
+      - name: Aplicar mapa, rota, abas e orientação
         run: |
           python3 scripts/fix-driver-navigation-143324.py
           python3 scripts/remove-driver-halo-143324.py
           python3 scripts/fix-driver-map-tabs-143325.py
+          python3 scripts/fix-driver-heading-navigation-143326.py
 
       - name: Validar JavaScript e TypeScript
         run: |
@@ -36,7 +38,7 @@ jobs:
           node --check public/app.js
           npx tsc --noEmit
 
-      - name: Validar mapa, rota, voz e abas
+      - name: Validar navegação heading-up, rota, voz e abas
         run: |
           python3 - <<'PY'
           from pathlib import Path
@@ -46,22 +48,28 @@ jobs:
           app=Path('public/app.js').read_text(encoding='utf-8')
           index=Path('public/index.html').read_text(encoding='utf-8')
           checks={
-            'versão':'ChegaJá 14.33.25' in driver,
-            'guard':'__CJ_DRIVER_LEAFLET_143325__=true' in driver,
-            'leaflet svg':'preferCanvas:false' in driver,
-            'posição padrão':'L.circleMarker(ll' in driver,
+            'versão':'ChegaJá 14.33.26' in driver,
+            'guard':'__CJ_DRIVER_LEAFLET_143326__=true' in driver,
+            'leaflet rotate':'leaflet-rotate@0.2.8/dist/leaflet-rotate.js' in index,
+            'mapa rotacionável':"rotate:typeof L.Map?.prototype?.setBearing==='function'" in driver,
+            'bearing':'function applyMapBearing(force=false)' in driver,
+            'posição seta':'L.marker(ll' in driver and 'selfIcon()' in driver,
             'rota padrão':"className:'cj217-route-line'" in driver,
-            'linha azul':"L.polyline(ll,{color:'#075dff'" in driver,
+            'setas da rota':'function drawRouteArrows()' in driver,
+            'setas de manobra':'function drawManeuvers(steps)' in driver,
+            'bússola iPhone':'webkitCompassHeading' in driver,
+            'permissão iOS':'DeviceOrientationEvent.requestPermission' in driver,
+            'botão orientação':'id="cj217-bearing"' in driver and '#cj217-bearing' in css,
+            'mapa limpo':'leaflet-tile-pane{filter:saturate' in css,
             'destino backend':'nav.next?.lat' in driver,
             'voz pt-BR':"u.lang='pt-BR'" in driver,
             'geocodificação':'nominatim.openstreetmap.org/search' in nav,
             'login início':'state.freshLogin=true' in app and "targetPage=freshDriver?'dashboard'" in app,
             'mantém aba':'location.hash.slice(1)||defaultPage' in app,
-            'app version':'app-version" content="14.33.25"' in index,
-            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.25&recovery=143325' in index,
-            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.25&recovery=143325' in index,
+            'app version':'app-version" content="14.33.26"' in index,
+            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.26&recovery=143326' in index,
+            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.26&recovery=143326' in index,
             'app cache':'/app.js?v=14.33.25&recovery=143325' in index,
-            'svg visível':'leaflet-overlay-pane svg' in css,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -80,5 +88,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add public/index.html public/app.js public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v32.ts scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: mapa mostra posição rota e login abre início 14.33.25"
+          git commit -m "fix: navegação gira com direção e mostra manobras 14.33.26"
           git push origin HEAD:main
