@@ -119,7 +119,7 @@ platformV28Routes.post('/v28/driver/auto-location',async c=>{
   if(['accepted','to_pickup','at_pickup'].includes(String(item.status))&&validPoint(Number(item.pickup_lat),Number(item.pickup_lng))){
     const distance=distanceMeters(lat,lng,Number(item.pickup_lat),Number(item.pickup_lng));let next:string|null=null;
     if(['accepted','to_pickup'].includes(String(item.status))&&distance<=gpsTolerance)next='at_pickup';
-    else if(item.status==='at_pickup'&&distance>=200)next='in_route';
+    // Nunca avançar at_pickup -> in_route por GPS. A coleta precisa ser confirmada explicitamente pelo cooperado.
     if(!next)return c.json({ok:true,status:item.status,distance_to_pickup_meters:distance});
     const message=customerMessage(next);
     await c.env.DB.batch([

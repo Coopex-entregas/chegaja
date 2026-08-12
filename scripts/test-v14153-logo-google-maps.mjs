@@ -12,13 +12,13 @@ const navigation=read('src/routes/platform-v32.ts');
 const v28=read('src/routes/platform-v28.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.29"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.29&recovery=143329/);
+assert.match(index,/app-version" content="14\.33\.31"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.31&recovery=143331/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.29&recovery=143329/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.29/);
+assert.match(driver,/ChegaJá 14\.33\.31/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
@@ -125,7 +125,7 @@ console.log('ChegaJá 14.33.26: oferta full-screen única, aceite e rota coleta/
 assert.match(app,/state\.freshLogin=true/);
 assert.match(app,/freshDriver=.*state\.freshLogin/);
 assert.match(app,/targetPage=freshDriver\?'dashboard'/);
-assert.match(index,/\/app\.js\?v=14\.33\.25&recovery=143325/);
+assert.match(index,/\/app\.js\?v=14\.33\.31&recovery=143331/);
 assert.match(driver,/L\.marker\(ll/);
 assert.match(driver,/L\.polyline\(ll,\{color:'#075dff'/);
 
@@ -139,3 +139,13 @@ assert.match(driver,/function routeHeadingNearGps\(\)/);
 assert.match(driver,/gap<=18\)return road/);
 assert.match(driverCss,/font-size:clamp\(18px,5\.15vw,25px\)/);
 assert.match(driverCss,/-webkit-line-clamp:3/);
+
+assert.match(app,/APP_TIME_ZONE='America\/Sao_Paulo'/);
+assert.match(app,/APP_SQL_UTC\.test\(text\)/);
+assert.match(app,/sessionStorage\.setItem\('cj_driver_fresh_login','1'\)/);
+assert.match(app,/sessionStorage\.getItem\('cj_driver_fresh_login'\)/);
+assert.match(driver,/async function manualArrivePickup\(\)/);
+assert.match(driver,/manual:true,stage:'pickup'/);
+assert.match(driver,/Confirme COLETA REALIZADA somente depois de retirar o pedido/);
+assert.doesNotMatch(v28,/item\.status==='at_pickup'&&distance>=200/);
+assert.match(v28,/Nunca avançar at_pickup -> in_route por GPS/);
