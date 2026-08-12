@@ -33,20 +33,31 @@ jobs:
 
       - name: Validar trajeto e alerta
         run: |
-          grep -q 'ChegaJá 14.33.21' public/chegaja-v217-driver-navigation.js
-          grep -q '__CJ_DRIVER_LEAFLET_143321__=true' public/chegaja-v217-driver-navigation.js
-          grep -q "createPane('cj217-route-pane')" public/chegaja-v217-driver-navigation.js
-          grep -q "L.svg({pane:'cj217-route-pane'" public/chegaja-v217-driver-navigation.js
-          grep -q "navigation?lat=" public/chegaja-v217-driver-navigation.js
-          grep -q "type:'square'" public/chegaja-v217-driver-navigation.js
-          grep -q "type:'sawtooth'" public/chegaja-v217-driver-navigation.js
-          grep -q 'setInterval(fire,2700)' public/chegaja-v217-driver-navigation.js
-          grep -q "c.req.query('lat')" src/routes/platform-v32.ts
-          grep -q "c.req.query('lng')" src/routes/platform-v32.ts
-          grep -q 'app-version" content="14.33.21"' public/index.html
-          grep -q 'chegaja-v217-driver-navigation.js?v=14.33.21&recovery=143321' public/index.html
-          grep -q 'chegaja-v217-driver-navigation.css?v=14.33.21&recovery=143321' public/index.html
-          grep -q 'chegaja-final.js?v=14.33.21&recovery=143321' public/index.html
+          python3 - <<'PY'
+          from pathlib import Path
+          driver=Path('public/chegaja-v217-driver-navigation.js').read_text(encoding='utf-8')
+          nav=Path('src/routes/platform-v32.ts').read_text(encoding='utf-8')
+          index=Path('public/index.html').read_text(encoding='utf-8')
+          checks={
+            'versão':'ChegaJá 14.33.21' in driver,
+            'guard':'__CJ_DRIVER_LEAFLET_143321__=true' in driver,
+            'pane':"createPane('cj217-route-pane')" in driver,
+            'svg':"L.svg({pane:'cj217-route-pane'" in driver,
+            'gps atual':'navigation?lat=${encodeURIComponent(origin.lat)}&lng=${encodeURIComponent(origin.lng)}' in driver,
+            'onda quadrada':"type:'square'" in driver,
+            'onda serrilhada':"type:'sawtooth'" in driver,
+            'repetição':'setInterval(fire,2700)' in driver,
+            'backend lat':"c.req.query('lat')" in nav,
+            'backend lng':"c.req.query('lng')" in nav,
+            'app version':'app-version" content="14.33.21"' in index,
+            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.21&recovery=143321' in index,
+            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.21&recovery=143321' in index,
+            'final cache':'chegaja-final.js?v=14.33.21&recovery=143321' in index,
+          }
+          failed=[name for name,ok in checks.items() if not ok]
+          print(checks)
+          if failed: raise SystemExit('Falharam: '+', '.join(failed))
+          PY
 
       - name: Rodar teste regressivo
         run: node scripts/test-v14153-logo-google-maps.mjs
