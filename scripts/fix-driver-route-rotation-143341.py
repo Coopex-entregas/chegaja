@@ -50,7 +50,6 @@ driver=driver.replace("try{await ensureMap()}catch(e){notice(e.message,true)}awa
 # Base/estabelecimento: nenhuma linha de rota. Bloqueia adapter, Leaflet direto e remove SVG legado.
 op=op.replace('/* ChegaJá 14.33.37 — mapa operacional sem rota administrativa; linha azul somente no cooperado */','/* ChegaJá 14.33.41 — nenhuma rota na Base/estabelecimento; rota somente no cooperado */')
 op=op.replace('__cj201Operational143337','__cj201Operational143341')
-# Injeta bloqueio de L.Polyline diretamente no mapa administrativo.
 needle="if(addGeoJSON)adapter.addGeoJSON=(raw,opt={})=>administrativeRole()&&administrativeMapHost(host||adapter.host)?null:addGeoJSON(raw,opt);\n }"
 replacement="""if(addGeoJSON)adapter.addGeoJSON=(raw,opt={})=>administrativeRole()&&administrativeMapHost(host||adapter.host)?null:addGeoJSON(raw,opt);
   const raw=adapter.raw;
@@ -72,10 +71,11 @@ index=index.replace('<script src="https://unpkg.com/leaflet-rotate@0.2.8/dist/le
 index=re.sub(r'/chegaja-v201-operational\.js\?v=[^"&]+&recovery=\d+','/chegaja-v201-operational.js?v=14.33.41&recovery=143341',index,count=1)
 index=re.sub(r'/chegaja-v217-driver-navigation\.js\?v=[^"&]+&recovery=\d+','/chegaja-v217-driver-navigation.js?v=14.33.41&recovery=143341',index,count=1)
 
-# Regressão: a rota volta corretamente para overlayPane padrão.
+# Regressão: rota padrão e versão atual.
 test=test.replace("assert.match(driver,/L\\.polyline\\(ll,\\{pane:'cj217-route-pane',renderer:A\\.routeRenderer,color:'#075dff'/);","assert.match(driver,/L\\.polyline\\(ll,\\{color:'#075dff'/);")
-# Atualiza apenas referências de cache/versão mais recente quando existirem.
+test=test.replace('14\\.33\\.40','14\\.33\\.41')
 test=test.replace('14.33.40&recovery=143340','14.33.41&recovery=143341')
+test=test.replace('143340','143341')
 
 DRIVER.write_text(driver)
 OP.write_text(op)
