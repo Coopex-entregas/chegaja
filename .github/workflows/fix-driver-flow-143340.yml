@@ -5,6 +5,7 @@ on:
     branches: [main]
     paths:
       - 'scripts/fix-driver-flow-143340.py'
+      - 'scripts/fix-driver-flow-test-143340.py'
       - '.github/workflows/fix-driver-flow-143340.yml'
   workflow_dispatch:
 
@@ -27,6 +28,8 @@ jobs:
         run: npm ci
       - name: Aplicar 14.33.40
         run: python3 scripts/fix-driver-flow-143340.py
+      - name: Normalizar regressão 14.33.40
+        run: python3 scripts/fix-driver-flow-test-143340.py
       - name: Validar JavaScript
         run: node --check public/chegaja-v217-driver-navigation.js
       - name: Validar TypeScript
