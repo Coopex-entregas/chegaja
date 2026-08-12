@@ -1,10 +1,10 @@
-name: Consolidar rota sem linha reta 14.33.32
+name: Consolidar combustível do cooperado 14.33.33
 
 on:
   push:
     branches: [main]
     paths:
-      - 'scripts/fix-driver-route-143332.py'
+      - 'scripts/fix-driver-fuel-143333.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -23,7 +23,7 @@ jobs:
         run: npm ci --ignore-scripts
 
       - name: Aplicar somente a versão atual
-        run: python3 scripts/fix-driver-route-143332.py
+        run: python3 scripts/fix-driver-fuel-143333.py
 
       - name: Validar JavaScript e TypeScript
         run: |
@@ -31,20 +31,26 @@ jobs:
           node --check public/app.js
           npx tsc --noEmit
 
-      - name: Validar rota sem linha reta
+      - name: Validar combustível do cooperado
         run: |
           python3 - <<'PY'
           from pathlib import Path
           driver=Path('public/chegaja-v217-driver-navigation.js').read_text(encoding='utf-8')
+          css=Path('public/chegaja-v217-driver-navigation.css').read_text(encoding='utf-8')
           index=Path('public/index.html').read_text(encoding='utf-8')
+          v28=Path('src/routes/platform-v28.ts').read_text(encoding='utf-8')
           checks={
-            'versão':'app-version" content="14.33.32"' in index,
-            'driver':'ChegaJá 14.33.32' in driver and '__CJ_DRIVER_LEAFLET_143332__=true' in driver,
-            'cache driver':'chegaja-v217-driver-navigation.js?v=14.33.32&recovery=143332' in index,
-            'sem reta provisória':'drawRoute([{...origin},{...target}])' not in driver,
+            'versão':'app-version" content="14.33.33"' in index,
+            'driver':'ChegaJá 14.33.33' in driver and '__CJ_DRIVER_LEAFLET_143333__=true' in driver,
+            'cache js':'chegaja-v217-driver-navigation.js?v=14.33.33&recovery=143333' in index,
+            'cache css':'chegaja-v217-driver-navigation.css?v=14.33.33&recovery=143333' in index,
+            'helper':'function fuelEstimate(x,totalMetersOverride=null)' in driver,
+            'oferta':'COMBUSTÍVEL EST.' in driver and 'cj217-fuel-stat' in driver,
+            'andamento':'cj217-fuel-value' in driver,
+            'config base':'fuel_km_per_liter' in driver and 'fuel_price_cents' in driver,
+            'api calcula':'fuelCostCents' in v28 and 'totalDistance/1000/kmPerLiter' in v28,
+            'css':'cj217-fuel-stat' in css and 'cj217-fuel-value' in css,
             'sem reta fallback':'pts=[{...origin},{...target}]' not in driver,
-            'retry':'routeRetryTimer' in driver and 'updateRoute(true)},2500)' in driver,
-            'osrm preservado':'router.project-osrm.org' in driver,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -56,12 +62,12 @@ jobs:
 
       - name: Gravar na main
         run: |
-          if git diff --quiet -- public/index.html public/chegaja-v217-driver-navigation.js scripts/test-v14153-logo-google-maps.mjs; then
+          if git diff --quiet -- public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs; then
             echo "Sem alterações pendentes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/index.html public/chegaja-v217-driver-navigation.js scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: manter rota válida e remover linha reta 14.33.32"
+          git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs
+          git commit -m "fix: exibir gasto estimado de combustível 14.33.33"
           git push origin HEAD:main
