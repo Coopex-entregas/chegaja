@@ -1,0 +1,52 @@
+name: Consolidar combustível da Base 14.33.36
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'scripts/fix-fuel-base-source-143336.py'
+      - '.github/workflows/fix-fuel-base-source-143336.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  consolidate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - name: Instalar dependências
+        run: npm ci
+      - name: Aplicar 14.33.36
+        run: python3 scripts/fix-fuel-base-source-143336.py
+      - name: Validar JavaScript
+        run: node --check public/chegaja-v217-driver-navigation.js
+      - name: Validar TypeScript
+        run: npm run typecheck
+      - name: Validar origem do combustível
+        run: |
+          ! grep -q 'FROM cooperatives cx' src/routes/platform-v28.ts
+          ! grep -q 'UPDATE cooperatives SET fuel_km_per_liter' src/routes/platform-v16.ts
+          grep -q 'FROM bases bx' src/routes/platform-v28.ts
+          grep -q 'app-version" content="14.33.36"' public/index.html
+      - name: Teste regressivo do cooperado
+        run: node scripts/test-v14153-logo-google-maps.mjs
+      - name: Gravar na main
+        run: |
+          if git diff --quiet; then
+            echo 'Sem alterações pendentes.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add src/routes/platform-v28.ts src/routes/platform-v16.ts public/index.html scripts/test-v14153-logo-google-maps.mjs
+          git commit -m 'fix: combustível direto da Base 14.33.36'
+          git push origin main
