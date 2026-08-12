@@ -1,5 +1,6 @@
 name: Consolidar chegada correta 14.33.39
 
+# Publicação direta para acionar a Cloudflare com a correção funcional já consolidada na main.
 on:
   push:
     branches: [main]
