@@ -1,10 +1,10 @@
-name: Consolidar navegação e alerta do cooperado 14.33.21
+name: Consolidar áudio do cooperado 14.33.22
 
 on:
   push:
     branches: [main]
     paths:
-      - 'scripts/consolidate-driver-143317.py'
+      - 'scripts/fix-driver-audio-143322.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -22,8 +22,8 @@ jobs:
       - name: Instalar dependências
         run: npm ci --ignore-scripts
 
-      - name: Aplicar correção 14.33.21
-        run: python3 scripts/consolidate-driver-143317.py
+      - name: Aplicar correção 14.33.22
+        run: python3 scripts/fix-driver-audio-143322.py
 
       - name: Validar JavaScript e TypeScript
         run: |
@@ -31,28 +31,26 @@ jobs:
           node --check public/chegaja-final.js
           npx tsc --noEmit
 
-      - name: Validar trajeto e alerta
+      - name: Validar áudio persistente
         run: |
           python3 - <<'PY'
           from pathlib import Path
           driver=Path('public/chegaja-v217-driver-navigation.js').read_text(encoding='utf-8')
-          nav=Path('src/routes/platform-v32.ts').read_text(encoding='utf-8')
           index=Path('public/index.html').read_text(encoding='utf-8')
           checks={
-            'versão':'ChegaJá 14.33.21' in driver,
-            'guard':'__CJ_DRIVER_LEAFLET_143321__=true' in driver,
-            'pane':"createPane('cj217-route-pane')" in driver,
-            'svg':"L.svg({pane:'cj217-route-pane'" in driver,
-            'gps atual':'navigation?lat=${encodeURIComponent(origin.lat)}&lng=${encodeURIComponent(origin.lng)}' in driver,
-            'onda quadrada':"type:'square'" in driver,
-            'onda serrilhada':"type:'sawtooth'" in driver,
+            'versão':'ChegaJá 14.33.22' in driver,
+            'guard':'__CJ_DRIVER_LEAFLET_143322__=true' in driver,
+            'wav':'function alarmWavUrl()' in driver,
+            'audio element':'new Audio()' in driver,
+            'preparo':'function primeAlarmMedia(test=false)' in driver,
+            'gesto':'installAudioArm()' in driver,
+            'teste iniciar':'primeAlarmMedia(!A.online)' in driver,
+            'desmutar':'media.muted=false' in driver,
+            'fallback webaudio':"type:'square'" in driver and "type:'sawtooth'" in driver,
             'repetição':'setInterval(fire,2700)' in driver,
-            'backend lat':"c.req.query('lat')" in nav,
-            'backend lng':"c.req.query('lng')" in nav,
-            'app version':'app-version" content="14.33.21"' in index,
-            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.21&recovery=143321' in index,
-            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.21&recovery=143321' in index,
-            'final cache':'chegaja-final.js?v=14.33.21&recovery=143321' in index,
+            'app version':'app-version" content="14.33.22"' in index,
+            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.22&recovery=143322' in index,
+            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.22&recovery=143322' in index,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -70,6 +68,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v32.ts scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: rota azul visível e alerta reforçado 14.33.21"
+          git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css scripts/test-v14153-logo-google-maps.mjs
+          git commit -m "fix: áudio persistente desbloqueado no iniciar 14.33.22"
           git push origin HEAD:main
