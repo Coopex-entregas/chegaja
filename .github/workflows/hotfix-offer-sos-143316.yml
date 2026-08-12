@@ -1,4 +1,4 @@
-name: Consolidar painel do cooperado 14.33.24
+name: Consolidar painel do cooperado 14.33.25
 
 on:
   push:
@@ -6,6 +6,7 @@ on:
     paths:
       - 'scripts/fix-driver-navigation-143324.py'
       - 'scripts/remove-driver-halo-143324.py'
+      - 'scripts/fix-driver-map-tabs-143325.py'
       - '.github/workflows/hotfix-offer-sos-143316.yml'
 
 permissions:
@@ -23,39 +24,44 @@ jobs:
       - name: Instalar dependências
         run: npm ci --ignore-scripts
 
-      - name: Aplicar navegação real
+      - name: Aplicar mapa, rota e abas
         run: |
           python3 scripts/fix-driver-navigation-143324.py
           python3 scripts/remove-driver-halo-143324.py
+          python3 scripts/fix-driver-map-tabs-143325.py
 
       - name: Validar JavaScript e TypeScript
         run: |
           node --check public/chegaja-v217-driver-navigation.js
+          node --check public/app.js
           npx tsc --noEmit
 
-      - name: Validar mapa e voz brasileira
+      - name: Validar mapa, rota, voz e abas
         run: |
           python3 - <<'PY'
           from pathlib import Path
           driver=Path('public/chegaja-v217-driver-navigation.js').read_text(encoding='utf-8')
           css=Path('public/chegaja-v217-driver-navigation.css').read_text(encoding='utf-8')
           nav=Path('src/routes/platform-v32.ts').read_text(encoding='utf-8')
+          app=Path('public/app.js').read_text(encoding='utf-8')
           index=Path('public/index.html').read_text(encoding='utf-8')
           checks={
-            'versão':'ChegaJá 14.33.24' in driver,
-            'guard':'__CJ_DRIVER_LEAFLET_143324__=true' in driver,
-            'rota azul':'drawRoute(pts)' in driver,
+            'versão':'ChegaJá 14.33.25' in driver,
+            'guard':'__CJ_DRIVER_LEAFLET_143325__=true' in driver,
+            'leaflet svg':'preferCanvas:false' in driver,
+            'posição padrão':'L.circleMarker(ll' in driver,
+            'rota padrão':"className:'cj217-route-line'" in driver,
+            'linha azul':"L.polyline(ll,{color:'#075dff'" in driver,
             'destino backend':'nav.next?.lat' in driver,
             'voz pt-BR':"u.lang='pt-BR'" in driver,
-            'seleção pt-BR':"toLowerCase()==='pt-br'" in driver,
-            'sem halo legado':"cj217-self-icon:before{content:''" not in css,
-            'seta compacta':'width:22px!important' in css,
             'geocodificação':'nominatim.openstreetmap.org/search' in nav,
-            'salva coleta':'UPDATE deliveries SET pickup_lat=' in nav,
-            'salva entrega':'UPDATE deliveries SET delivery_lat=' in nav,
-            'app version':'app-version" content="14.33.24"' in index,
-            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.24&recovery=143324' in index,
-            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.24&recovery=143324' in index,
+            'login início':'state.freshLogin=true' in app and "targetPage=freshDriver?'dashboard'" in app,
+            'mantém aba':'location.hash.slice(1)||defaultPage' in app,
+            'app version':'app-version" content="14.33.25"' in index,
+            'js cache':'chegaja-v217-driver-navigation.js?v=14.33.25&recovery=143325' in index,
+            'css cache':'chegaja-v217-driver-navigation.css?v=14.33.25&recovery=143325' in index,
+            'app cache':'/app.js?v=14.33.25&recovery=143325' in index,
+            'svg visível':'leaflet-overlay-pane svg' in css,
           }
           failed=[name for name,ok in checks.items() if not ok]
           print(checks)
@@ -67,12 +73,12 @@ jobs:
 
       - name: Gravar na main
         run: |
-          if git diff --quiet -- public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v32.ts scripts/test-v14153-logo-google-maps.mjs; then
+          if git diff --quiet -- public/index.html public/app.js public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v32.ts scripts/test-v14153-logo-google-maps.mjs; then
             echo "Sem alterações pendentes."
             exit 0
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/index.html public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v32.ts scripts/test-v14153-logo-google-maps.mjs
-          git commit -m "fix: rota real marcador compacto e voz pt-BR 14.33.24"
+          git add public/index.html public/app.js public/chegaja-v217-driver-navigation.js public/chegaja-v217-driver-navigation.css src/routes/platform-v32.ts scripts/test-v14153-logo-google-maps.mjs
+          git commit -m "fix: mapa mostra posição rota e login abre início 14.33.25"
           git push origin HEAD:main
