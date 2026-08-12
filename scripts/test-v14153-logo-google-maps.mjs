@@ -13,13 +13,13 @@ const v28=read('src/routes/platform-v28.ts');
 const v16=read('src/routes/platform-v16.ts');
 const finalJs=read('public/chegaja-final.js');
 
-assert.match(index,/app-version" content="14\.33\.39"/);
-assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.39&recovery=143339/);
+assert.match(index,/app-version" content="14\.33\.40"/);
+assert.match(index,/chegaja-v217-driver-navigation\.js\?v=14\.33\.40&recovery=143340/);
 assert.match(index,/chegaja-v217-driver-navigation\.css\?v=14\.33\.33&recovery=143333/);
 for(const old of ['chegaja-v199-driver.css','chegaja-v205-driver-fixes.css','chegaja-v222-driver-stability.css','chegaja-v223-driver-final.css','chegaja-v225-driver-polish.css','chegaja-v205-driver-fixes.js']) assert.equal(index.includes(old),false,`asset antigo carregado: ${old}`);
 assert.doesNotMatch(index,/chegaja-v230-base-toast-filter|chegaja-v232-navigation-final/);
 
-assert.match(driver,/ChegaJá 14\.33\.39/);
+assert.match(driver,/ChegaJá 14\.33\.40/);
 assert.match(driver,/start\.hidden=work/);
 assert.match(driver,/phoneTone/);
 assert.match(driver,/setInterval\(fire,2700\)/);
@@ -131,7 +131,7 @@ assert.match(app,/freshDriver=.*state\.freshLogin/);
 assert.match(app,/targetPage=freshDriver\?'dashboard'/);
 assert.match(index,/\/app\.js\?v=14\.33\.31&recovery=143331/);
 assert.match(driver,/L\.marker\(ll/);
-assert.match(driver,/L\.polyline\(ll,\{color:'#075dff'/);
+assert.match(driver,/L\.polyline\(ll,\{pane:'cj217-route-pane',renderer:A\.routeRenderer,color:'#075dff'/);
 
 
 assert.match(driver,/function mapRotationForHeading\(heading\)/);
@@ -149,8 +149,8 @@ assert.match(app,/APP_SQL_UTC\.test\(text\)/);
 assert.match(app,/sessionStorage\.setItem\('cj_driver_fresh_login','1'\)/);
 assert.match(app,/sessionStorage\.getItem\('cj_driver_fresh_login'\)/);
 assert.match(driver,/async function manualArrivePickup\(\)/);
-assert.match(driver,/manual:true,stage:'pickup'/);
-assert.match(driver,/Confirme COLETA REALIZADA somente depois de retirar o pedido/);
+assert.match(driver,/v16\/driver\/deliveries\/\$\{encodeURIComponent\(A\.detail\.id\)\}\/arrive/);
+assert.match(driver,/O contador iniciou\. Toque em COLETA REALIZADA somente depois de retirar o pedido/);
 assert.doesNotMatch(v28,/item\.status==='at_pickup'&&distance>=200/);
 assert.match(v28,/Nunca avançar at_pickup -> in_route por GPS/);
 
@@ -197,8 +197,19 @@ assert.match(v28,/DRIVER_ARRIVAL_RADIUS_METERS=100/);
 assert.match(v28,/requestedDeliveryId=cleanText\(body\.delivery_id,80\)/);
 assert.match(v28,/AND id=\? LIMIT 1/);
 assert.match(navigation,/ARRIVAL_RADIUS_METERS=100/);
-assert.match(driver,/stage:'pickup',delivery_id:A\.detail\.id/);
+assert.match(driver,/body:\{stage:'pickup',\.\.\.loc\}/);
 assert.match(driver,/stage:'delivery',delivery_id:A\.detail\.id/);
 assert.match(driver,/body:\{\.\.\.loc,delivery_id:A\.detail\.id\}/);
 assert.match(driver,/chosenType==='arrive'&&!nav\.arrived/);
 assert.match(driver,/text=`\$\{label\} a \$\{meters\} m`/);
+
+// 14.33.40 — fluxo completo da coleta, cronômetro e rota.
+assert.match(v16,/distance<=200\|\|elapsed<20/);
+assert.doesNotMatch(v16,/snapshot\.active\.stage==='pickup'\)await c\.env\.DB\.prepare\(`UPDATE deliveries SET status='in_route'/);
+assert.match(v16,/delivery\.delivery_type==='establishment'\?0:300/);
+assert.match(driver,/text:'CHEGUEI NA COLETA'/);
+assert.match(driver,/text:'COLETA REALIZADA'/);
+assert.match(driver,/performPrimaryAction/);
+assert.match(driver,/delivery_id:A\.detail\.id/);
+assert.match(driver,/pane:'cj217-route-pane'/);
+assert.match(driver,/targetKind\(\)==='delivery'.*route_geometry/);

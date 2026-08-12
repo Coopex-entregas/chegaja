@@ -541,20 +541,19 @@ platformV16Routes.post('/v16/driver/deliveries/:id/arrive',async c=>{
   const auth=tenant(c,['driver']),delivery=await deliveryFor(c,auth,c.req.param('id')),body=await bodyJson<Row>(c),stage=cleanText(body.stage,20) as WaitStage;
   if(!['pickup','delivery'].includes(stage))return c.json({ok:false,error:'Etapa inválida.'},400);
   if(['delivered','cancelled'].includes(delivery.status))return c.json({ok:false,error:'Entrega encerrada.'},409);
-  if(delivery.delivery_type==='establishment')return c.json({ok:false,error:'Entregas de estabelecimento não possuem cobrança de tempo de espera.'},409);
   const lat=Number(body.latitude),lng=Number(body.longitude),targetLat=stage==='pickup'?Number(delivery.pickup_lat):Number(delivery.delivery_lat),targetLng=stage==='pickup'?Number(delivery.pickup_lng):Number(delivery.delivery_lng);
   if(!Number.isFinite(lat)||!Number.isFinite(lng))return c.json({ok:false,error:'Ative a localização para registrar a chegada.'},400);
   if(!Number.isFinite(targetLat)||!Number.isFinite(targetLng))return c.json({ok:false,error:'O endereço desta etapa não possui localização confirmada.'},409);
-  const distance=haversineMeters(lat,lng,targetLat,targetLng);
-  if(distance>100)return c.json({ok:false,error:`Você precisa estar a até 100 metros do local. Distância atual: ${Math.round(distance)} m.`},409);
+  const distance=haversineMeters(lat,lng,targetLat,targetLng),accuracy=Number(body.accuracy),arrivalRadius=Math.max(100,Math.min(160,Number.isFinite(accuracy)&&accuracy>0?accuracy*1.5:100));
+  if(distance>arrivalRadius)return c.json({ok:false,error:`Você ainda está a ${Math.round(distance)} m do local. A chegada será liberada ao entrar na área da coleta.`},409);
   await c.env.DB.prepare(`UPDATE drivers SET current_lat=?,current_lng=?,location_accuracy=?,location_updated_at=CURRENT_TIMESTAMP,last_seen_at=CURRENT_TIMESTAMP,online=1 WHERE id=? AND cooperative_id=?`).bind(lat,lng,Number(body.accuracy)||null,auth.driverId,auth.cooperativeId).run();
   const snapshot=await waitSnapshot(c,delivery.id);
   if(snapshot.active){
     if(snapshot.active.stage===stage)return c.json({ok:true,already_active:true,active:snapshot.active});
     return c.json({ok:false,error:'Finalize o cronômetro atual antes de iniciar outra etapa.'},409);
   }
-  let free=300,rate=Number(delivery.wait_cents_per_15m??500);
-  if(stage==='pickup'){
+  let free=delivery.delivery_type==='establishment'?0:300,rate=delivery.delivery_type==='establishment'?0:Number(delivery.wait_cents_per_15m??500);
+  if(stage==='pickup'&&delivery.delivery_type!=='establishment'){
     const service=await c.env.DB.prepare(`SELECT s.wait_cents_per_15m FROM delivery_services ds JOIN services s ON s.id=ds.service_id WHERE ds.delivery_id=? AND s.active=1 AND s.deleted_at IS NULL ORDER BY s.name LIMIT 1`).bind(delivery.id).first<Row>();
     if(service){free=900;rate=Number(service.wait_cents_per_15m??rate);}
   }
@@ -569,19 +568,20 @@ platformV16Routes.post('/v16/driver/deliveries/:id/arrive',async c=>{
 });
 
 platformV16Routes.post('/v16/driver/wait/geofence',async c=>{
-  const auth=tenant(c,['driver']),body=await bodyJson<Row>(c),lat=Number(body.latitude),lng=Number(body.longitude);
+  const auth=tenant(c,['driver']),body=await bodyJson<Row>(c),lat=Number(body.latitude),lng=Number(body.longitude),requestedDeliveryId=cleanText(body.delivery_id,100);
   if(!Number.isFinite(lat)||!Number.isFinite(lng))return c.json({ok:false,error:'Localização inválida.'},400);
-  const session=await c.env.DB.prepare(`SELECT * FROM delivery_wait_sessions WHERE cooperative_id=? AND driver_id=? AND status='active' ORDER BY started_at DESC LIMIT 1`).bind(auth.cooperativeId,auth.driverId).first<Row>();
+  const session=requestedDeliveryId
+    ? await c.env.DB.prepare(`SELECT * FROM delivery_wait_sessions WHERE cooperative_id=? AND driver_id=? AND delivery_id=? AND status='active' ORDER BY started_at DESC LIMIT 1`).bind(auth.cooperativeId,auth.driverId,requestedDeliveryId).first<Row>()
+    : await c.env.DB.prepare(`SELECT * FROM delivery_wait_sessions WHERE cooperative_id=? AND driver_id=? AND status='active' ORDER BY started_at DESC LIMIT 1`).bind(auth.cooperativeId,auth.driverId).first<Row>();
   if(!session)return c.json({ok:true,active:false});
   const delivery=await deliveryFor(c,auth,session.delivery_id),targetLat=session.stage==='pickup'?Number(delivery.pickup_lat):Number(delivery.delivery_lat),targetLng=session.stage==='pickup'?Number(delivery.pickup_lng):Number(delivery.delivery_lng);
   if(!Number.isFinite(targetLat)||!Number.isFinite(targetLng))return c.json({ok:true,active:true,stopped:false});
   const distance=haversineMeters(lat,lng,targetLat,targetLng),elapsed=elapsedSeconds(session.started_at);
-  if(distance<=130||elapsed<20)return c.json({ok:true,active:true,stopped:false,distance_meters:Math.round(distance)});
+  if(distance<=200||elapsed<20)return c.json({ok:true,active:true,stopped:false,distance_meters:Math.round(distance)});
   const stageLabel=session.stage==='pickup'?'coleta':'entrega',result=await closeWait(c,auth,delivery,session,{reason:`Saiu da área de ${stageLabel}`,lat,lng});
-  if(session.stage==='pickup')await c.env.DB.prepare(`UPDATE deliveries SET status='in_route',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status NOT IN ('delivered','cancelled')`).bind(delivery.id).run();
-  const message=`⏱️ Cronômetro de ${stageLabel} encerrado automaticamente ao sair da área. Espera cobrada: ${centsLabel(result.charge_cents)}.`;
+  const message=`⏱️ Cronômetro de ${stageLabel} encerrado automaticamente ao se afastar mais de 200 m. ${session.stage==='pickup'?'A coleta ainda precisa ser confirmada pelo cooperado. ':''}Espera cobrada: ${centsLabel(result.charge_cents)}.`;
   await c.env.DB.batch([
-    c.env.DB.prepare(`INSERT INTO delivery_status_history(id,delivery_id,cooperative_id,old_status,new_status,notes,changed_by) VALUES (?,?,?,?,?,?,?)`).bind(id(),delivery.id,auth.cooperativeId,delivery.status,session.stage==='pickup'?'in_route':delivery.status,message,auth.id),
+    c.env.DB.prepare(`INSERT INTO delivery_status_history(id,delivery_id,cooperative_id,old_status,new_status,notes,changed_by) VALUES (?,?,?,?,?,?,?)`).bind(id(),delivery.id,auth.cooperativeId,delivery.status,delivery.status,message,auth.id),
     c.env.DB.prepare(`INSERT INTO delivery_messages(id,delivery_id,cooperative_id,sender_type,sender_user_id,sender_name,message,recipient_type,conversation_key,driver_read_at) VALUES (?,?,?,'driver',?,?,?,'customer','customer_driver',CURRENT_TIMESTAMP)`).bind(id(),delivery.id,auth.cooperativeId,auth.id,auth.name,message)
   ]);
   return c.json({ok:true,active:false,stopped:true,stage:session.stage,distance_meters:Math.round(distance),result});
@@ -592,8 +592,7 @@ platformV16Routes.post('/v16/driver/deliveries/:id/wait/stop',async c=>{
   if(!snapshot.active)return c.json({ok:true,already_stopped:true});
   const reason=cleanText(body.reason||'Encerrado pelo cooperado',120),lat=Number(body.latitude),lng=Number(body.longitude);
   const result=await closeWait(c,auth,delivery,snapshot.active,{reason,lat:Number.isFinite(lat)?lat:null,lng:Number.isFinite(lng)?lng:null});
-  if(snapshot.active.stage==='pickup')await c.env.DB.prepare(`UPDATE deliveries SET status='in_route',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status NOT IN ('delivered','cancelled')`).bind(delivery.id).run();
-  const label=snapshot.active.stage==='pickup'?'Coleta concluída':'Tempo na entrega encerrado';
+  const label=snapshot.active.stage==='pickup'?'Tempo na coleta encerrado':'Tempo na entrega encerrado';
   await c.env.DB.prepare(`INSERT INTO delivery_messages(id,delivery_id,cooperative_id,sender_type,sender_user_id,sender_name,message,recipient_type,conversation_key,driver_read_at) VALUES (?,?,?,'driver',?,?,?,'customer','customer_driver',CURRENT_TIMESTAMP)`).bind(id(),delivery.id,auth.cooperativeId,auth.id,auth.name,`⏱️ ${label}. Espera cobrada: ${centsLabel(result.charge_cents)}.`).run();
   return c.json({ok:true,result,stage:snapshot.active.stage});
 });
