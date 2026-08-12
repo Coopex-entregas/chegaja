@@ -1,5 +1,6 @@
 from pathlib import Path
 
+# 14.33.32 consolidada: publicação direta para carregar a correção de rota em produção.
 ROOT=Path('.')
 def read(p): return (ROOT/p).read_text(encoding='utf-8')
 def write(p,s): (ROOT/p).write_text(s,encoding='utf-8')
